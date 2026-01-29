@@ -25,6 +25,9 @@
     "default": "light",
     "isHidden": false
   },
+  "background": {
+    "style": "gradient"
+  },
   "topbarLinks": [
     {
       "name": "Dashboard",
