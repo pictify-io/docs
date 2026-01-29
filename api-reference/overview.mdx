@@ -1,0 +1,209 @@
+---
+title: API Overview
+description: Pictify API reference and conventions
+---
+
+# API Overview
+
+The Pictify API is a RESTful JSON API for generating images, GIFs, and PDFs programmatically.
+
+## Base URL
+
+```
+https://api.pictify.io/v1
+```
+
+## Authentication
+
+All requests require a Bearer token:
+
+```bash
+curl https://api.pictify.io/v1/image \
+  -H "Authorization: Bearer pk_live_your_api_key"
+```
+
+See [Authentication](/authentication) for details.
+
+## Request Format
+
+- Content-Type: `application/json`
+- Request bodies are JSON
+- Dates use ISO 8601 format
+
+```bash
+curl -X POST https://api.pictify.io/v1/image \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "html": "<h1>Hello World</h1>",
+    "width": 1200,
+    "height": 630
+  }'
+```
+
+## Response Format
+
+Successful responses return JSON with relevant data:
+
+```json
+{
+  "url": "https://cdn.pictify.io/renders/abc123.png",
+  "id": "img_abc123",
+  "width": 1200,
+  "height": 630,
+  "createdAt": "2026-01-29T10:30:00Z"
+}
+```
+
+Error responses follow [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457.html) Problem Details format:
+
+```json
+{
+  "type": "https://docs.pictify.io/errors/rate-limit",
+  "title": "Rate Limit Exceeded",
+  "status": 429,
+  "detail": "You have exceeded the rate limit. Please retry after 60 seconds.",
+  "instance": "/v1/image"
+}
+```
+
+## Rate Limits
+
+Rate limits vary by plan:
+
+| Plan | Requests/Minute | Requests/Day |
+|------|----------------:|-------------:|
+| Free | 60 | 1,000 |
+| Pro | 300 | 10,000 |
+| Business | 1,000 | 100,000 |
+| Enterprise | Custom | Custom |
+
+Rate limit headers are included in every response:
+
+| Header | Description |
+|--------|-------------|
+| `X-RateLimit-Limit` | Maximum requests per window |
+| `X-RateLimit-Remaining` | Requests remaining in window |
+| `X-RateLimit-Reset` | Unix timestamp when window resets |
+| `Retry-After` | Seconds to wait (on 429 responses) |
+
+## Pagination
+
+List endpoints return paginated results:
+
+```bash
+curl "https://api.pictify.io/v1/templates?page=2&limit=20" \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+Response includes pagination metadata:
+
+```json
+{
+  "templates": [...],
+  "pagination": {
+    "page": 2,
+    "limit": 20,
+    "total": 45,
+    "totalPages": 3,
+    "hasNext": true,
+    "hasPrev": true
+  }
+}
+```
+
+## HTTP Status Codes
+
+| Code | Description |
+|------|-------------|
+| 200 | Success |
+| 201 | Created |
+| 202 | Accepted (async operation started) |
+| 400 | Bad Request (validation error) |
+| 401 | Unauthorized (invalid API key) |
+| 403 | Forbidden (access denied) |
+| 404 | Not Found |
+| 422 | Unprocessable Entity |
+| 429 | Rate Limit Exceeded |
+| 500 | Internal Server Error |
+
+## Idempotency
+
+POST requests can include an `Idempotency-Key` header for safe retries:
+
+```bash
+curl -X POST https://api.pictify.io/v1/image \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Idempotency-Key: unique-request-id-123" \
+  -H "Content-Type: application/json" \
+  -d '{"html": "..."}'
+```
+
+The same key with the same request will return the cached response for 24 hours.
+
+## Versioning
+
+The API version is included in the URL path (`/v1/`). Breaking changes will be introduced in new versions while maintaining backwards compatibility in existing versions.
+
+## SDK Libraries
+
+Official SDKs handle authentication, retries, and error handling:
+
+- [Node.js SDK](/sdks/nodejs)
+- [Python SDK](/sdks/python)
+- [Go SDK](/sdks/go)
+- [Ruby SDK](/sdks/ruby)
+
+## Endpoints
+
+### Generation
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/image` | POST | [Generate an image](/api-reference/generation/images) |
+| `/image/canvas` | POST | [Image from FabricJS canvas](/api-reference/generation/images#canvas) |
+| `/image/agent-screenshot` | POST | [AI-powered screenshot](/api-reference/generation/images#agent-screenshot) |
+| `/gif` | POST | [Generate a GIF](/api-reference/generation/gifs) |
+| `/gif/capture` | POST | [Capture GIF from URL](/api-reference/generation/gifs#capture) |
+| `/pdf/render` | POST | [Generate a PDF](/api-reference/generation/pdfs) |
+| `/pdf/multi-page` | POST | [Multi-page PDF](/api-reference/generation/pdfs#multi-page) |
+
+### Templates
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/templates` | GET | [List templates](/api-reference/templates#list) |
+| `/templates` | POST | [Create template](/api-reference/templates#create) |
+| `/templates/{uid}` | GET | [Get template](/api-reference/templates#get) |
+| `/templates/{uid}` | PUT | [Update template](/api-reference/templates#update) |
+| `/templates/{uid}` | DELETE | [Delete template](/api-reference/templates#delete) |
+| `/templates/{uid}/render` | POST | [Render template](/api-reference/templates#render) |
+| `/templates/{uid}/variables` | GET | [Get variables](/api-reference/templates#variables) |
+
+### Batch Operations
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/templates/{uid}/batch-render` | POST | [Start batch job](/api-reference/batch#create) |
+| `/templates/batch/{id}/results` | GET | [Get batch results](/api-reference/batch#results) |
+| `/templates/batch/{id}/cancel` | POST | [Cancel batch](/api-reference/batch#cancel) |
+
+### Webhooks
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/webhook-subscriptions` | GET | [List subscriptions](/api-reference/webhooks#list) |
+| `/webhook-subscriptions` | POST | [Create subscription](/api-reference/webhooks#create) |
+| `/webhook-subscriptions/{uid}` | GET | [Get subscription](/api-reference/webhooks#get) |
+| `/webhook-subscriptions/{uid}` | PUT | [Update subscription](/api-reference/webhooks#update) |
+| `/webhook-subscriptions/{uid}` | DELETE | [Delete subscription](/api-reference/webhooks#delete) |
+
+### Bindings
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/bindings` | GET | [List bindings](/api-reference/bindings#list) |
+| `/bindings` | POST | [Create binding](/api-reference/bindings#create) |
+| `/bindings/{uid}` | GET | [Get binding](/api-reference/bindings#get) |
+| `/bindings/{uid}` | PUT | [Update binding](/api-reference/bindings#update) |
+| `/bindings/{uid}` | DELETE | [Delete binding](/api-reference/bindings#delete) |

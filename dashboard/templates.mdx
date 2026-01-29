@@ -1,0 +1,289 @@
+---
+title: Managing Templates
+description: Create and manage templates in the Pictify dashboard
+---
+
+# Managing Templates
+
+The Pictify dashboard provides a visual editor for creating and managing templates. This guide covers the template workflow from creation to rendering.
+
+## Template Editor
+
+### Accessing the Editor
+
+1. Go to **Templates** in the sidebar
+2. Click **Create Template** or select an existing template
+3. The visual editor opens with the canvas and toolbar
+
+### Editor Layout
+
+| Area | Description |
+|------|-------------|
+| **Canvas** | Visual preview of your template |
+| **Toolbar** | Add elements, adjust settings |
+| **Properties Panel** | Configure selected element |
+| **Variables Panel** | Define and manage variables |
+| **Layers Panel** | Reorder and group elements |
+
+## Creating a Template
+
+### Step 1: Set Canvas Size
+
+Choose a preset or enter custom dimensions:
+
+| Preset | Dimensions | Use Case |
+|--------|-----------|----------|
+| **OG Image** | 1200 × 630 | Social sharing (Facebook, LinkedIn) |
+| **Twitter Card** | 1200 × 600 | Twitter posts |
+| **Instagram Post** | 1080 × 1080 | Instagram feed |
+| **Instagram Story** | 1080 × 1920 | Instagram/Facebook stories |
+| **YouTube Thumbnail** | 1280 × 720 | Video thumbnails |
+| **Custom** | Any | Your specific needs |
+
+### Step 2: Add Elements
+
+Click the **+** button to add elements:
+
+- **Text** - Headlines, body text, captions
+- **Image** - Logos, photos, icons
+- **Shape** - Rectangles, circles, custom shapes
+- **Container** - Group elements together
+
+### Step 3: Style Elements
+
+Select an element to edit its properties:
+
+**Text Properties:**
+- Font family, size, weight
+- Color and opacity
+- Alignment and line height
+- Letter spacing
+
+**Image Properties:**
+- Source URL or upload
+- Fit mode (cover, contain, fill)
+- Border radius
+- Filters and effects
+
+**Shape Properties:**
+- Fill color or gradient
+- Border width and color
+- Shadow effects
+- Opacity
+
+### Step 4: Add Variables
+
+Variables make your template dynamic. Click **Variables** to add:
+
+1. Click **Add Variable**
+2. Enter a name (e.g., `title`, `author`)
+3. Set the type (string, number, boolean, image)
+4. Optionally set a default value
+
+Use variables in text with double braces:
+
+```
+{{title}}
+{{author.name}}
+{{currency(price, 'USD')}}
+```
+
+### Step 5: Save Template
+
+1. Click **Save**
+2. Enter a name and description
+3. Click **Create Template**
+
+Your template is now available via API.
+
+## Template Settings
+
+### General Settings
+
+| Setting | Description |
+|---------|-------------|
+| **Name** | Template identifier in the dashboard |
+| **Description** | Notes about the template's purpose |
+| **Tags** | Categorize templates (e.g., "social", "email") |
+
+### Render Settings
+
+| Setting | Description |
+|---------|-------------|
+| **Default Format** | PNG, JPEG, or WebP |
+| **Quality** | Compression level (1-100) |
+| **Device Scale** | Retina support (1x, 2x, 3x) |
+
+### Access Settings
+
+| Setting | Description |
+|---------|-------------|
+| **Visibility** | Public URL or API-only |
+| **Allowed Origins** | CORS origins for public URL |
+
+## Working with Variables
+
+### Variable Types
+
+| Type | Description | Example |
+|------|-------------|---------|
+| **String** | Text content | `"Hello World"` |
+| **Number** | Numeric values | `42`, `3.14` |
+| **Boolean** | True/false | `true`, `false` |
+| **Image** | Image URL | `"https://..."` |
+| **Array** | List of items | `["a", "b", "c"]` |
+| **Object** | Nested data | `{name: "..."}` |
+
+### Using Variables in Text
+
+```
+Hello, {{name}}!
+You have {{count}} new messages.
+Total: {{currency(price, 'USD')}}
+```
+
+### Conditional Elements
+
+Make elements appear based on conditions:
+
+1. Select an element
+2. In Properties, find **Conditional**
+3. Enter a condition: `isPremium` or `count > 0`
+
+The element only renders when the condition is true.
+
+### Default Values
+
+Set fallback values for variables:
+
+1. Click the variable in the Variables panel
+2. Enter a **Default Value**
+3. This value is used when the variable isn't provided
+
+## Organizing Templates
+
+### Folders
+
+Create folders to organize templates:
+
+1. Click **New Folder** in the Templates view
+2. Name your folder
+3. Drag templates into folders
+
+### Tags
+
+Add tags for filtering:
+
+1. Open template settings
+2. Add tags in the **Tags** field
+3. Filter by tags in the Templates list
+
+### Search
+
+Use the search bar to find templates by:
+- Name
+- Description
+- Tags
+- Variable names
+
+## Duplicating Templates
+
+Create a copy to modify:
+
+1. Click the **...** menu on a template
+2. Select **Duplicate**
+3. Edit the copy as needed
+
+## Deleting Templates
+
+<Warning>
+Deleting a template is permanent. Existing images won't be affected, but you won't be able to render new ones.
+</Warning>
+
+1. Click the **...** menu on a template
+2. Select **Delete**
+3. Confirm deletion
+
+## Version History
+
+View and restore previous versions:
+
+1. Open a template
+2. Click **History** in the toolbar
+3. Browse previous versions
+4. Click **Restore** to revert
+
+## Previewing Templates
+
+### In-Editor Preview
+
+1. Click **Preview** in the toolbar
+2. Enter sample variable values
+3. See the rendered result
+
+### Test Renders
+
+Generate a test image:
+
+1. Click **Test Render**
+2. Fill in variables
+3. Click **Generate**
+4. View or download the result
+
+Test renders don't count against your quota.
+
+## Exporting Templates
+
+### Export as JSON
+
+Export template configuration:
+
+1. Click **...** menu
+2. Select **Export**
+3. Download the JSON file
+
+### Import Template
+
+Import from JSON:
+
+1. Click **Import** in the Templates view
+2. Select your JSON file
+3. Review and save
+
+## Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Cmd/Ctrl + S` | Save template |
+| `Cmd/Ctrl + Z` | Undo |
+| `Cmd/Ctrl + Shift + Z` | Redo |
+| `Cmd/Ctrl + D` | Duplicate element |
+| `Delete` | Delete selected |
+| `Cmd/Ctrl + G` | Group elements |
+| `Arrow keys` | Nudge element |
+| `Shift + Arrow` | Nudge 10px |
+
+## Best Practices
+
+### Design Tips
+
+1. **Use a grid** - Enable snap-to-grid for alignment
+2. **Set up styles** - Create reusable colors and fonts
+3. **Group related elements** - Keep layers organized
+4. **Test at different sizes** - Preview on various devices
+
+### Variable Naming
+
+```
+✅ title, authorName, publishDate
+❌ t, var1, x
+```
+
+Use descriptive, camelCase names.
+
+### Performance
+
+1. **Optimize images** - Use appropriate sizes
+2. **Limit fonts** - Load only needed weights
+3. **Simplify gradients** - Complex gradients slow rendering
+4. **Test render time** - Keep under 5 seconds

@@ -1,0 +1,352 @@
+---
+title: Webhook Subscriptions
+description: Manage webhook subscriptions via API
+---
+
+# Webhook Subscriptions
+
+Manage webhook subscriptions programmatically. Webhooks notify your server when events occur in your Pictify account.
+
+<Note>
+For webhook payload formats and signature verification, see [Webhooks Concept](/concepts/webhooks).
+</Note>
+
+## List Subscriptions {#list}
+
+Retrieve all webhook subscriptions.
+
+<CodeGroup>
+```bash cURL
+curl https://api.pictify.io/v1/webhook-subscriptions \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+```typescript Node.js
+const subscriptions = await pictify.webhooks.list();
+```
+
+```python Python
+subscriptions = pictify.webhooks.list()
+```
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "subscriptions": [
+    {
+      "uid": "wh_abc123",
+      "event": "render.completed",
+      "targetUrl": "https://your-server.com/webhooks/pictify",
+      "platform": "custom",
+      "status": "active",
+      "createdAt": "2026-01-15T10:00:00Z"
+    },
+    {
+      "uid": "wh_def456",
+      "event": "render.failed",
+      "targetUrl": "https://your-server.com/webhooks/errors",
+      "platform": "custom",
+      "status": "active",
+      "createdAt": "2026-01-20T14:30:00Z"
+    }
+  ]
+}
+```
+
+## Create Subscription {#create}
+
+Create a new webhook subscription.
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://api.pictify.io/v1/webhook-subscriptions \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event": "render.completed",
+    "targetUrl": "https://your-server.com/webhooks/pictify",
+    "platform": "custom"
+  }'
+```
+
+```typescript Node.js
+const subscription = await pictify.webhooks.create({
+  event: 'render.completed',
+  targetUrl: 'https://your-server.com/webhooks/pictify',
+  platform: 'custom'
+});
+
+// Save the secret securely - it's only shown once!
+console.log(`Secret: ${subscription.secret}`);
+```
+
+```python Python
+subscription = pictify.webhooks.create(
+    event='render.completed',
+    target_url='https://your-server.com/webhooks/pictify',
+    platform='custom'
+)
+
+# Save the secret securely - it's only shown once!
+print(f"Secret: {subscription['secret']}")
+```
+</CodeGroup>
+
+### Request Body
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `event` | string | Yes | Event type to subscribe to |
+| `targetUrl` | string | Yes | URL to receive webhook notifications |
+| `platform` | string | No | Platform type: `custom`, `zapier`, `make` (default: `custom`) |
+| `filters` | object | No | Filter criteria for events |
+
+### Response
+
+```json
+{
+  "subscription": {
+    "uid": "wh_xyz789",
+    "event": "render.completed",
+    "targetUrl": "https://your-server.com/webhooks/pictify",
+    "platform": "custom",
+    "status": "active",
+    "secret": "whsec_abc123xyz...",
+    "createdAt": "2026-01-29T10:30:00Z"
+  }
+}
+```
+
+<Warning>
+The `secret` is only returned when creating a subscription. Store it securely for signature verification.
+</Warning>
+
+## Get Subscription {#get}
+
+Retrieve a specific subscription.
+
+<CodeGroup>
+```bash cURL
+curl https://api.pictify.io/v1/webhook-subscriptions/wh_abc123 \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+```typescript Node.js
+const subscription = await pictify.webhooks.get('wh_abc123');
+```
+
+```python Python
+subscription = pictify.webhooks.get('wh_abc123')
+```
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "uid": "wh_abc123",
+  "event": "render.completed",
+  "targetUrl": "https://your-server.com/webhooks/pictify",
+  "platform": "custom",
+  "status": "active",
+  "filters": {
+    "templateId": "tmpl_xyz789"
+  },
+  "lastDelivery": {
+    "status": "success",
+    "timestamp": "2026-01-29T10:25:00Z",
+    "responseCode": 200
+  },
+  "createdAt": "2026-01-15T10:00:00Z"
+}
+```
+
+## Update Subscription {#update}
+
+Update an existing subscription.
+
+<CodeGroup>
+```bash cURL
+curl -X PUT https://api.pictify.io/v1/webhook-subscriptions/wh_abc123 \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "targetUrl": "https://your-server.com/webhooks/new-endpoint"
+  }'
+```
+
+```typescript Node.js
+const subscription = await pictify.webhooks.update('wh_abc123', {
+  targetUrl: 'https://your-server.com/webhooks/new-endpoint'
+});
+```
+
+```python Python
+subscription = pictify.webhooks.update('wh_abc123',
+    target_url='https://your-server.com/webhooks/new-endpoint'
+)
+```
+</CodeGroup>
+
+### Request Body
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `targetUrl` | string | New webhook URL |
+| `filters` | object | New filter criteria |
+
+## Delete Subscription {#delete}
+
+Delete a webhook subscription.
+
+<CodeGroup>
+```bash cURL
+curl -X DELETE https://api.pictify.io/v1/webhook-subscriptions/wh_abc123 \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+```typescript Node.js
+await pictify.webhooks.delete('wh_abc123');
+```
+
+```python Python
+pictify.webhooks.delete('wh_abc123')
+```
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "deleted": true
+}
+```
+
+## Pause Subscription
+
+Temporarily pause a webhook subscription.
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://api.pictify.io/v1/webhook-subscriptions/wh_abc123/pause \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+```typescript Node.js
+await pictify.webhooks.pause('wh_abc123');
+```
+
+```python Python
+pictify.webhooks.pause('wh_abc123')
+```
+</CodeGroup>
+
+## Resume Subscription
+
+Resume a paused webhook subscription.
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://api.pictify.io/v1/webhook-subscriptions/wh_abc123/resume \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+```typescript Node.js
+await pictify.webhooks.resume('wh_abc123');
+```
+
+```python Python
+pictify.webhooks.resume('wh_abc123')
+```
+</CodeGroup>
+
+## Supported Events
+
+| Event | Description |
+|-------|-------------|
+| `render.completed` | Image, GIF, or PDF render finished successfully |
+| `render.failed` | Render failed with an error |
+| `batch.completed` | Batch job completed |
+| `batch.failed` | Batch job failed |
+| `binding.updated` | Binding data refreshed |
+| `binding.failed` | Binding data fetch failed |
+
+## Filters
+
+Filter webhooks to only receive specific events:
+
+### Filter by Template
+
+```json
+{
+  "event": "render.completed",
+  "targetUrl": "https://...",
+  "filters": {
+    "templateId": "tmpl_abc123"
+  }
+}
+```
+
+### Filter by Render Type
+
+```json
+{
+  "event": "render.completed",
+  "targetUrl": "https://...",
+  "filters": {
+    "type": "image"
+  }
+}
+```
+
+### Multiple Filters
+
+```json
+{
+  "event": "render.completed",
+  "targetUrl": "https://...",
+  "filters": {
+    "templateId": "tmpl_abc123",
+    "type": "image"
+  }
+}
+```
+
+## Subscription Status
+
+| Status | Description |
+|--------|-------------|
+| `active` | Receiving webhooks |
+| `paused` | Temporarily disabled |
+| `failed` | Disabled after repeated failures |
+
+## Delivery Information
+
+The `lastDelivery` field shows the most recent delivery attempt:
+
+```json
+{
+  "lastDelivery": {
+    "status": "success",
+    "timestamp": "2026-01-29T10:25:00Z",
+    "responseCode": 200,
+    "duration": 150
+  }
+}
+```
+
+For failed deliveries:
+
+```json
+{
+  "lastDelivery": {
+    "status": "failed",
+    "timestamp": "2026-01-29T10:25:00Z",
+    "error": "Connection timeout",
+    "retryCount": 3,
+    "nextRetry": "2026-01-29T10:55:00Z"
+  }
+}
+```

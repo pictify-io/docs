@@ -1,0 +1,368 @@
+---
+title: Webhooks
+description: Receive real-time notifications for render events
+---
+
+# Webhooks
+
+Webhooks allow you to receive real-time HTTP notifications when events occur in your Pictify account. Use them to trigger workflows, update databases, or integrate with third-party services.
+
+## Supported Events
+
+| Event | Description |
+|-------|-------------|
+| `render.completed` | Image, GIF, or PDF render finished successfully |
+| `render.failed` | Render failed with an error |
+| `binding.updated` | Binding data refreshed |
+| `binding.failed` | Binding data fetch failed |
+
+## Creating a Webhook
+
+### Dashboard
+
+1. Go to **Settings** > **Webhooks**
+2. Click **Create Webhook**
+3. Select the event type
+4. Enter your endpoint URL
+5. Save and copy the signing secret
+
+### API
+
+```bash
+curl -X POST https://api.pictify.io/v1/webhook-subscriptions \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event": "render.completed",
+    "targetUrl": "https://your-server.com/webhooks/pictify",
+    "platform": "custom"
+  }'
+```
+
+Response includes the signing secret (only shown once):
+
+```json
+{
+  "subscription": {
+    "uid": "wh_abc123",
+    "event": "render.completed",
+    "targetUrl": "https://your-server.com/webhooks/pictify",
+    "status": "active",
+    "secret": "whsec_xyz789..."
+  }
+}
+```
+
+## Webhook Payload
+
+All webhooks include these headers:
+
+```http
+Content-Type: application/json
+X-Pictify-Signature: t=1706515260,v1=abc123...
+X-Pictify-Event: render.completed
+X-Pictify-Delivery-Id: del_xyz789
+```
+
+### render.completed
+
+```json
+{
+  "event": "render.completed",
+  "timestamp": "2026-01-29T10:30:00Z",
+  "data": {
+    "type": "image",
+    "source": "api",
+    "imageId": "img_abc123",
+    "url": "https://cdn.pictify.io/renders/abc123.png",
+    "userStorageUrl": "https://your-bucket.s3.amazonaws.com/abc123.png",
+    "width": 1200,
+    "height": 630,
+    "templateId": "tmpl_xyz789",
+    "userId": "user_123",
+    "renderedAt": "2026-01-29T10:30:00Z"
+  }
+}
+```
+
+### render.failed
+
+```json
+{
+  "event": "render.failed",
+  "timestamp": "2026-01-29T10:30:00Z",
+  "data": {
+    "type": "image",
+    "templateId": "tmpl_xyz789",
+    "error": "Template not found",
+    "errorCode": "TEMPLATE_NOT_FOUND"
+  }
+}
+```
+
+## Signature Verification
+
+<Warning>
+Always verify webhook signatures to ensure requests are from Pictify and haven't been tampered with.
+</Warning>
+
+The signature header format is:
+```
+X-Pictify-Signature: t=1706515260,v1=abc123...
+```
+
+Where:
+- `t` = Unix timestamp when the webhook was sent
+- `v1` = HMAC-SHA256 signature of `{timestamp}.{payload}`
+
+### Verification Steps
+
+1. Extract timestamp and signature from header
+2. Reject if timestamp is older than 5 minutes (replay protection)
+3. Compute expected signature: `HMAC-SHA256(secret, "{timestamp}.{payload}")`
+4. Compare signatures using constant-time comparison
+
+### Code Examples
+
+<CodeGroup>
+```typescript Node.js
+import crypto from 'crypto';
+
+function verifyWebhookSignature(
+  payload: string,
+  signatureHeader: string,
+  secret: string
+): boolean {
+  const parts: Record<string, string> = {};
+  for (const pair of signatureHeader.split(',')) {
+    const [key, value] = pair.split('=');
+    parts[key] = value;
+  }
+
+  const timestamp = parseInt(parts.t, 10);
+  const providedSignature = parts.v1;
+
+  // Reject if timestamp is older than 5 minutes
+  if (Math.abs(Date.now() / 1000 - timestamp) > 300) {
+    throw new Error('Webhook timestamp too old');
+  }
+
+  const signedPayload = `${timestamp}.${payload}`;
+  const expectedSignature = crypto
+    .createHmac('sha256', secret)
+    .update(signedPayload)
+    .digest('hex');
+
+  return crypto.timingSafeEqual(
+    Buffer.from(providedSignature),
+    Buffer.from(expectedSignature)
+  );
+}
+
+// Express.js example
+app.post('/webhooks/pictify', express.raw({ type: 'application/json' }), (req, res) => {
+  const signature = req.headers['x-pictify-signature'];
+  const payload = req.body.toString();
+
+  try {
+    if (!verifyWebhookSignature(payload, signature, process.env.WEBHOOK_SECRET)) {
+      return res.status(401).send('Invalid signature');
+    }
+
+    const event = JSON.parse(payload);
+    console.log('Received event:', event.event);
+
+    res.status(200).send('OK');
+  } catch (error) {
+    res.status(400).send(error.message);
+  }
+});
+```
+
+```python Python
+import hmac
+import hashlib
+import time
+
+def verify_webhook_signature(payload: bytes, signature_header: str, secret: str) -> bool:
+    parts = dict(pair.split('=') for pair in signature_header.split(','))
+    timestamp = int(parts['t'])
+    provided_signature = parts['v1']
+
+    # Reject if timestamp is older than 5 minutes
+    if abs(time.time() - timestamp) > 300:
+        raise ValueError("Webhook timestamp too old")
+
+    signed_payload = f"{timestamp}.{payload.decode()}"
+    expected_signature = hmac.new(
+        secret.encode(),
+        signed_payload.encode(),
+        hashlib.sha256
+    ).hexdigest()
+
+    return hmac.compare_digest(provided_signature, expected_signature)
+
+# Flask example
+@app.route('/webhooks/pictify', methods=['POST'])
+def handle_webhook():
+    signature = request.headers.get('X-Pictify-Signature')
+    payload = request.get_data()
+
+    try:
+        if not verify_webhook_signature(payload, signature, WEBHOOK_SECRET):
+            return 'Invalid signature', 401
+
+        event = request.get_json()
+        print(f"Received event: {event['event']}")
+
+        return 'OK', 200
+    except ValueError as e:
+        return str(e), 400
+```
+
+```go Go
+package main
+
+import (
+    "crypto/hmac"
+    "crypto/sha256"
+    "encoding/hex"
+    "fmt"
+    "math"
+    "strconv"
+    "strings"
+    "time"
+)
+
+func verifyWebhookSignature(payload, signatureHeader, secret string) error {
+    parts := make(map[string]string)
+    for _, pair := range strings.Split(signatureHeader, ",") {
+        kv := strings.SplitN(pair, "=", 2)
+        if len(kv) == 2 {
+            parts[kv[0]] = kv[1]
+        }
+    }
+
+    timestamp, _ := strconv.ParseInt(parts["t"], 10, 64)
+    providedSignature := parts["v1"]
+
+    // Reject if timestamp is older than 5 minutes
+    if math.Abs(float64(time.Now().Unix()-timestamp)) > 300 {
+        return fmt.Errorf("webhook timestamp too old")
+    }
+
+    signedPayload := fmt.Sprintf("%d.%s", timestamp, payload)
+    mac := hmac.New(sha256.New, []byte(secret))
+    mac.Write([]byte(signedPayload))
+    expectedSignature := hex.EncodeToString(mac.Sum(nil))
+
+    if !hmac.Equal([]byte(providedSignature), []byte(expectedSignature)) {
+        return fmt.Errorf("invalid signature")
+    }
+
+    return nil
+}
+```
+
+```ruby Ruby
+require 'openssl'
+
+def verify_webhook_signature(payload, signature_header, secret)
+  parts = signature_header.split(',').map { |p| p.split('=') }.to_h
+  timestamp = parts['t'].to_i
+  provided_signature = parts['v1']
+
+  # Reject if timestamp is older than 5 minutes
+  if (Time.now.to_i - timestamp).abs > 300
+    raise 'Webhook timestamp too old'
+  end
+
+  signed_payload = "#{timestamp}.#{payload}"
+  expected_signature = OpenSSL::HMAC.hexdigest('SHA256', secret, signed_payload)
+
+  Rack::Utils.secure_compare(provided_signature, expected_signature)
+end
+
+# Sinatra example
+post '/webhooks/pictify' do
+  signature = request.env['HTTP_X_PICTIFY_SIGNATURE']
+  payload = request.body.read
+
+  begin
+    unless verify_webhook_signature(payload, signature, ENV['WEBHOOK_SECRET'])
+      halt 401, 'Invalid signature'
+    end
+
+    event = JSON.parse(payload)
+    puts "Received event: #{event['event']}"
+
+    status 200
+    'OK'
+  rescue => e
+    halt 400, e.message
+  end
+end
+```
+</CodeGroup>
+
+## Managing Webhooks
+
+### List Webhooks
+
+```bash
+curl https://api.pictify.io/v1/webhook-subscriptions \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+### Pause a Webhook
+
+```bash
+curl -X POST https://api.pictify.io/v1/webhook-subscriptions/{uid}/pause \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+### Resume a Webhook
+
+```bash
+curl -X POST https://api.pictify.io/v1/webhook-subscriptions/{uid}/resume \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+### Delete a Webhook
+
+```bash
+curl -X DELETE https://api.pictify.io/v1/webhook-subscriptions/{uid} \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+## Filters
+
+Filter webhooks to receive only specific events:
+
+```bash
+curl -X POST https://api.pictify.io/v1/webhook-subscriptions \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event": "render.completed",
+    "targetUrl": "https://your-server.com/webhooks",
+    "filters": {
+      "templateId": "tmpl_abc123"
+    }
+  }'
+```
+
+## Delivery & Retries
+
+- Webhooks are delivered within seconds of events
+- Failed deliveries retry with exponential backoff: 1min, 5min, 30min, 2hr, 24hr
+- After 5 failed attempts, the webhook is paused
+- Check delivery status in the dashboard or via API
+
+## Best Practices
+
+1. **Always verify signatures** - Protect against spoofed requests
+2. **Respond quickly** - Return 2xx within 30 seconds, process async
+3. **Handle duplicates** - Use delivery ID for idempotency
+4. **Monitor failures** - Set up alerts for webhook delivery issues
+5. **Use HTTPS** - Never use HTTP endpoints in production

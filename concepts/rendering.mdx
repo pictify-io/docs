@@ -1,0 +1,313 @@
+---
+title: Rendering
+description: Output formats and rendering options
+---
+
+# Rendering
+
+Pictify renders HTML/CSS templates to various output formats. This page covers rendering options, formats, and optimization.
+
+## Output Formats
+
+### Images
+
+| Format | Extension | Best For | Transparency |
+|--------|-----------|----------|--------------|
+| PNG | `.png` | Screenshots, graphics with transparency | Yes |
+| JPEG | `.jpg` | Photos, smaller file sizes | No |
+| WebP | `.webp` | Modern browsers, best compression | Yes |
+
+### Documents
+
+| Format | Extension | Best For |
+|--------|-----------|----------|
+| PDF | `.pdf` | Print, documents, multi-page content |
+
+### Animated
+
+| Format | Extension | Best For |
+|--------|-----------|----------|
+| GIF | `.gif` | Animations, short loops |
+
+## Rendering Options
+
+### Dimensions
+
+```typescript
+const result = await pictify.images.create({
+  html: '<h1>Hello</h1>',
+  width: 1200,    // Output width in pixels
+  height: 630,    // Output height in pixels
+});
+```
+
+<Note>
+Maximum dimensions: 4000x4000 pixels for authenticated users, 2000x2000 for public/trial.
+</Note>
+
+### Quality
+
+For JPEG and WebP formats, set compression quality (1-100):
+
+```typescript
+const result = await pictify.images.create({
+  html: '<h1>Hello</h1>',
+  format: 'jpeg',
+  quality: 85      // 1-100, higher = better quality, larger file
+});
+```
+
+### Device Scale Factor
+
+For retina/high-DPI displays, increase the device scale factor:
+
+```typescript
+const result = await pictify.images.create({
+  html: '<h1>Hello</h1>',
+  width: 1200,
+  height: 630,
+  deviceScaleFactor: 2  // 2x resolution (2400x1260 actual pixels)
+});
+```
+
+### Transparency
+
+PNG and WebP support transparent backgrounds:
+
+```typescript
+const result = await pictify.images.create({
+  html: '<h1 style="color: white;">Hello</h1>',
+  format: 'png',
+  transparent: true
+});
+```
+
+### Selector
+
+Capture a specific element instead of the full page:
+
+```typescript
+const result = await pictify.images.create({
+  html: '<div><header>...</header><main id="content">Target</main></div>',
+  selector: '#content'  // Only capture this element
+});
+```
+
+## Image Generation
+
+### From HTML
+
+```typescript
+const result = await pictify.images.create({
+  html: `
+    <div style="width: 1200px; height: 630px; background: #667eea;">
+      <h1 style="color: white;">Hello World</h1>
+    </div>
+  `,
+  width: 1200,
+  height: 630
+});
+```
+
+### From URL
+
+Capture a screenshot of any URL:
+
+```typescript
+const result = await pictify.images.create({
+  url: 'https://example.com/page',
+  width: 1200,
+  height: 630
+});
+```
+
+### From Template
+
+Render a saved template with variables:
+
+```typescript
+const result = await pictify.templates.render('template-id', {
+  variables: {
+    title: 'Dynamic Content'
+  }
+});
+```
+
+### From Canvas Data
+
+Render FabricJS canvas data directly:
+
+```typescript
+const result = await pictify.images.canvas({
+  fabricJSData: {
+    version: '5.3.0',
+    objects: [
+      { type: 'rect', fill: '#667eea', width: 1200, height: 630 },
+      { type: 'textbox', text: 'Hello', fill: 'white', top: 100, left: 100 }
+    ]
+  },
+  variables: {
+    greeting: 'Hello World'
+  },
+  width: 1200,
+  height: 630
+});
+```
+
+## GIF Generation
+
+### From HTML Animation
+
+Capture CSS animations:
+
+```typescript
+const result = await pictify.gifs.create({
+  html: `
+    <div class="animated">
+      <style>
+        @keyframes fade { 0% { opacity: 0; } 100% { opacity: 1; } }
+        .animated { animation: fade 2s infinite; }
+      </style>
+      <h1>Animated Text</h1>
+    </div>
+  `,
+  width: 600,
+  height: 400
+});
+```
+
+### From URL (Capture Mode)
+
+Record interactions on a live page:
+
+```typescript
+const result = await pictify.gifs.capture({
+  url: 'https://example.com/animated-page',
+  width: 800,
+  height: 600,
+  quality: 'high',           // 'low', 'medium', 'high'
+  frameDurationSeconds: 5    // Recording duration
+});
+```
+
+### Quality Presets
+
+| Preset | Frame Rate | Max Duration | File Size |
+|--------|-----------|--------------|-----------|
+| `low` | 10 fps | 10s | Small |
+| `medium` | 15 fps | 15s | Medium |
+| `high` | 24 fps | 30s | Large |
+
+## PDF Generation
+
+### Single Page
+
+```typescript
+const result = await pictify.pdfs.render({
+  templateUid: 'invoice-template',
+  variables: {
+    invoiceNumber: 'INV-001',
+    items: [...]
+  },
+  options: {
+    preset: 'A4',
+    margins: { top: 20, bottom: 20, left: 20, right: 20 }
+  }
+});
+```
+
+### Multi-Page
+
+Generate a PDF with multiple pages:
+
+```typescript
+const result = await pictify.pdfs.multiPage({
+  templateUid: 'report-template',
+  variableSets: [
+    { pageTitle: 'Introduction', content: '...' },
+    { pageTitle: 'Chapter 1', content: '...' },
+    { pageTitle: 'Conclusion', content: '...' }
+  ],
+  options: {
+    preset: 'A4'
+  }
+});
+```
+
+### PDF Presets
+
+| Preset | Dimensions | Use Case |
+|--------|-----------|----------|
+| `A4` | 210 × 297 mm | Standard documents |
+| `Letter` | 8.5 × 11 in | US letter size |
+| `Legal` | 8.5 × 14 in | Legal documents |
+| `A3` | 297 × 420 mm | Larger documents |
+| `A5` | 148 × 210 mm | Booklets |
+| `custom` | User-defined | Custom sizes |
+
+```typescript
+// Custom PDF size
+const result = await pictify.pdfs.render({
+  templateUid: 'template-id',
+  options: {
+    preset: 'custom',
+    customSize: { width: 800, height: 600 }  // In pixels
+  }
+});
+```
+
+## Agent Screenshot
+
+AI-powered screenshot generation using natural language:
+
+```typescript
+const result = await pictify.images.agentScreenshot({
+  prompt: 'Take a screenshot of the pricing section on stripe.com'
+});
+```
+
+The AI agent navigates to the page, finds the relevant section, and captures it.
+
+## Response Format
+
+All render endpoints return:
+
+```json
+{
+  "url": "https://cdn.pictify.io/renders/abc123.png",
+  "id": "abc123",
+  "width": 1200,
+  "height": 630,
+  "createdAt": "2026-01-29T10:30:00Z"
+}
+```
+
+For PDFs:
+
+```json
+{
+  "url": "https://cdn.pictify.io/renders/abc123.pdf",
+  "pageCount": 3,
+  "preset": "A4",
+  "pageSize": { "width": 595, "height": 842 }
+}
+```
+
+## User Storage
+
+If you've configured user storage (S3, R2, etc.), renders are also uploaded to your storage:
+
+```json
+{
+  "url": "https://cdn.pictify.io/renders/abc123.png",
+  "userStorageUrl": "https://your-bucket.s3.amazonaws.com/renders/abc123.png"
+}
+```
+
+## Performance Tips
+
+1. **Use appropriate dimensions** - Don't render larger than needed
+2. **Choose the right format** - JPEG for photos, PNG for graphics, WebP for best compression
+3. **Set quality wisely** - 85% is usually indistinguishable from 100%
+4. **Batch similar renders** - Use batch endpoints for multiple images
+5. **Cache rendered images** - Store URLs and reuse instead of re-rendering

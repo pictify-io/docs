@@ -1,0 +1,268 @@
+---
+title: Expressions
+description: Dynamic logic with the template expression engine
+---
+
+# Expressions
+
+The expression engine allows you to add dynamic logic to templates. Use expressions for text interpolation, conditional rendering, and data transformation.
+
+## Syntax
+
+Expressions use double curly braces: `{{expression}}`
+
+### Simple Variables
+
+```
+{{title}}
+{{user.name}}
+{{items[0].price}}
+```
+
+### Property Access
+
+Access nested properties with dot notation:
+
+```
+{{user.profile.avatar}}
+{{order.items[0].name}}
+```
+
+### Arithmetic
+
+```
+{{price * quantity}}
+{{subtotal + tax}}
+{{total / 100}}
+{{count % 2}}
+```
+
+### Comparisons
+
+```
+{{price > 100}}
+{{status == 'active'}}
+{{count >= 10}}
+{{name != 'Guest'}}
+```
+
+### Logical Operators
+
+```
+{{isAdmin && isPremium}}
+{{hasDiscount || isFirstOrder}}
+{{!isExpired}}
+```
+
+### Ternary Operator
+
+```
+{{isPremium ? 'Premium Member' : 'Free User'}}
+{{count > 0 ? count : 'None'}}
+```
+
+## Built-in Functions
+
+### String Functions
+
+| Function | Description | Example |
+|----------|-------------|---------|
+| `uppercase(str)` | Convert to uppercase | `{{uppercase(name)}}` |
+| `lowercase(str)` | Convert to lowercase | `{{lowercase(email)}}` |
+| `capitalize(str)` | Capitalize first letter | `{{capitalize(title)}}` |
+| `titleCase(str)` | Capitalize each word | `{{titleCase(name)}}` |
+| `trim(str)` | Remove whitespace | `{{trim(input)}}` |
+| `truncate(str, len, suffix)` | Truncate with suffix | `{{truncate(desc, 100, '...')}}` |
+| `replace(str, search, replace)` | Replace all occurrences | `{{replace(text, '-', ' ')}}` |
+| `split(str, delimiter)` | Split into array | `{{split(tags, ',')}}` |
+| `padStart(str, len, char)` | Pad from start | `{{padStart(id, 5, '0')}}` |
+| `padEnd(str, len, char)` | Pad from end | `{{padEnd(code, 10, '-')}}` |
+
+### Number Functions
+
+| Function | Description | Example |
+|----------|-------------|---------|
+| `round(num, decimals)` | Round to decimals | `{{round(price, 2)}}` |
+| `floor(num)` | Round down | `{{floor(rating)}}` |
+| `ceil(num)` | Round up | `{{ceil(shipping)}}` |
+| `abs(num)` | Absolute value | `{{abs(difference)}}` |
+| `min(a, b, ...)` | Minimum value | `{{min(price, maxPrice)}}` |
+| `max(a, b, ...)` | Maximum value | `{{max(0, quantity)}}` |
+| `sum(array)` | Sum array values | `{{sum(prices)}}` |
+| `average(array)` | Average of array | `{{average(ratings)}}` |
+
+### Formatting Functions
+
+| Function | Description | Example |
+|----------|-------------|---------|
+| `currency(num, currency, locale)` | Format as currency | `{{currency(price, 'USD')}}` |
+| `number(num, locale)` | Format number | `{{number(count, 'en-US')}}` |
+| `percent(num, decimals)` | Format as percent | `{{percent(rate, 1)}}` |
+| `date(str, format)` | Format date | `{{date(createdAt, 'MMM D, YYYY')}}` |
+| `time(str)` | Format time | `{{time(timestamp)}}` |
+
+### Array Functions
+
+| Function | Description | Example |
+|----------|-------------|---------|
+| `length(arr)` | Array length | `{{length(items)}}` |
+| `first(arr)` | First element | `{{first(images)}}` |
+| `last(arr)` | Last element | `{{last(comments)}}` |
+| `join(arr, separator)` | Join elements | `{{join(tags, ', ')}}` |
+| `slice(arr, start, end)` | Slice array | `{{slice(items, 0, 3)}}` |
+| `contains(arr, value)` | Check if contains | `{{contains(roles, 'admin')}}` |
+| `indexOf(arr, value)` | Find index | `{{indexOf(items, 'apple')}}` |
+
+### Type Checks
+
+| Function | Description | Example |
+|----------|-------------|---------|
+| `isEmpty(val)` | Check if empty | `{{isEmpty(items)}}` |
+| `isNotEmpty(val)` | Check if not empty | `{{isNotEmpty(name)}}` |
+| `isDefined(val)` | Check if defined | `{{isDefined(user)}}` |
+| `isArray(val)` | Check if array | `{{isArray(items)}}` |
+| `isString(val)` | Check if string | `{{isString(name)}}` |
+| `isNumber(val)` | Check if number | `{{isNumber(count)}}` |
+
+### Utilities
+
+| Function | Description | Example |
+|----------|-------------|---------|
+| `default(val, fallback)` | Default if empty | `{{default(name, 'Guest')}}` |
+| `coalesce(a, b, ...)` | First non-null | `{{coalesce(nickname, name, 'User')}}` |
+| `json(val)` | To JSON string | `{{json(data)}}` |
+| `parseJson(str)` | Parse JSON | `{{parseJson(jsonString)}}` |
+
+## Conditional Rendering
+
+### If/Else in Text
+
+```
+{{isPremium ? 'Premium Member' : 'Free User'}}
+```
+
+### Conditional Objects
+
+In template objects, use the `_if` property:
+
+```json
+{
+  "type": "textbox",
+  "text": "Premium Badge",
+  "_if": "isPremium"
+}
+```
+
+The object is only rendered if the condition evaluates to true.
+
+### Complex Conditions
+
+```json
+{
+  "type": "image",
+  "src": "{{badge}}",
+  "_if": "isPremium && !isExpired"
+}
+```
+
+## Text Interpolation
+
+Combine static text with expressions:
+
+```
+Hello, {{name}}! You have {{count}} {{count == 1 ? 'message' : 'messages'}}.
+```
+
+Multiple expressions in one string:
+
+```
+{{currency(price, 'USD')}} ({{percent(discount)}} off)
+```
+
+## Testing Expressions
+
+Test expressions before using them in templates:
+
+### Validate Syntax
+
+```bash
+curl -X POST https://api.pictify.io/v1/templates/expression/validate \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"expression": "price * quantity"}'
+```
+
+Response:
+```json
+{
+  "valid": true,
+  "expression": "price * quantity"
+}
+```
+
+### Test with Data
+
+```bash
+curl -X POST https://api.pictify.io/v1/templates/expression/test \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "expression": "currency(price * quantity, 'USD')",
+    "variables": {
+      "price": 29.99,
+      "quantity": 3
+    }
+  }'
+```
+
+Response:
+```json
+{
+  "success": true,
+  "result": "$89.97",
+  "resultType": "string"
+}
+```
+
+### List Available Functions
+
+```bash
+curl https://api.pictify.io/v1/templates/expression/functions \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+## Examples
+
+### Personalized Greeting
+
+```
+{{capitalize(greeting)}}, {{titleCase(name)}}!
+```
+
+### Price Display
+
+```
+{{currency(price, 'USD')}}{{hasDiscount ? ' (' + percent(discount) + ' off)' : ''}}
+```
+
+### Date Formatting
+
+```
+Published {{date(publishedAt, 'MMMM D, YYYY')}}
+```
+
+### Conditional Badge
+
+```json
+{
+  "type": "rect",
+  "fill": "{{isPremium ? '#FFD700' : '#C0C0C0'}}",
+  "_if": "showBadge"
+}
+```
+
+### Array Display
+
+```
+{{join(slice(tags, 0, 3), ' • ')}}{{length(tags) > 3 ? ' +' + (length(tags) - 3) + ' more' : ''}}
+```

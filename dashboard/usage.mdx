@@ -1,0 +1,249 @@
+---
+title: Usage & Billing
+description: Monitor usage and manage your Pictify subscription
+---
+
+# Usage & Billing
+
+Track your API usage, understand your billing, and manage your Pictify subscription.
+
+## Usage Dashboard
+
+Access usage analytics at **Settings** > **Usage**.
+
+### Overview Metrics
+
+| Metric | Description |
+|--------|-------------|
+| **Total Renders** | Images, GIFs, and PDFs generated |
+| **API Calls** | Total API requests (including failed) |
+| **Bandwidth** | Data transferred from CDN |
+| **Storage** | Template and asset storage used |
+
+### Time Periods
+
+View usage for different periods:
+
+- **Today** - Current day (UTC)
+- **This Week** - Sunday to Saturday
+- **This Month** - Calendar month
+- **Custom Range** - Select specific dates
+
+### Charts
+
+Interactive charts show:
+
+- **Daily renders** over time
+- **Renders by type** (image, GIF, PDF)
+- **Renders by template**
+- **API response times**
+- **Error rates**
+
+## Plan Limits
+
+### Free Plan
+
+| Resource | Limit |
+|----------|-------|
+| Renders | 100/month |
+| API Calls | 1,000/month |
+| Templates | 5 |
+| Bandwidth | 1 GB/month |
+
+### Pro Plan
+
+| Resource | Limit |
+|----------|-------|
+| Renders | 5,000/month |
+| API Calls | 50,000/month |
+| Templates | 50 |
+| Bandwidth | 50 GB/month |
+
+### Business Plan
+
+| Resource | Limit |
+|----------|-------|
+| Renders | 50,000/month |
+| API Calls | 500,000/month |
+| Templates | Unlimited |
+| Bandwidth | 500 GB/month |
+
+### Enterprise
+
+Custom limits based on your needs. Contact sales for details.
+
+## Usage Alerts
+
+Get notified before reaching limits:
+
+1. Go to **Settings** > **Alerts**
+2. Configure thresholds:
+   - 50%, 75%, 90%, 100% of limit
+3. Choose notification method:
+   - Email
+   - Slack
+   - Webhook
+
+## Billing
+
+### Viewing Invoices
+
+1. Go to **Settings** > **Billing**
+2. Click **Invoices** tab
+3. Download PDF invoices
+
+### Payment Methods
+
+Add or update payment methods:
+
+1. Go to **Settings** > **Billing**
+2. Click **Payment Methods**
+3. Add card or connect bank account
+
+### Billing Cycle
+
+- Monthly plans bill on subscription date
+- Annual plans bill once per year
+- Overages are billed at the end of each month
+
+## Upgrading Your Plan
+
+### From Dashboard
+
+1. Go to **Settings** > **Billing**
+2. Click **Change Plan**
+3. Select your new plan
+4. Confirm upgrade
+
+Upgrades take effect immediately. You're prorated for the remaining billing period.
+
+### Downgrading
+
+1. Go to **Settings** > **Billing**
+2. Click **Change Plan**
+3. Select lower tier
+
+Downgrades take effect at the end of your billing period.
+
+## Overage Handling
+
+When you exceed plan limits:
+
+### Soft Limits (Pro and above)
+
+- API continues to work
+- Overage charges apply
+- Rates vary by resource
+
+### Hard Limits (Free plan)
+
+- API returns `429 Plan Limit Exceeded`
+- Upgrade or wait for next billing cycle
+
+### Overage Rates
+
+| Resource | Pro Overage | Business Overage |
+|----------|------------|------------------|
+| Renders | $0.01/each | $0.005/each |
+| API Calls | $0.001/each | $0.0005/each |
+| Bandwidth | $0.10/GB | $0.05/GB |
+
+## Cost Optimization
+
+### Reduce Renders
+
+1. **Cache rendered images** - Don't regenerate unchanged content
+2. **Use bindings** - Auto-refresh images instead of re-rendering
+3. **Batch similar renders** - Use batch API for efficiency
+
+### Reduce Bandwidth
+
+1. **Choose appropriate formats** - JPEG for photos, PNG for graphics
+2. **Optimize dimensions** - Don't render larger than needed
+3. **Use CDN caching** - Set appropriate cache headers
+
+### Right-Size Your Plan
+
+Compare your usage to plan limits:
+
+1. View historical usage in dashboard
+2. Identify usage patterns
+3. Choose plan that fits typical usage
+4. Consider annual plans for savings
+
+## Team Usage
+
+For team accounts, view usage by:
+
+### By Team Member
+
+See renders attributed to each user:
+
+1. Go to **Usage** > **By User**
+2. Filter by date range
+3. View per-user metrics
+
+### By API Key
+
+Track which keys generate the most usage:
+
+1. Go to **Usage** > **By API Key**
+2. Identify high-usage keys
+3. Set per-key rate limits if needed
+
+## Export Usage Data
+
+Download usage data for analysis:
+
+1. Go to **Settings** > **Usage**
+2. Click **Export**
+3. Choose format (CSV, JSON)
+4. Select date range
+5. Download file
+
+## Understanding Your Invoice
+
+Invoice line items include:
+
+| Item | Description |
+|------|-------------|
+| **Base Plan** | Monthly/annual subscription |
+| **Render Overage** | Additional renders beyond plan |
+| **API Call Overage** | Additional API calls beyond plan |
+| **Bandwidth Overage** | Additional data transfer |
+| **Add-ons** | Premium features (priority support, etc.) |
+| **Credits** | Applied promotional credits |
+
+## Tax Information
+
+### VAT/GST
+
+If you're in a region with VAT/GST:
+
+1. Go to **Settings** > **Billing**
+2. Click **Tax Information**
+3. Enter your VAT/GST number
+4. Tax will be adjusted on future invoices
+
+### Tax Exemption
+
+For tax-exempt organizations:
+
+1. Contact support with exemption documentation
+2. We'll update your account
+3. Future invoices will exclude tax
+
+## Cancellation
+
+To cancel your subscription:
+
+1. Go to **Settings** > **Billing**
+2. Click **Cancel Subscription**
+3. Select reason (helps us improve)
+4. Confirm cancellation
+
+After cancellation:
+- Access continues until end of billing period
+- Data retained for 30 days
+- API keys stop working at period end
+- Download any needed data before then

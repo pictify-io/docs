@@ -1,0 +1,1582 @@
+openapi: 3.1.0
+info:
+  title: Pictify API
+  version: 1.0.0
+  description: |
+    Generate images, GIFs, and PDFs from HTML templates programmatically.
+
+    ## Authentication
+    All API requests require a Bearer token in the Authorization header:
+    ```
+    Authorization: Bearer pk_live_your_api_key
+    ```
+
+    ## Rate Limits
+    - Free: 60 requests/minute
+    - Pro: 300 requests/minute
+    - Business: 1,000 requests/minute
+
+    Rate limit headers are included in all responses.
+  contact:
+    email: support@pictify.io
+    url: https://pictify.io
+  license:
+    name: MIT
+
+servers:
+  - url: https://api.pictify.io/v1
+    description: Production
+
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: API key obtained from the Pictify dashboard
+
+  schemas:
+    Error:
+      type: object
+      required:
+        - type
+        - title
+        - status
+      properties:
+        type:
+          type: string
+          format: uri
+          description: Link to error documentation
+          example: https://docs.pictify.io/errors/invalid-api-key
+        title:
+          type: string
+          description: Short error title
+          example: Invalid API Key
+        status:
+          type: integer
+          description: HTTP status code
+          example: 401
+        detail:
+          type: string
+          description: Detailed error message
+          example: The provided API key is invalid or has been revoked.
+        instance:
+          type: string
+          description: Request path that caused the error
+          example: /v1/image
+
+    ImageRequest:
+      type: object
+      properties:
+        html:
+          type: string
+          description: HTML content to render
+        url:
+          type: string
+          format: uri
+          description: URL to screenshot (mutually exclusive with html)
+        template:
+          type: string
+          description: Template UID to render
+        variables:
+          type: object
+          additionalProperties: true
+          description: Variables to populate in the template
+        width:
+          type: integer
+          minimum: 1
+          maximum: 4000
+          default: 1200
+          description: Output width in pixels
+        height:
+          type: integer
+          minimum: 1
+          maximum: 4000
+          default: 630
+          description: Output height in pixels
+        selector:
+          type: string
+          description: CSS selector to capture specific element
+        fileExtension:
+          type: string
+          enum: [png, jpg, jpeg, webp]
+          default: png
+          description: Output image format
+
+    ImageResponse:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+          description: URL of the generated image
+          example: https://cdn.pictify.io/renders/abc123.png
+        userStorageUrl:
+          type: string
+          format: uri
+          description: URL in user's configured storage (if configured)
+        id:
+          type: string
+          description: Unique image identifier
+          example: img_abc123
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when image was created
+
+    GifRequest:
+      type: object
+      properties:
+        html:
+          type: string
+          description: HTML content with CSS animations
+        url:
+          type: string
+          format: uri
+          description: URL to capture
+        template:
+          type: string
+          description: Template UID
+        variables:
+          type: object
+          additionalProperties: true
+        width:
+          type: integer
+          minimum: 1
+          maximum: 2000
+          default: 800
+        height:
+          type: integer
+          minimum: 1
+          maximum: 2000
+          default: 600
+
+    GifCaptureRequest:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          format: uri
+          description: URL to capture
+        width:
+          type: integer
+          minimum: 1
+          maximum: 2000
+          default: 800
+        height:
+          type: integer
+          minimum: 1
+          maximum: 2000
+          default: 600
+        quality:
+          type: string
+          enum: [low, medium, high]
+          default: medium
+          description: Quality preset
+        frameDurationSeconds:
+          type: number
+          minimum: 1
+          maximum: 30
+          description: Recording duration in seconds
+
+    GifResponse:
+      type: object
+      properties:
+        gif:
+          type: object
+          properties:
+            url:
+              type: string
+              format: uri
+            uid:
+              type: string
+            width:
+              type: integer
+            height:
+              type: integer
+            animationLength:
+              type: number
+              description: Animation duration in seconds
+
+    PdfRenderRequest:
+      type: object
+      required:
+        - templateUid
+      properties:
+        templateUid:
+          type: string
+          description: Template UID
+        variables:
+          type: object
+          additionalProperties: true
+        options:
+          type: object
+          properties:
+            preset:
+              type: string
+              enum: [A4, Letter, Legal, A3, A5, custom]
+              default: A4
+            customSize:
+              type: object
+              properties:
+                width:
+                  type: integer
+                height:
+                  type: integer
+            margins:
+              type: object
+              properties:
+                top:
+                  type: integer
+                bottom:
+                  type: integer
+                left:
+                  type: integer
+                right:
+                  type: integer
+            title:
+              type: string
+
+    PdfMultiPageRequest:
+      type: object
+      required:
+        - templateUid
+        - variableSets
+      properties:
+        templateUid:
+          type: string
+        variableSets:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+          minItems: 1
+          maxItems: 100
+        options:
+          $ref: '#/components/schemas/PdfRenderRequest/properties/options'
+
+    PdfResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        url:
+          type: string
+          format: uri
+        userStorageUrl:
+          type: string
+          format: uri
+        pageCount:
+          type: integer
+        preset:
+          type: string
+        pageSize:
+          type: object
+          properties:
+            width:
+              type: integer
+            height:
+              type: integer
+
+    Template:
+      type: object
+      properties:
+        uid:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+        category:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        width:
+          type: integer
+        height:
+          type: integer
+        thumbnail:
+          type: string
+          format: uri
+        outputFormat:
+          type: string
+          enum: [image, pdf]
+        variableDefinitions:
+          type: array
+          items:
+            $ref: '#/components/schemas/VariableDefinition'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    VariableDefinition:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum: [text, image, color, number, boolean]
+        defaultValue:
+          type: string
+        description:
+          type: string
+        validation:
+          type: object
+          properties:
+            required:
+              type: boolean
+            minLength:
+              type: integer
+            maxLength:
+              type: integer
+
+    BatchRenderRequest:
+      type: object
+      required:
+        - variableSets
+      properties:
+        variableSets:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+          minItems: 1
+          maxItems: 100
+        format:
+          type: string
+          enum: [png, jpeg, webp]
+          default: png
+        quality:
+          type: number
+          minimum: 0.1
+          maximum: 1
+          default: 0.9
+        concurrency:
+          type: integer
+          minimum: 1
+          maximum: 10
+          default: 5
+
+    BatchResponse:
+      type: object
+      properties:
+        batchId:
+          type: string
+        status:
+          type: string
+          enum: [pending, processing, completed, failed, partial, cancelled]
+        totalItems:
+          type: integer
+        message:
+          type: string
+
+    BatchStatus:
+      type: object
+      properties:
+        batchId:
+          type: string
+        status:
+          type: string
+          enum: [pending, processing, completed, failed, partial, cancelled]
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+        totalItems:
+          type: integer
+        completedItems:
+          type: integer
+        failedItems:
+          type: integer
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              index:
+                type: integer
+              success:
+                type: boolean
+              url:
+                type: string
+                format: uri
+              width:
+                type: integer
+              height:
+                type: integer
+              error:
+                type: string
+        createdAt:
+          type: string
+          format: date-time
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+
+    WebhookSubscription:
+      type: object
+      properties:
+        uid:
+          type: string
+        event:
+          type: string
+          enum: [render.completed, render.failed, binding.updated, binding.failed]
+        targetUrl:
+          type: string
+          format: uri
+        platform:
+          type: string
+          enum: [zapier, make, n8n, pipedream, custom]
+        status:
+          type: string
+          enum: [active, paused, failed]
+        filters:
+          type: object
+          properties:
+            templateId:
+              type: string
+            bindingId:
+              type: string
+        deliveryCount:
+          type: integer
+        failureCount:
+          type: integer
+        lastDeliveryAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+
+    Binding:
+      type: object
+      properties:
+        uid:
+          type: string
+        name:
+          type: string
+        templateId:
+          type: string
+        dataSource:
+          type: object
+          properties:
+            type:
+              type: string
+              enum: [http, webhook, static]
+            url:
+              type: string
+              format: uri
+            method:
+              type: string
+              enum: [GET, POST]
+        mapping:
+          type: object
+          additionalProperties:
+            type: string
+        defaults:
+          type: object
+          additionalProperties: true
+        refreshPolicy:
+          type: object
+          properties:
+            type:
+              type: string
+              enum: [ttl, etag, webhook, manual]
+            ttlSeconds:
+              type: integer
+            onError:
+              type: string
+              enum: [serve_stale, serve_error, serve_default]
+        status:
+          type: string
+          enum: [active, paused, error]
+        renderUrl:
+          type: string
+          format: uri
+        webhookUrl:
+          type: string
+          format: uri
+        createdAt:
+          type: string
+          format: date-time
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+        hasNext:
+          type: boolean
+        hasPrev:
+          type: boolean
+
+paths:
+  /image:
+    post:
+      operationId: createImage
+      summary: Generate an image
+      description: Generate an image from HTML, URL, or template
+      tags:
+        - Images
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImageRequest'
+      responses:
+        '200':
+          description: Image generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    get:
+      operationId: listImages
+      summary: List images
+      description: Get a paginated list of generated images
+      tags:
+        - Images
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 30
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: List of images
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  images:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ImageResponse'
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      limit:
+                        type: integer
+                      offset:
+                        type: integer
+                      hasMore:
+                        type: boolean
+
+  /image/{uid}:
+    get:
+      operationId: getImage
+      summary: Get image details
+      tags:
+        - Images
+      parameters:
+        - name: uid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Image details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  image:
+                    $ref: '#/components/schemas/ImageResponse'
+        '404':
+          description: Image not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /image/og-image:
+    post:
+      operationId: createOgImage
+      summary: Generate an OG image
+      description: Generate a social media Open Graph image
+      tags:
+        - Images
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - template
+              properties:
+                template:
+                  type: string
+                  description: Template UID
+                heading:
+                  type: string
+                description:
+                  type: string
+                logo:
+                  type: string
+                  format: uri
+      responses:
+        '200':
+          description: OG image generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageResponse'
+
+  /image/canvas:
+    post:
+      operationId: createCanvasImage
+      summary: Generate image from FabricJS canvas
+      description: Render an image from FabricJS canvas data
+      tags:
+        - Images
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - fabricJSData
+              properties:
+                fabricJSData:
+                  type: object
+                  description: FabricJS canvas JSON
+                variables:
+                  type: object
+                  additionalProperties: true
+                variableDefinitions:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/VariableDefinition'
+                width:
+                  type: integer
+                height:
+                  type: integer
+                fileExtension:
+                  type: string
+                  enum: [png, jpg, jpeg, webp]
+      responses:
+        '200':
+          description: Canvas image generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageResponse'
+
+  /image/agent-screenshot:
+    post:
+      operationId: agentScreenshot
+      summary: AI-powered screenshot
+      description: Take a screenshot using natural language prompt
+      tags:
+        - Images
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - prompt
+              properties:
+                prompt:
+                  type: string
+                  description: Natural language description of what to screenshot
+                  example: Take a screenshot of the pricing section on stripe.com
+      responses:
+        '200':
+          description: Screenshot captured
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ImageResponse'
+                  - type: object
+                    properties:
+                      metadata:
+                        type: object
+                        properties:
+                          prompt:
+                            type: string
+                          url:
+                            type: string
+                          elementDescription:
+                            type: string
+                          selector:
+                            type: string
+                          executionTime:
+                            type: integer
+
+  /gif:
+    post:
+      operationId: createGif
+      summary: Generate a GIF
+      description: Generate an animated GIF from HTML with CSS animations
+      tags:
+        - GIFs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GifRequest'
+      responses:
+        '200':
+          description: GIF generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GifResponse'
+    get:
+      operationId: listGifs
+      summary: List GIFs
+      tags:
+        - GIFs
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 30
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of GIFs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  gifs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GifResponse/properties/gif'
+
+  /gif/capture:
+    post:
+      operationId: captureGif
+      summary: Capture GIF from URL
+      description: Record a GIF from a live webpage
+      tags:
+        - GIFs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GifCaptureRequest'
+      responses:
+        '200':
+          description: GIF captured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GifResponse'
+
+  /pdf/render:
+    post:
+      operationId: renderPdf
+      summary: Generate a PDF
+      description: Generate a single-page PDF from a template
+      tags:
+        - PDFs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PdfRenderRequest'
+      responses:
+        '200':
+          description: PDF generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PdfResponse'
+
+  /pdf/multi-page:
+    post:
+      operationId: renderMultiPagePdf
+      summary: Generate multi-page PDF
+      description: Generate a PDF with multiple pages from a template
+      tags:
+        - PDFs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PdfMultiPageRequest'
+      responses:
+        '200':
+          description: Multi-page PDF generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PdfResponse'
+
+  /pdf/presets:
+    get:
+      operationId: getPdfPresets
+      summary: Get PDF presets
+      description: Get available PDF size presets
+      tags:
+        - PDFs
+      responses:
+        '200':
+          description: PDF presets
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  presets:
+                    type: object
+
+  /templates:
+    get:
+      operationId: listTemplates
+      summary: List templates
+      tags:
+        - Templates
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            maximum: 100
+            default: 12
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [newest, oldest, name]
+            default: newest
+        - name: outputFormat
+          in: query
+          schema:
+            type: string
+            enum: [all, image, pdf]
+            default: all
+      responses:
+        '200':
+          description: List of templates
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  templates:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Template'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+    post:
+      operationId: createTemplate
+      summary: Create a template
+      tags:
+        - Templates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                html:
+                  type: string
+                fabricJSData:
+                  type: object
+                width:
+                  type: integer
+                height:
+                  type: integer
+                type:
+                  type: string
+                category:
+                  type: string
+                tags:
+                  type: array
+                  items:
+                    type: string
+                variableDefinitions:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/VariableDefinition'
+                outputFormat:
+                  type: string
+                  enum: [image, pdf]
+      responses:
+        '200':
+          description: Template created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  template:
+                    $ref: '#/components/schemas/Template'
+
+  /templates/{uid}:
+    get:
+      operationId: getTemplate
+      summary: Get template
+      tags:
+        - Templates
+      parameters:
+        - name: uid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Template details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  template:
+                    $ref: '#/components/schemas/Template'
+        '404':
+          description: Template not found
+    put:
+      operationId: updateTemplate
+      summary: Update template
+      tags:
+        - Templates
+      parameters:
+        - name: uid
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                html:
+                  type: string
+                fabricJSData:
+                  type: object
+                width:
+                  type: integer
+                height:
+                  type: integer
+                variableDefinitions:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/VariableDefinition'
+      responses:
+        '200':
+          description: Template updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  template:
+                    $ref: '#/components/schemas/Template'
+    delete:
+      operationId: deleteTemplate
+      summary: Delete template
+      tags:
+        - Templates
+      parameters:
+        - name: uid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Template deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  /templates/{uid}/render:
+    post:
+      operationId: renderTemplate
+      summary: Render a template
+      description: Generate an image from a template with variables
+      tags:
+        - Templates
+      parameters:
+        - name: uid
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                variables:
+                  type: object
+                  additionalProperties: true
+                format:
+                  type: string
+                  enum: [png, jpeg, webp, pdf]
+                  default: png
+                quality:
+                  type: number
+                  minimum: 0.1
+                  maximum: 1
+                  default: 0.9
+      responses:
+        '200':
+          description: Template rendered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageResponse'
+
+  /templates/{uid}/variables:
+    get:
+      operationId: getTemplateVariables
+      summary: Get template variables
+      tags:
+        - Templates
+      parameters:
+        - name: uid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Template variables
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  templateUid:
+                    type: string
+                  templateName:
+                    type: string
+                  variables:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/VariableDefinition'
+
+  /templates/{uid}/batch-render:
+    post:
+      operationId: batchRenderTemplate
+      summary: Batch render template
+      description: Generate multiple images from a template in one request
+      tags:
+        - Batch
+      parameters:
+        - name: uid
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchRenderRequest'
+      responses:
+        '202':
+          description: Batch job created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchResponse'
+
+  /templates/batch/{batchId}/results:
+    get:
+      operationId: getBatchResults
+      summary: Get batch job results
+      tags:
+        - Batch
+      parameters:
+        - name: batchId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Batch job status and results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchStatus'
+
+  /templates/batch/{batchId}/cancel:
+    post:
+      operationId: cancelBatch
+      summary: Cancel batch job
+      tags:
+        - Batch
+      parameters:
+        - name: batchId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Batch job cancelled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  batchId:
+                    type: string
+                  status:
+                    type: string
+                  message:
+                    type: string
+
+  /webhook-subscriptions:
+    get:
+      operationId: listWebhookSubscriptions
+      summary: List webhook subscriptions
+      tags:
+        - Webhooks
+      parameters:
+        - name: event
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, paused, failed]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: List of subscriptions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  subscriptions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WebhookSubscription'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+    post:
+      operationId: createWebhookSubscription
+      summary: Create webhook subscription
+      tags:
+        - Webhooks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - event
+                - targetUrl
+              properties:
+                event:
+                  type: string
+                  enum: [render.completed, render.failed, binding.updated, binding.failed]
+                targetUrl:
+                  type: string
+                  format: uri
+                platform:
+                  type: string
+                  enum: [zapier, make, n8n, pipedream, custom]
+                  default: custom
+                filters:
+                  type: object
+                  properties:
+                    templateId:
+                      type: string
+                    bindingId:
+                      type: string
+      responses:
+        '201':
+          description: Subscription created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  subscription:
+                    allOf:
+                      - $ref: '#/components/schemas/WebhookSubscription'
+                      - type: object
+                        properties:
+                          secret:
+                            type: string
+                            description: Webhook signing secret (only returned on creation)
+
+  /webhook-subscriptions/{uid}:
+    get:
+      operationId: getWebhookSubscription
+      summary: Get webhook subscription
+      tags:
+        - Webhooks
+      parameters:
+        - name: uid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Subscription details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  subscription:
+                    $ref: '#/components/schemas/WebhookSubscription'
+    put:
+      operationId: updateWebhookSubscription
+      summary: Update webhook subscription
+      tags:
+        - Webhooks
+      parameters:
+        - name: uid
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                targetUrl:
+                  type: string
+                  format: uri
+                filters:
+                  type: object
+                status:
+                  type: string
+                  enum: [active, paused]
+      responses:
+        '200':
+          description: Subscription updated
+    delete:
+      operationId: deleteWebhookSubscription
+      summary: Delete webhook subscription
+      tags:
+        - Webhooks
+      parameters:
+        - name: uid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Subscription deleted
+
+  /bindings:
+    get:
+      operationId: listBindings
+      summary: List bindings
+      tags:
+        - Bindings
+      parameters:
+        - name: templateId
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, paused, error]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: List of bindings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bindings:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Binding'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+    post:
+      operationId: createBinding
+      summary: Create a binding
+      tags:
+        - Bindings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - templateId
+                - dataSource
+                - mapping
+              properties:
+                templateId:
+                  type: string
+                name:
+                  type: string
+                dataSource:
+                  type: object
+                  required:
+                    - type
+                  properties:
+                    type:
+                      type: string
+                      enum: [http, webhook, static]
+                    url:
+                      type: string
+                      format: uri
+                    method:
+                      type: string
+                      enum: [GET, POST]
+                    headers:
+                      type: object
+                      additionalProperties:
+                        type: string
+                    credentials:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                          enum: [api_key, bearer_token, basic_auth, custom_header]
+                        value:
+                          type: string
+                mapping:
+                  type: object
+                  additionalProperties:
+                    type: string
+                defaults:
+                  type: object
+                refreshPolicy:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                      enum: [ttl, etag, webhook, manual]
+                    ttlSeconds:
+                      type: integer
+                    onError:
+                      type: string
+                      enum: [serve_stale, serve_error, serve_default]
+                outputConfig:
+                  type: object
+                  properties:
+                    format:
+                      type: string
+                      enum: [png, jpeg, webp, pdf]
+                    quality:
+                      type: integer
+      responses:
+        '201':
+          description: Binding created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  binding:
+                    $ref: '#/components/schemas/Binding'
+
+  /bindings/{uid}:
+    get:
+      operationId: getBinding
+      summary: Get binding
+      tags:
+        - Bindings
+      parameters:
+        - name: uid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Binding details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  binding:
+                    $ref: '#/components/schemas/Binding'
+    put:
+      operationId: updateBinding
+      summary: Update binding
+      tags:
+        - Bindings
+      parameters:
+        - name: uid
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                dataSource:
+                  type: object
+                mapping:
+                  type: object
+                defaults:
+                  type: object
+                refreshPolicy:
+                  type: object
+                outputConfig:
+                  type: object
+                status:
+                  type: string
+                  enum: [active, paused]
+      responses:
+        '200':
+          description: Binding updated
+    delete:
+      operationId: deleteBinding
+      summary: Delete binding
+      tags:
+        - Bindings
+      parameters:
+        - name: uid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Binding deleted
+
+tags:
+  - name: Images
+    description: Image generation endpoints
+  - name: GIFs
+    description: GIF generation and capture
+  - name: PDFs
+    description: PDF generation
+  - name: Templates
+    description: Template management
+  - name: Batch
+    description: Batch rendering operations
+  - name: Webhooks
+    description: Webhook subscription management
+  - name: Bindings
+    description: Data binding for auto-rendering

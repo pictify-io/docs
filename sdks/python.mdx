@@ -1,0 +1,484 @@
+---
+title: Python SDK
+description: Official Pictify SDK for Python
+---
+
+# Python SDK
+
+The official Pictify SDK for Python provides a simple, Pythonic interface for the Pictify API.
+
+## Installation
+
+```bash
+pip install pictify
+```
+
+## Quick Start
+
+```python
+from pictify import Pictify
+
+pictify = Pictify('pk_live_your_api_key')
+
+# Generate an image from HTML
+image = pictify.images.create(
+    html='<h1 style="color: #667eea;">Hello World</h1>',
+    width=1200,
+    height=630
+)
+
+print(image['url'])
+```
+
+## Configuration
+
+### Basic Configuration
+
+```python
+from pictify import Pictify
+
+pictify = Pictify('pk_live_your_api_key')
+```
+
+### Advanced Configuration
+
+```python
+pictify = Pictify(
+    api_key='pk_live_your_api_key',
+    base_url='https://api.pictify.io/v1',
+    timeout=30,
+    max_retries=3
+)
+```
+
+### Environment Variables
+
+```python
+import os
+from pictify import Pictify
+
+# Reads PICTIFY_API_KEY from environment
+pictify = Pictify(os.environ.get('PICTIFY_API_KEY'))
+```
+
+## Images
+
+### Generate from HTML
+
+```python
+image = pictify.images.create(
+    html='''
+    <div style="width: 1200px; height: 630px; background: #667eea;
+                display: flex; align-items: center; justify-content: center;">
+        <h1 style="color: white; font-size: 48px;">Hello World</h1>
+    </div>
+    ''',
+    width=1200,
+    height=630,
+    format='png'
+)
+
+print(image['url'])     # https://cdn.pictify.io/renders/...
+print(image['id'])      # img_abc123
+print(image['width'])   # 1200
+print(image['height'])  # 630
+```
+
+### Generate from URL
+
+```python
+screenshot = pictify.images.create(
+    url='https://example.com',
+    width=1200,
+    height=630,
+    full_page=False
+)
+```
+
+### Canvas Rendering
+
+```python
+canvas = pictify.images.canvas(
+    fabric_js_data={
+        'version': '5.3.0',
+        'objects': [
+            {'type': 'rect', 'fill': '#667eea', 'width': 1200, 'height': 630},
+            {'type': 'textbox', 'text': '{{title}}', 'fill': 'white', 'fontSize': 48}
+        ]
+    },
+    variables={'title': 'Dynamic Content'},
+    width=1200,
+    height=630
+)
+```
+
+### Agent Screenshot
+
+```python
+screenshot = pictify.images.agent_screenshot(
+    prompt='Take a screenshot of the pricing section on stripe.com'
+)
+```
+
+## GIFs
+
+### Create from HTML
+
+```python
+gif = pictify.gifs.create(
+    html='''
+    <div class="container">
+        <style>
+            @keyframes pulse {
+                0% { transform: scale(1); }
+                50% { transform: scale(1.1); }
+                100% { transform: scale(1); }
+            }
+            .pulse { animation: pulse 1s infinite; }
+        </style>
+        <div class="pulse">Animated!</div>
+    </div>
+    ''',
+    width=400,
+    height=400
+)
+```
+
+### Capture from URL
+
+```python
+gif = pictify.gifs.capture(
+    url='https://example.com/animated',
+    width=800,
+    height=600,
+    quality='high',
+    frame_duration_seconds=5
+)
+```
+
+## PDFs
+
+### Single Page
+
+```python
+pdf = pictify.pdfs.render(
+    template_uid='tmpl_invoice',
+    variables={
+        'invoiceNumber': 'INV-001',
+        'items': [{'name': 'Service', 'price': 99.00}],
+        'total': 99.00
+    },
+    options={
+        'preset': 'A4',
+        'margins': {'top': 40, 'bottom': 40, 'left': 30, 'right': 30}
+    }
+)
+```
+
+### Multi-Page
+
+```python
+pdf = pictify.pdfs.multi_page(
+    template_uid='tmpl_report',
+    variable_sets=[
+        {'pageTitle': 'Introduction', 'content': '...'},
+        {'pageTitle': 'Analysis', 'content': '...'},
+        {'pageTitle': 'Conclusion', 'content': '...'}
+    ],
+    options={'preset': 'A4'}
+)
+```
+
+## Templates
+
+### List Templates
+
+```python
+result = pictify.templates.list(page=1, limit=20)
+templates = result['templates']
+pagination = result['pagination']
+```
+
+### Create Template
+
+```python
+template = pictify.templates.create(
+    name='Social Card',
+    html='<h1>{{title}}</h1><p>{{description}}</p>',
+    width=1200,
+    height=630
+)
+```
+
+### Render Template
+
+```python
+image = pictify.templates.render(
+    'tmpl_abc123',
+    variables={
+        'title': 'My Post',
+        'description': 'An interesting article'
+    },
+    format='png'
+)
+```
+
+### Get Variables
+
+```python
+result = pictify.templates.get_variables('tmpl_abc123')
+variables = result['variables']
+# [{'name': 'title', 'type': 'string', 'required': True}, ...]
+```
+
+### Batch Render
+
+```python
+batch = pictify.templates.batch_render(
+    'tmpl_abc123',
+    variable_sets=[
+        {'title': 'Post 1'},
+        {'title': 'Post 2'},
+        {'title': 'Post 3'}
+    ],
+    webhook_url='https://your-server.com/webhooks/batch'
+)
+
+# Later, get results
+results = pictify.templates.get_batch_results(batch['id'])
+```
+
+## Webhooks
+
+### Create Subscription
+
+```python
+subscription = pictify.webhooks.create(
+    event='render.completed',
+    target_url='https://your-server.com/webhooks/pictify'
+)
+
+# Store this secret securely!
+print(subscription['secret'])
+```
+
+### Verify Signature
+
+```python
+import hmac
+import hashlib
+import time
+
+def verify_webhook_signature(payload: bytes, signature_header: str, secret: str) -> bool:
+    parts = dict(pair.split('=') for pair in signature_header.split(','))
+    timestamp = int(parts['t'])
+    provided_signature = parts['v1']
+
+    # Reject if timestamp is older than 5 minutes
+    if abs(time.time() - timestamp) > 300:
+        raise ValueError("Webhook timestamp too old")
+
+    signed_payload = f"{timestamp}.{payload.decode()}"
+    expected_signature = hmac.new(
+        secret.encode(),
+        signed_payload.encode(),
+        hashlib.sha256
+    ).hexdigest()
+
+    return hmac.compare_digest(provided_signature, expected_signature)
+```
+
+### Flask Example
+
+```python
+from flask import Flask, request
+
+app = Flask(__name__)
+
+@app.route('/webhooks/pictify', methods=['POST'])
+def handle_webhook():
+    signature = request.headers.get('X-Pictify-Signature')
+    payload = request.get_data()
+
+    try:
+        if not verify_webhook_signature(payload, signature, WEBHOOK_SECRET):
+            return 'Invalid signature', 401
+
+        event = request.get_json()
+        print(f"Received event: {event['event']}")
+
+        return 'OK', 200
+    except ValueError as e:
+        return str(e), 400
+```
+
+### FastAPI Example
+
+```python
+from fastapi import FastAPI, Request, HTTPException
+
+app = FastAPI()
+
+@app.post('/webhooks/pictify')
+async def handle_webhook(request: Request):
+    signature = request.headers.get('X-Pictify-Signature')
+    payload = await request.body()
+
+    try:
+        if not verify_webhook_signature(payload, signature, WEBHOOK_SECRET):
+            raise HTTPException(status_code=401, detail='Invalid signature')
+
+        event = await request.json()
+        print(f"Received event: {event['event']}")
+
+        return {'status': 'ok'}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+```
+
+## Bindings
+
+### Create Binding
+
+```python
+binding = pictify.bindings.create(
+    name='GitHub Stats',
+    template_uid='tmpl_github',
+    data_url='https://api.github.com/repos/your/repo',
+    data_mapping={
+        'stars': 'stargazers_count',
+        'forks': 'forks_count'
+    },
+    schedule='0 * * * *'  # Hourly
+)
+
+# Permanent image URL that auto-updates
+print(binding['imageUrl'])
+```
+
+### Trigger Refresh
+
+```python
+pictify.bindings.refresh('bind_abc123')
+```
+
+## Error Handling
+
+```python
+from pictify import Pictify
+from pictify.exceptions import (
+    PictifyError,
+    RateLimitError,
+    ValidationError,
+    AuthenticationError
+)
+
+try:
+    image = pictify.images.create(...)
+except RateLimitError as e:
+    # Wait and retry
+    print(f"Rate limited. Retry after {e.retry_after}s")
+    time.sleep(e.retry_after)
+except ValidationError as e:
+    # Fix validation issues
+    print(f"Validation errors: {e.errors}")
+except AuthenticationError as e:
+    # Check API key
+    print("Invalid API key")
+except PictifyError as e:
+    # General API error
+    print(f"API Error: {e.message}")
+    print(f"Status: {e.status}")
+    print(f"Type: {e.error_type}")
+```
+
+## Async Support
+
+The SDK supports async/await for use with asyncio:
+
+```python
+import asyncio
+from pictify import AsyncPictify
+
+async def main():
+    pictify = AsyncPictify('pk_live_your_api_key')
+
+    image = await pictify.images.create(
+        html='<h1>Hello Async</h1>',
+        width=1200,
+        height=630
+    )
+
+    print(image['url'])
+
+    await pictify.close()
+
+asyncio.run(main())
+```
+
+### Context Manager
+
+```python
+async with AsyncPictify('pk_live_your_api_key') as pictify:
+    image = await pictify.images.create(
+        html='<h1>Hello</h1>',
+        width=1200,
+        height=630
+    )
+```
+
+## Django Integration
+
+### Settings
+
+```python
+# settings.py
+PICTIFY_API_KEY = os.environ.get('PICTIFY_API_KEY')
+```
+
+### View Example
+
+```python
+# views.py
+from django.conf import settings
+from django.http import HttpResponseRedirect
+from pictify import Pictify
+
+pictify = Pictify(settings.PICTIFY_API_KEY)
+
+def og_image(request, slug):
+    post = Post.objects.get(slug=slug)
+
+    image = pictify.templates.render(
+        'tmpl_og',
+        variables={
+            'title': post.title,
+            'description': post.excerpt,
+            'author': post.author.name
+        }
+    )
+
+    return HttpResponseRedirect(image['url'])
+```
+
+## Type Hints
+
+The SDK includes type hints for IDE support:
+
+```python
+from pictify import Pictify
+from pictify.types import ImageCreateOptions, ImageResult
+
+options: ImageCreateOptions = {
+    'html': '<h1>Hello</h1>',
+    'width': 1200,
+    'height': 630,
+    'format': 'png'
+}
+
+image: ImageResult = pictify.images.create(**options)
+```
+
+## API Reference
+
+See the [API Reference](/api-reference/overview) for full endpoint documentation.

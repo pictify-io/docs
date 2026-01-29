@@ -1,0 +1,350 @@
+---
+title: PDF Generation
+description: Generate single and multi-page PDFs from templates
+openapi: post /pdf/render
+---
+
+# PDF Generation
+
+Generate PDFs from templates with support for multiple pages, standard paper sizes, and custom dimensions.
+
+## Single Page PDF
+
+Render a template to a single-page PDF.
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://api.pictify.io/v1/pdf/render \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "templateUid": "tmpl_abc123",
+    "variables": {
+      "invoiceNumber": "INV-001",
+      "customerName": "Acme Corp",
+      "total": 1500.00
+    },
+    "options": {
+      "preset": "A4",
+      "margins": {
+        "top": 20,
+        "bottom": 20,
+        "left": 20,
+        "right": 20
+      }
+    }
+  }'
+```
+
+```typescript Node.js
+import Pictify from '@pictify/sdk';
+
+const pictify = new Pictify('pk_live_...');
+
+const result = await pictify.pdfs.render({
+  templateUid: 'tmpl_abc123',
+  variables: {
+    invoiceNumber: 'INV-001',
+    customerName: 'Acme Corp',
+    total: 1500.00
+  },
+  options: {
+    preset: 'A4',
+    margins: { top: 20, bottom: 20, left: 20, right: 20 }
+  }
+});
+
+console.log(result.url);
+```
+
+```python Python
+from pictify import Pictify
+
+pictify = Pictify('pk_live_...')
+
+result = pictify.pdfs.render(
+    template_uid='tmpl_abc123',
+    variables={
+        'invoiceNumber': 'INV-001',
+        'customerName': 'Acme Corp',
+        'total': 1500.00
+    },
+    options={
+        'preset': 'A4',
+        'margins': {'top': 20, 'bottom': 20, 'left': 20, 'right': 20}
+    }
+)
+```
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "url": "https://cdn.pictify.io/renders/pdf_abc123.pdf",
+  "id": "pdf_abc123",
+  "pageCount": 1,
+  "preset": "A4",
+  "pageSize": {
+    "width": 595,
+    "height": 842
+  },
+  "createdAt": "2026-01-29T10:30:00Z"
+}
+```
+
+## Multi-Page PDF {#multi-page}
+
+Generate a PDF with multiple pages, each with different content.
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://api.pictify.io/v1/pdf/multi-page \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "templateUid": "tmpl_report",
+    "variableSets": [
+      {
+        "pageTitle": "Executive Summary",
+        "content": "Overview of Q4 performance..."
+      },
+      {
+        "pageTitle": "Revenue Analysis",
+        "content": "Detailed revenue breakdown..."
+      },
+      {
+        "pageTitle": "Recommendations",
+        "content": "Action items for next quarter..."
+      }
+    ],
+    "options": {
+      "preset": "A4",
+      "margins": {
+        "top": 40,
+        "bottom": 40,
+        "left": 30,
+        "right": 30
+      }
+    }
+  }'
+```
+
+```typescript Node.js
+const result = await pictify.pdfs.multiPage({
+  templateUid: 'tmpl_report',
+  variableSets: [
+    { pageTitle: 'Executive Summary', content: 'Overview of Q4 performance...' },
+    { pageTitle: 'Revenue Analysis', content: 'Detailed revenue breakdown...' },
+    { pageTitle: 'Recommendations', content: 'Action items for next quarter...' }
+  ],
+  options: {
+    preset: 'A4',
+    margins: { top: 40, bottom: 40, left: 30, right: 30 }
+  }
+});
+```
+
+```python Python
+result = pictify.pdfs.multi_page(
+    template_uid='tmpl_report',
+    variable_sets=[
+        {'pageTitle': 'Executive Summary', 'content': 'Overview of Q4 performance...'},
+        {'pageTitle': 'Revenue Analysis', 'content': 'Detailed revenue breakdown...'},
+        {'pageTitle': 'Recommendations', 'content': 'Action items for next quarter...'}
+    ],
+    options={
+        'preset': 'A4',
+        'margins': {'top': 40, 'bottom': 40, 'left': 30, 'right': 30}
+    }
+)
+```
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "url": "https://cdn.pictify.io/renders/pdf_xyz789.pdf",
+  "id": "pdf_xyz789",
+  "pageCount": 3,
+  "preset": "A4",
+  "pageSize": {
+    "width": 595,
+    "height": 842
+  },
+  "createdAt": "2026-01-29T10:30:00Z"
+}
+```
+
+## Request Parameters
+
+### Single Page
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `templateUid` | string | Yes | Template ID to render |
+| `variables` | object | No | Variables to inject into template |
+| `options` | object | No | PDF rendering options |
+
+### Multi-Page
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `templateUid` | string | Yes | Template ID to render for each page |
+| `variableSets` | array | Yes | Array of variable objects, one per page |
+| `options` | object | No | PDF rendering options |
+
+### Options Object
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `preset` | string | No | Paper size preset (default: `A4`) |
+| `margins` | object | No | Page margins in pixels |
+| `customSize` | object | No | Custom dimensions (when preset is `custom`) |
+| `landscape` | boolean | No | Landscape orientation (default: `false`) |
+| `printBackground` | boolean | No | Include CSS backgrounds (default: `true`) |
+| `scale` | number | No | Scale factor (0.1-2.0, default: 1) |
+
+### Margins Object
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `top` | number | Top margin in pixels |
+| `bottom` | number | Bottom margin in pixels |
+| `left` | number | Left margin in pixels |
+| `right` | number | Right margin in pixels |
+
+## Paper Size Presets
+
+| Preset | Dimensions | Description |
+|--------|-----------|-------------|
+| `A4` | 210 × 297 mm | ISO standard, most common worldwide |
+| `Letter` | 8.5 × 11 in | US standard letter size |
+| `Legal` | 8.5 × 14 in | US legal size |
+| `A3` | 297 × 420 mm | Large format |
+| `A5` | 148 × 210 mm | Compact size, booklets |
+| `Tabloid` | 11 × 17 in | US tabloid/ledger |
+| `custom` | User-defined | Specify with `customSize` |
+
+## Custom Page Sizes
+
+```typescript
+const result = await pictify.pdfs.render({
+  templateUid: 'tmpl_abc123',
+  options: {
+    preset: 'custom',
+    customSize: {
+      width: 800,   // Width in pixels
+      height: 600   // Height in pixels
+    }
+  }
+});
+```
+
+## Examples
+
+### Invoice Generation
+
+```typescript
+const invoice = await pictify.pdfs.render({
+  templateUid: 'tmpl_invoice',
+  variables: {
+    invoiceNumber: 'INV-2026-001',
+    issueDate: '2026-01-29',
+    dueDate: '2026-02-28',
+    customer: {
+      name: 'Acme Corporation',
+      address: '123 Business St, Suite 100',
+      email: 'billing@acme.com'
+    },
+    items: [
+      { description: 'API Usage - Pro Plan', quantity: 1, price: 99.00 },
+      { description: 'Additional Renders (5,000)', quantity: 1, price: 25.00 }
+    ],
+    subtotal: 124.00,
+    tax: 9.92,
+    total: 133.92
+  },
+  options: {
+    preset: 'A4',
+    margins: { top: 40, bottom: 40, left: 40, right: 40 }
+  }
+});
+```
+
+### Multi-Page Report
+
+```typescript
+const report = await pictify.pdfs.multiPage({
+  templateUid: 'tmpl_report_page',
+  variableSets: [
+    {
+      pageNumber: 1,
+      section: 'cover',
+      title: 'Q4 2025 Performance Report',
+      subtitle: 'Acme Corporation'
+    },
+    {
+      pageNumber: 2,
+      section: 'summary',
+      title: 'Executive Summary',
+      metrics: { revenue: '$1.2M', growth: '23%', customers: 450 }
+    },
+    {
+      pageNumber: 3,
+      section: 'charts',
+      title: 'Revenue Breakdown',
+      chartData: { /* chart configuration */ }
+    },
+    {
+      pageNumber: 4,
+      section: 'recommendations',
+      title: 'Next Steps',
+      items: ['Expand to EU market', 'Launch mobile app', 'Hire 3 engineers']
+    }
+  ],
+  options: {
+    preset: 'A4'
+  }
+});
+```
+
+### Certificate with Landscape
+
+```typescript
+const certificate = await pictify.pdfs.render({
+  templateUid: 'tmpl_certificate',
+  variables: {
+    recipientName: 'Jane Smith',
+    courseName: 'Advanced JavaScript',
+    completionDate: 'January 29, 2026',
+    instructorName: 'John Doe'
+  },
+  options: {
+    preset: 'Letter',
+    landscape: true,
+    margins: { top: 50, bottom: 50, left: 60, right: 60 }
+  }
+});
+```
+
+## Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `url` | string | CDN URL of the generated PDF |
+| `id` | string | Unique PDF identifier |
+| `pageCount` | integer | Number of pages |
+| `preset` | string | Paper size preset used |
+| `pageSize` | object | Actual page dimensions in points |
+| `createdAt` | string | ISO 8601 timestamp |
+| `userStorageUrl` | string | URL in your storage (if configured) |
+
+## Best Practices
+
+1. **Design for print** - Use CMYK-friendly colors and sufficient margins
+2. **Test at scale** - Preview PDFs at 100% zoom before production
+3. **Optimize images** - Use appropriate resolution (150-300 DPI for print)
+4. **Consider page breaks** - Design templates with natural page breaks for multi-page docs
+5. **Use web-safe fonts** - Or embed custom fonts in your template

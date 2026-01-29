@@ -1,0 +1,443 @@
+---
+title: Bindings
+description: Connect templates to external data sources for automatic rendering
+---
+
+# Bindings
+
+Bindings connect templates to external data sources, enabling automatic image generation when data changes. Perfect for dynamic dashboards, real-time stats, and automated social media images.
+
+## How Bindings Work
+
+1. **Create a binding** - Link a template to an external data URL
+2. **Pictify fetches data** - On schedule or trigger, Pictify fetches your data
+3. **Template renders** - Variables from the data are injected into the template
+4. **Image updates** - The rendered image URL stays the same, content updates
+
+```
+[Your Data API] → [Binding] → [Template] → [Updated Image]
+```
+
+## List Bindings {#list}
+
+Retrieve all bindings.
+
+<CodeGroup>
+```bash cURL
+curl https://api.pictify.io/v1/bindings \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+```typescript Node.js
+const bindings = await pictify.bindings.list();
+```
+
+```python Python
+bindings = pictify.bindings.list()
+```
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "bindings": [
+    {
+      "uid": "bind_abc123",
+      "name": "GitHub Stars Counter",
+      "templateUid": "tmpl_xyz789",
+      "dataUrl": "https://api.github.com/repos/your/repo",
+      "schedule": "0 * * * *",
+      "status": "active",
+      "imageUrl": "https://cdn.pictify.io/bindings/bind_abc123.png",
+      "lastRefresh": "2026-01-29T10:00:00Z",
+      "createdAt": "2026-01-15T10:00:00Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 5
+  }
+}
+```
+
+## Create Binding {#create}
+
+Create a new binding.
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://api.pictify.io/v1/bindings \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "GitHub Stats",
+    "templateUid": "tmpl_github_card",
+    "dataUrl": "https://api.github.com/repos/your/repo",
+    "dataMapping": {
+      "repoName": "name",
+      "stars": "stargazers_count",
+      "forks": "forks_count",
+      "description": "description"
+    },
+    "schedule": "0 * * * *",
+    "format": "png"
+  }'
+```
+
+```typescript Node.js
+const binding = await pictify.bindings.create({
+  name: 'GitHub Stats',
+  templateUid: 'tmpl_github_card',
+  dataUrl: 'https://api.github.com/repos/your/repo',
+  dataMapping: {
+    repoName: 'name',
+    stars: 'stargazers_count',
+    forks: 'forks_count',
+    description: 'description'
+  },
+  schedule: '0 * * * *',  // Every hour
+  format: 'png'
+});
+
+// Use this URL in your README, website, etc.
+console.log(`Image URL: ${binding.imageUrl}`);
+```
+
+```python Python
+binding = pictify.bindings.create(
+    name='GitHub Stats',
+    template_uid='tmpl_github_card',
+    data_url='https://api.github.com/repos/your/repo',
+    data_mapping={
+        'repoName': 'name',
+        'stars': 'stargazers_count',
+        'forks': 'forks_count',
+        'description': 'description'
+    },
+    schedule='0 * * * *',  # Every hour
+    format='png'
+)
+```
+</CodeGroup>
+
+### Request Body
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `name` | string | Yes | Binding name |
+| `templateUid` | string | Yes | Template to render |
+| `dataUrl` | string | Yes | URL to fetch data from |
+| `dataMapping` | object | No | Map API fields to template variables |
+| `headers` | object | No | Custom headers for data fetch |
+| `schedule` | string | No | Cron expression for refresh schedule |
+| `format` | string | No | Output format: `png`, `jpeg`, `webp` |
+
+### Response
+
+```json
+{
+  "uid": "bind_xyz789",
+  "name": "GitHub Stats",
+  "templateUid": "tmpl_github_card",
+  "dataUrl": "https://api.github.com/repos/your/repo",
+  "dataMapping": {
+    "repoName": "name",
+    "stars": "stargazers_count"
+  },
+  "schedule": "0 * * * *",
+  "status": "active",
+  "imageUrl": "https://cdn.pictify.io/bindings/bind_xyz789.png",
+  "createdAt": "2026-01-29T10:30:00Z"
+}
+```
+
+## Get Binding {#get}
+
+Retrieve a specific binding.
+
+<CodeGroup>
+```bash cURL
+curl https://api.pictify.io/v1/bindings/bind_abc123 \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+```typescript Node.js
+const binding = await pictify.bindings.get('bind_abc123');
+```
+
+```python Python
+binding = pictify.bindings.get('bind_abc123')
+```
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "uid": "bind_abc123",
+  "name": "GitHub Stars Counter",
+  "templateUid": "tmpl_xyz789",
+  "dataUrl": "https://api.github.com/repos/your/repo",
+  "dataMapping": {
+    "repoName": "name",
+    "stars": "stargazers_count"
+  },
+  "headers": {},
+  "schedule": "0 * * * *",
+  "status": "active",
+  "format": "png",
+  "imageUrl": "https://cdn.pictify.io/bindings/bind_abc123.png",
+  "lastRefresh": "2026-01-29T10:00:00Z",
+  "lastData": {
+    "name": "awesome-repo",
+    "stargazers_count": 1234
+  },
+  "createdAt": "2026-01-15T10:00:00Z",
+  "updatedAt": "2026-01-29T10:00:00Z"
+}
+```
+
+## Update Binding {#update}
+
+Update an existing binding.
+
+<CodeGroup>
+```bash cURL
+curl -X PUT https://api.pictify.io/v1/bindings/bind_abc123 \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "schedule": "*/30 * * * *"
+  }'
+```
+
+```typescript Node.js
+const binding = await pictify.bindings.update('bind_abc123', {
+  schedule: '*/30 * * * *'  // Every 30 minutes
+});
+```
+
+```python Python
+binding = pictify.bindings.update('bind_abc123',
+    schedule='*/30 * * * *'  # Every 30 minutes
+)
+```
+</CodeGroup>
+
+### Request Body
+
+All fields are optional:
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `name` | string | New binding name |
+| `dataUrl` | string | New data URL |
+| `dataMapping` | object | New field mapping |
+| `headers` | object | New headers |
+| `schedule` | string | New cron schedule |
+| `format` | string | New output format |
+
+## Delete Binding {#delete}
+
+Delete a binding.
+
+<CodeGroup>
+```bash cURL
+curl -X DELETE https://api.pictify.io/v1/bindings/bind_abc123 \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+```typescript Node.js
+await pictify.bindings.delete('bind_abc123');
+```
+
+```python Python
+pictify.bindings.delete('bind_abc123')
+```
+</CodeGroup>
+
+## Trigger Refresh
+
+Manually trigger a binding refresh.
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://api.pictify.io/v1/bindings/bind_abc123/refresh \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+```typescript Node.js
+await pictify.bindings.refresh('bind_abc123');
+```
+
+```python Python
+pictify.bindings.refresh('bind_abc123')
+```
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "status": "refreshing",
+  "imageUrl": "https://cdn.pictify.io/bindings/bind_abc123.png"
+}
+```
+
+## Data Mapping
+
+Map fields from your API response to template variables:
+
+### Direct Mapping
+
+```json
+{
+  "dataMapping": {
+    "title": "name",
+    "count": "stargazers_count"
+  }
+}
+```
+
+API Response:
+```json
+{ "name": "My Repo", "stargazers_count": 500 }
+```
+
+Template Variables:
+```json
+{ "title": "My Repo", "count": 500 }
+```
+
+### Nested Fields
+
+Use dot notation for nested fields:
+
+```json
+{
+  "dataMapping": {
+    "userName": "user.name",
+    "avatarUrl": "user.avatar_url"
+  }
+}
+```
+
+### Array Access
+
+```json
+{
+  "dataMapping": {
+    "firstItem": "items[0].name",
+    "itemCount": "items.length"
+  }
+}
+```
+
+## Schedule Syntax
+
+Bindings use cron expressions for scheduling:
+
+| Expression | Description |
+|------------|-------------|
+| `* * * * *` | Every minute |
+| `*/5 * * * *` | Every 5 minutes |
+| `0 * * * *` | Every hour |
+| `0 */6 * * *` | Every 6 hours |
+| `0 0 * * *` | Daily at midnight |
+| `0 0 * * 0` | Weekly on Sunday |
+
+<Note>
+Minimum refresh interval is 1 minute. Choose a schedule appropriate for your data update frequency.
+</Note>
+
+## Binding Status
+
+| Status | Description |
+|--------|-------------|
+| `active` | Binding is active and refreshing |
+| `paused` | Temporarily disabled |
+| `error` | Failed to fetch data or render |
+
+## Examples
+
+### GitHub Stats Badge
+
+```typescript
+const binding = await pictify.bindings.create({
+  name: 'GitHub Stars',
+  templateUid: 'tmpl_github_badge',
+  dataUrl: 'https://api.github.com/repos/owner/repo',
+  dataMapping: {
+    stars: 'stargazers_count',
+    forks: 'forks_count',
+    issues: 'open_issues_count'
+  },
+  schedule: '0 * * * *'  // Hourly
+});
+
+// Use in README.md
+// ![GitHub Stats](https://cdn.pictify.io/bindings/bind_xyz.png)
+```
+
+### Twitter Follower Count
+
+```typescript
+const binding = await pictify.bindings.create({
+  name: 'Twitter Stats',
+  templateUid: 'tmpl_twitter_card',
+  dataUrl: 'https://your-api.com/twitter/stats',
+  headers: {
+    'Authorization': 'Bearer your-token'
+  },
+  dataMapping: {
+    followers: 'followers_count',
+    tweets: 'tweet_count'
+  },
+  schedule: '*/30 * * * *'  // Every 30 minutes
+});
+```
+
+### Real-Time Dashboard
+
+```typescript
+const binding = await pictify.bindings.create({
+  name: 'Sales Dashboard',
+  templateUid: 'tmpl_dashboard',
+  dataUrl: 'https://your-api.com/metrics',
+  dataMapping: {
+    revenue: 'today.revenue',
+    orders: 'today.orders',
+    visitors: 'today.visitors'
+  },
+  schedule: '*/5 * * * *'  // Every 5 minutes
+});
+```
+
+## Webhooks for Bindings
+
+Subscribe to binding events:
+
+| Event | Description |
+|-------|-------------|
+| `binding.updated` | Binding successfully refreshed |
+| `binding.failed` | Binding refresh failed |
+
+```typescript
+await pictify.webhooks.create({
+  event: 'binding.updated',
+  targetUrl: 'https://your-server.com/webhooks/binding',
+  filters: {
+    bindingId: 'bind_abc123'
+  }
+});
+```
+
+## Best Practices
+
+1. **Set appropriate schedules** - Don't refresh more often than data changes
+2. **Handle API failures** - Pictify retries, but ensure your data API is reliable
+3. **Use data mapping** - Transform API fields to match template variables
+4. **Monitor binding health** - Set up webhooks for `binding.failed` events
+5. **Cache externally** - For high-traffic uses, cache the image URL

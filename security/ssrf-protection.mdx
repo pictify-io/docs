@@ -1,0 +1,272 @@
+---
+title: SSRF Protection
+description: How Pictify protects against Server-Side Request Forgery attacks
+---
+
+# SSRF Protection
+
+Server-Side Request Forgery (SSRF) is a security vulnerability where an attacker tricks a server into making requests to unintended locations. Pictify implements multiple layers of protection when rendering URLs or fetching data.
+
+## What is SSRF?
+
+When Pictify renders a URL or fetches data for bindings, it makes HTTP requests on your behalf. Without protection, an attacker could potentially:
+
+- Access internal services (e.g., `http://localhost:8080/admin`)
+- Probe private networks (e.g., `http://192.168.1.1`)
+- Access cloud metadata (e.g., `http://169.254.169.254`)
+- Scan internal ports
+
+## Pictify's Protections
+
+### 1. URL Validation
+
+All URLs are validated before requests are made:
+
+```
+✅ https://example.com/page
+✅ https://api.github.com/repos/owner/repo
+❌ http://localhost/admin
+❌ http://127.0.0.1:8080
+❌ http://192.168.1.1/internal
+❌ http://169.254.169.254/metadata
+❌ file:///etc/passwd
+```
+
+### 2. Blocked IP Ranges
+
+Requests to these IP ranges are blocked:
+
+| Range | Description |
+|-------|-------------|
+| `127.0.0.0/8` | Localhost |
+| `10.0.0.0/8` | Private network (Class A) |
+| `172.16.0.0/12` | Private network (Class B) |
+| `192.168.0.0/16` | Private network (Class C) |
+| `169.254.0.0/16` | Link-local (AWS metadata) |
+| `0.0.0.0/8` | Current network |
+| `::1` | IPv6 localhost |
+| `fc00::/7` | IPv6 private |
+
+### 3. DNS Resolution Protection
+
+Pictify resolves DNS before making requests and blocks if the resolved IP is in a blocked range:
+
+```
+example.internal.com → 192.168.1.100 → BLOCKED
+```
+
+This prevents DNS rebinding attacks where a domain initially resolves to a public IP but later resolves to a private IP.
+
+### 4. Protocol Restrictions
+
+Only HTTP and HTTPS protocols are allowed:
+
+```
+✅ https://example.com
+✅ http://example.com (upgraded to HTTPS)
+❌ file:///etc/passwd
+❌ ftp://server.com/file
+❌ gopher://server.com
+```
+
+### 5. Redirect Following
+
+Redirects are validated at each step:
+
+```
+https://example.com/page
+  → 301 to https://example.com/new-page ✅
+  → 301 to http://localhost/admin ❌ BLOCKED
+```
+
+## Using URL Features Safely
+
+### Screenshot from URL
+
+When rendering screenshots from URLs, Pictify validates the target:
+
+```typescript
+// ✅ Safe - public URL
+const image = await pictify.images.create({
+  url: 'https://example.com',
+  width: 1200,
+  height: 630
+});
+
+// ❌ Blocked - private IP
+const image = await pictify.images.create({
+  url: 'http://192.168.1.1/admin',  // Will fail
+  width: 1200,
+  height: 630
+});
+```
+
+### Bindings with External Data
+
+When creating bindings that fetch external data:
+
+```typescript
+// ✅ Safe - public API
+const binding = await pictify.bindings.create({
+  templateUid: 'tmpl_abc123',
+  dataUrl: 'https://api.github.com/repos/your/repo',
+  schedule: '0 * * * *'
+});
+
+// ❌ Blocked - internal service
+const binding = await pictify.bindings.create({
+  templateUid: 'tmpl_abc123',
+  dataUrl: 'http://internal-api.local/metrics',  // Will fail
+  schedule: '0 * * * *'
+});
+```
+
+### HTML with External Resources
+
+External resources in HTML are also validated:
+
+```html
+<!-- ✅ Safe - public CDN -->
+<img src="https://cdn.example.com/logo.png" />
+
+<!-- ❌ Blocked - private network -->
+<img src="http://192.168.1.1/secret.png" />
+```
+
+## Error Handling
+
+When SSRF protection blocks a request, you'll receive a clear error:
+
+```json
+{
+  "type": "https://docs.pictify.io/errors/blocked-url",
+  "title": "URL Blocked",
+  "status": 422,
+  "detail": "The requested URL points to a blocked IP range (private network).",
+  "instance": "/v1/image"
+}
+```
+
+## Best Practices for Your Application
+
+### Validate User Input
+
+If your application passes user-provided URLs to Pictify, validate them first:
+
+```typescript
+import { URL } from 'url';
+
+function isValidPublicUrl(urlString: string): boolean {
+  try {
+    const url = new URL(urlString);
+
+    // Only allow HTTP(S)
+    if (!['http:', 'https:'].includes(url.protocol)) {
+      return false;
+    }
+
+    // Block localhost
+    if (['localhost', '127.0.0.1', '::1'].includes(url.hostname)) {
+      return false;
+    }
+
+    // Block private IP ranges (basic check)
+    const hostname = url.hostname;
+    if (
+      hostname.startsWith('10.') ||
+      hostname.startsWith('192.168.') ||
+      hostname.match(/^172\.(1[6-9]|2[0-9]|3[0-1])\./)
+    ) {
+      return false;
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Use before passing to Pictify
+if (isValidPublicUrl(userProvidedUrl)) {
+  const image = await pictify.images.create({
+    url: userProvidedUrl,
+    width: 1200,
+    height: 630
+  });
+}
+```
+
+### Use Allowlists
+
+For user-provided URLs, consider using an allowlist:
+
+```typescript
+const ALLOWED_DOMAINS = [
+  'example.com',
+  'cdn.example.com',
+  'images.unsplash.com'
+];
+
+function isAllowedDomain(urlString: string): boolean {
+  try {
+    const url = new URL(urlString);
+    return ALLOWED_DOMAINS.some(domain =>
+      url.hostname === domain || url.hostname.endsWith('.' + domain)
+    );
+  } catch {
+    return false;
+  }
+}
+```
+
+### Log Suspicious Activity
+
+Monitor for potential SSRF attempts:
+
+```typescript
+app.post('/api/screenshot', async (req, res) => {
+  const { url } = req.body;
+
+  // Log the URL being requested
+  logger.info('Screenshot requested', { url, userId: req.user.id });
+
+  try {
+    const image = await pictify.images.create({ url, width: 1200, height: 630 });
+    res.json({ url: image.url });
+  } catch (error) {
+    if (error.type === 'https://docs.pictify.io/errors/blocked-url') {
+      // Log potential SSRF attempt
+      logger.warn('SSRF attempt blocked', {
+        url,
+        userId: req.user.id,
+        ip: req.ip
+      });
+    }
+    throw error;
+  }
+});
+```
+
+## Frequently Asked Questions
+
+### Can I render localhost URLs?
+
+No. Localhost and private network URLs are blocked for security. Use public URLs or upload your HTML content directly.
+
+### Can I render internal company sites?
+
+Internal sites (private IPs, internal DNS) cannot be rendered. If you need to render internal content:
+1. Make the content publicly accessible (with authentication if needed)
+2. Use HTML directly instead of URL rendering
+
+### Why was my URL blocked?
+
+Common reasons:
+- URL resolves to a private IP address
+- URL uses a non-HTTP(S) protocol
+- URL redirects to a blocked location
+- Domain is on a blocklist
+
+### Can I whitelist specific internal URLs?
+
+For Enterprise customers, contact support to discuss custom URL allowlists for specific use cases.

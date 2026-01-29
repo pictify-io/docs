@@ -1,0 +1,351 @@
+---
+title: MCP Server
+description: Integrate Pictify with AI agents using Model Context Protocol
+---
+
+# MCP Server
+
+Pictify provides an MCP (Model Context Protocol) server that enables AI agents to generate images, GIFs, and PDFs programmatically.
+
+## What is MCP?
+
+Model Context Protocol is a standard for connecting AI models to external tools and data sources. With Pictify's MCP server, AI assistants like Claude can:
+
+- Generate images from descriptions
+- Create social media graphics
+- Render templates with dynamic data
+- Capture screenshots of web pages
+
+## Installation
+
+### Claude Desktop
+
+Add Pictify to your Claude Desktop configuration:
+
+```json
+// ~/Library/Application Support/Claude/claude_desktop_config.json (macOS)
+// %APPDATA%\Claude\claude_desktop_config.json (Windows)
+
+{
+  "mcpServers": {
+    "pictify": {
+      "command": "npx",
+      "args": ["-y", "@pictify/mcp-server"],
+      "env": {
+        "PICTIFY_API_KEY": "pk_live_your_api_key"
+      }
+    }
+  }
+}
+```
+
+Restart Claude Desktop after adding the configuration.
+
+### Claude Code
+
+```bash
+claude mcp add pictify -- npx -y @pictify/mcp-server
+```
+
+Set your API key:
+
+```bash
+export PICTIFY_API_KEY=pk_live_your_api_key
+```
+
+### Other MCP Clients
+
+The Pictify MCP server follows the standard MCP protocol and works with any compatible client.
+
+## Available Tools
+
+### `pictify_create_image`
+
+Generate an image from HTML content.
+
+**Parameters:**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `html` | string | Yes | HTML content to render |
+| `width` | number | Yes | Width in pixels |
+| `height` | number | Yes | Height in pixels |
+| `format` | string | No | `png`, `jpeg`, or `webp` |
+
+**Example:**
+
+```
+Create a social media card with the title "Hello World" on a purple gradient background, 1200x630 pixels.
+```
+
+The AI will call `pictify_create_image` with appropriate HTML.
+
+### `pictify_screenshot`
+
+Capture a screenshot of a URL.
+
+**Parameters:**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `url` | string | Yes | URL to screenshot |
+| `width` | number | No | Viewport width |
+| `height` | number | No | Viewport height |
+| `fullPage` | boolean | No | Capture full page |
+
+**Example:**
+
+```
+Take a screenshot of the Stripe pricing page.
+```
+
+### `pictify_render_template`
+
+Render a saved template with variables.
+
+**Parameters:**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `templateId` | string | Yes | Template ID |
+| `variables` | object | No | Template variables |
+| `format` | string | No | Output format |
+
+**Example:**
+
+```
+Render my blog post template with title "AI in 2026" and author "Jane Smith".
+```
+
+### `pictify_create_gif`
+
+Create an animated GIF.
+
+**Parameters:**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `html` | string | Yes | HTML with CSS animations |
+| `width` | number | Yes | Width in pixels |
+| `height` | number | Yes | Height in pixels |
+| `duration` | number | No | Animation duration in seconds |
+
+### `pictify_list_templates`
+
+List available templates.
+
+**Parameters:**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `limit` | number | No | Number of templates to return |
+
+## Example Conversations
+
+### Creating Social Graphics
+
+**User:** Create a Twitter header image for my AI startup "NeuralFlow" with a dark theme and neural network visualization.
+
+**Claude:** I'll create a Twitter header image for NeuralFlow with a dark neural network theme.
+
+*Calls `pictify_create_image` with HTML for the header*
+
+Here's your Twitter header image: [Image URL]
+
+The image features:
+- Deep purple gradient background
+- Animated neural network pattern
+- "NeuralFlow" in modern typography
+- Optimal 1500x500 dimensions for Twitter
+
+### Rendering Templates
+
+**User:** I have a blog post template. Generate images for these three posts:
+1. "The Future of AI" by John Doe
+2. "Web3 Explained" by Jane Smith
+3. "Cloud Computing 101" by Bob Wilson
+
+**Claude:** I'll render your blog post template for each article.
+
+*Calls `pictify_render_template` three times with different variables*
+
+Here are your blog post images:
+1. "The Future of AI" - [Image URL]
+2. "Web3 Explained" - [Image URL]
+3. "Cloud Computing 101" - [Image URL]
+
+### Screenshots for Documentation
+
+**User:** Take screenshots of our app's dashboard, settings page, and billing page for documentation.
+
+**Claude:** I'll capture screenshots of each page for your documentation.
+
+*Calls `pictify_screenshot` for each URL*
+
+Here are your documentation screenshots:
+1. Dashboard - [Image URL]
+2. Settings - [Image URL]
+3. Billing - [Image URL]
+
+## Configuration Options
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `PICTIFY_API_KEY` | Your Pictify API key | Required |
+| `PICTIFY_BASE_URL` | Custom API base URL | `https://api.pictify.io/v1` |
+
+### Server Options
+
+```json
+{
+  "mcpServers": {
+    "pictify": {
+      "command": "npx",
+      "args": ["-y", "@pictify/mcp-server"],
+      "env": {
+        "PICTIFY_API_KEY": "pk_live_...",
+        "PICTIFY_BASE_URL": "https://api.pictify.io/v1"
+      }
+    }
+  }
+}
+```
+
+## Building Custom Agents
+
+### With Anthropic's Claude API
+
+```typescript
+import Anthropic from '@anthropic-ai/sdk';
+import Pictify from '@pictify/sdk';
+
+const anthropic = new Anthropic();
+const pictify = new Pictify(process.env.PICTIFY_API_KEY);
+
+const tools = [
+  {
+    name: 'create_image',
+    description: 'Generate an image from HTML content',
+    input_schema: {
+      type: 'object',
+      properties: {
+        html: { type: 'string', description: 'HTML content to render' },
+        width: { type: 'number', description: 'Image width in pixels' },
+        height: { type: 'number', description: 'Image height in pixels' }
+      },
+      required: ['html', 'width', 'height']
+    }
+  }
+];
+
+async function handleToolCall(name: string, input: any) {
+  if (name === 'create_image') {
+    const image = await pictify.images.create(input);
+    return { url: image.url };
+  }
+}
+
+async function chat(userMessage: string) {
+  const response = await anthropic.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 1024,
+    tools,
+    messages: [{ role: 'user', content: userMessage }]
+  });
+
+  // Handle tool calls
+  for (const block of response.content) {
+    if (block.type === 'tool_use') {
+      const result = await handleToolCall(block.name, block.input);
+      // Continue conversation with tool result...
+    }
+  }
+}
+```
+
+### With LangChain
+
+```python
+from langchain.tools import Tool
+from langchain.agents import initialize_agent
+from pictify import Pictify
+
+pictify = Pictify(api_key='pk_live_...')
+
+def create_image(html: str, width: int = 1200, height: int = 630) -> str:
+    """Generate an image from HTML content."""
+    result = pictify.images.create(html=html, width=width, height=height)
+    return result['url']
+
+tools = [
+    Tool(
+        name="create_image",
+        func=create_image,
+        description="Generate an image from HTML. Input should be HTML string."
+    )
+]
+
+agent = initialize_agent(tools, llm, agent="zero-shot-react-description")
+```
+
+## Best Practices
+
+### 1. Provide Clear Descriptions
+
+Give templates and tools clear descriptions so the AI understands when to use them:
+
+```typescript
+{
+  name: 'render_blog_card',
+  description: 'Render a blog post social card. Use for creating Open Graph images for blog posts. Requires title, description, and author name.'
+}
+```
+
+### 2. Handle Errors Gracefully
+
+```typescript
+async function handleToolCall(name: string, input: any) {
+  try {
+    return await executeToolCall(name, input);
+  } catch (error) {
+    return {
+      error: true,
+      message: `Failed to ${name}: ${error.message}`
+    };
+  }
+}
+```
+
+### 3. Validate Input
+
+```typescript
+if (!input.html || !input.width || !input.height) {
+  return { error: true, message: 'Missing required parameters' };
+}
+
+if (input.width > 4000 || input.height > 4000) {
+  return { error: true, message: 'Dimensions exceed maximum (4000x4000)' };
+}
+```
+
+### 4. Cache Results
+
+For repeated requests, cache the results:
+
+```typescript
+const cache = new Map();
+
+async function createImage(options: ImageOptions) {
+  const cacheKey = JSON.stringify(options);
+
+  if (cache.has(cacheKey)) {
+    return cache.get(cacheKey);
+  }
+
+  const result = await pictify.images.create(options);
+  cache.set(cacheKey, result);
+  return result;
+}
+```

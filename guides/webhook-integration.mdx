@@ -1,0 +1,475 @@
+---
+title: Webhook Integration
+description: Build real-time integrations with Pictify webhooks
+---
+
+# Webhook Integration
+
+Webhooks let you build real-time integrations that respond to Pictify events. Instead of polling for changes, receive instant notifications when renders complete, fail, or bindings update.
+
+## Use Cases
+
+- **Update database** when images are ready
+- **Trigger workflows** after batch completion
+- **Send notifications** on render failures
+- **Sync with CDN** when content changes
+- **Log analytics** for monitoring
+
+## Quick Start
+
+### 1. Create Endpoint
+
+Build a webhook receiver:
+
+```typescript
+// Express.js
+import express from 'express';
+import { verifyWebhookSignature } from '@pictify/sdk';
+
+const app = express();
+
+app.post(
+  '/webhooks/pictify',
+  express.raw({ type: 'application/json' }),
+  async (req, res) => {
+    // Verify signature
+    const signature = req.headers['x-pictify-signature'] as string;
+    const isValid = verifyWebhookSignature(
+      req.body.toString(),
+      signature,
+      process.env.PICTIFY_WEBHOOK_SECRET!
+    );
+
+    if (!isValid) {
+      return res.status(401).send('Invalid signature');
+    }
+
+    // Parse and handle event
+    const event = JSON.parse(req.body.toString());
+    await handleEvent(event);
+
+    res.status(200).send('OK');
+  }
+);
+
+async function handleEvent(event: WebhookEvent) {
+  switch (event.event) {
+    case 'render.completed':
+      await onRenderCompleted(event.data);
+      break;
+    case 'render.failed':
+      await onRenderFailed(event.data);
+      break;
+    case 'batch.completed':
+      await onBatchCompleted(event.data);
+      break;
+    case 'binding.updated':
+      await onBindingUpdated(event.data);
+      break;
+  }
+}
+```
+
+### 2. Subscribe to Events
+
+```typescript
+const pictify = new Pictify(process.env.PICTIFY_API_KEY);
+
+const subscription = await pictify.webhooks.create({
+  event: 'render.completed',
+  targetUrl: 'https://yoursite.com/webhooks/pictify'
+});
+
+// Save the secret for verification
+await saveSecret(subscription.secret);
+```
+
+### 3. Test Your Endpoint
+
+Use the dashboard to send a test webhook:
+
+1. Go to **Settings** > **Webhooks**
+2. Find your subscription
+3. Click **Send Test**
+4. Verify your endpoint received it
+
+## Event Types
+
+### render.completed
+
+Fired when an image, GIF, or PDF finishes rendering.
+
+```json
+{
+  "event": "render.completed",
+  "timestamp": "2026-01-29T10:30:00Z",
+  "data": {
+    "type": "image",
+    "source": "api",
+    "imageId": "img_abc123",
+    "url": "https://cdn.pictify.io/renders/abc123.png",
+    "userStorageUrl": "https://your-bucket.s3.amazonaws.com/abc123.png",
+    "width": 1200,
+    "height": 630,
+    "format": "png",
+    "templateId": "tmpl_xyz789",
+    "variables": {
+      "title": "Hello World"
+    },
+    "renderedAt": "2026-01-29T10:30:00Z"
+  }
+}
+```
+
+**Use cases:**
+- Update CMS with image URL
+- Invalidate CDN cache
+- Notify users their image is ready
+
+### render.failed
+
+Fired when a render fails.
+
+```json
+{
+  "event": "render.failed",
+  "timestamp": "2026-01-29T10:30:00Z",
+  "data": {
+    "type": "image",
+    "source": "api",
+    "templateId": "tmpl_xyz789",
+    "error": "Template not found",
+    "errorCode": "TEMPLATE_NOT_FOUND",
+    "variables": {
+      "title": "Hello World"
+    }
+  }
+}
+```
+
+**Use cases:**
+- Alert on failures
+- Retry with different parameters
+- Log for debugging
+
+### batch.completed
+
+Fired when a batch job finishes.
+
+```json
+{
+  "event": "batch.completed",
+  "timestamp": "2026-01-29T10:30:00Z",
+  "data": {
+    "batchId": "batch_abc123",
+    "templateUid": "tmpl_xyz789",
+    "status": "completed",
+    "totalCount": 500,
+    "completedCount": 498,
+    "failedCount": 2,
+    "duration": 45000
+  }
+}
+```
+
+**Use cases:**
+- Process batch results
+- Send completion notification
+- Trigger next workflow step
+
+### binding.updated
+
+Fired when a binding successfully refreshes.
+
+```json
+{
+  "event": "binding.updated",
+  "timestamp": "2026-01-29T10:30:00Z",
+  "data": {
+    "bindingId": "bind_abc123",
+    "templateUid": "tmpl_xyz789",
+    "imageUrl": "https://cdn.pictify.io/bindings/abc123.png",
+    "previousData": { "stars": 100 },
+    "newData": { "stars": 105 }
+  }
+}
+```
+
+**Use cases:**
+- Invalidate cached pages
+- Log data changes
+- Trigger dependent updates
+
+### binding.failed
+
+Fired when a binding fails to refresh.
+
+```json
+{
+  "event": "binding.failed",
+  "timestamp": "2026-01-29T10:30:00Z",
+  "data": {
+    "bindingId": "bind_abc123",
+    "error": "Data source returned 500",
+    "retryCount": 3,
+    "nextRetry": "2026-01-29T11:00:00Z"
+  }
+}
+```
+
+## Filtering Events
+
+Subscribe only to events you care about:
+
+### Filter by Template
+
+```typescript
+await pictify.webhooks.create({
+  event: 'render.completed',
+  targetUrl: 'https://yoursite.com/webhooks/blog-cards',
+  filters: {
+    templateId: 'tmpl_blog_card'
+  }
+});
+```
+
+### Filter by Type
+
+```typescript
+await pictify.webhooks.create({
+  event: 'render.completed',
+  targetUrl: 'https://yoursite.com/webhooks/images-only',
+  filters: {
+    type: 'image'
+  }
+});
+```
+
+## Handler Patterns
+
+### Database Updates
+
+```typescript
+async function onRenderCompleted(data: RenderCompletedData) {
+  // Update your content with the image URL
+  await db.content.update({
+    where: { id: data.variables.contentId },
+    data: { ogImageUrl: data.url }
+  });
+}
+```
+
+### Cache Invalidation
+
+```typescript
+async function onBindingUpdated(data: BindingUpdatedData) {
+  // Invalidate CDN cache for pages using this image
+  await cdn.invalidate([
+    `/images/${data.bindingId}`,
+    `/pages/*`
+  ]);
+}
+```
+
+### Slack Notifications
+
+```typescript
+async function onRenderFailed(data: RenderFailedData) {
+  await slack.postMessage({
+    channel: '#alerts',
+    text: `🚨 Render failed: ${data.error}`,
+    attachments: [{
+      color: 'danger',
+      fields: [
+        { title: 'Template', value: data.templateId },
+        { title: 'Error Code', value: data.errorCode }
+      ]
+    }]
+  });
+}
+```
+
+### Workflow Orchestration
+
+```typescript
+async function onBatchCompleted(data: BatchCompletedData) {
+  if (data.failedCount > 0) {
+    // Retry failed items
+    await retryFailedItems(data.batchId);
+  }
+
+  if (data.status === 'completed') {
+    // Trigger next step
+    await startEmailCampaign(data.batchId);
+  }
+}
+```
+
+## Error Handling
+
+### Idempotent Handlers
+
+Webhooks may be delivered multiple times. Make handlers idempotent:
+
+```typescript
+async function onRenderCompleted(data: RenderCompletedData) {
+  const deliveryId = data.deliveryId;
+
+  // Check if already processed
+  const existing = await db.processedWebhooks.findUnique({
+    where: { deliveryId }
+  });
+
+  if (existing) {
+    console.log(`Already processed: ${deliveryId}`);
+    return;
+  }
+
+  // Process the webhook
+  await db.content.update({
+    where: { id: data.variables.contentId },
+    data: { ogImageUrl: data.url }
+  });
+
+  // Mark as processed
+  await db.processedWebhooks.create({
+    data: { deliveryId, processedAt: new Date() }
+  });
+}
+```
+
+### Graceful Degradation
+
+Handle errors without crashing:
+
+```typescript
+app.post('/webhooks/pictify', async (req, res) => {
+  try {
+    const event = JSON.parse(req.body.toString());
+
+    // Process with timeout
+    await Promise.race([
+      handleEvent(event),
+      timeout(25000) // 25 second timeout
+    ]);
+
+    res.status(200).send('OK');
+  } catch (error) {
+    console.error('Webhook error:', error);
+
+    // Return 200 to prevent retries for unrecoverable errors
+    if (error.isRetryable) {
+      res.status(500).send('Retry later');
+    } else {
+      res.status(200).send('Acknowledged with error');
+    }
+  }
+});
+```
+
+### Queue Processing
+
+For heavy workloads, queue webhooks:
+
+```typescript
+app.post('/webhooks/pictify', async (req, res) => {
+  const event = JSON.parse(req.body.toString());
+
+  // Add to queue immediately
+  await queue.add('pictify-webhook', event);
+
+  // Return quickly
+  res.status(200).send('Queued');
+});
+
+// Process asynchronously
+queue.process('pictify-webhook', async (job) => {
+  await handleEvent(job.data);
+});
+```
+
+## Security
+
+### Always Verify Signatures
+
+```typescript
+const isValid = verifyWebhookSignature(
+  payload,
+  signatureHeader,
+  secret
+);
+
+if (!isValid) {
+  throw new Error('Invalid webhook signature');
+}
+```
+
+### Use HTTPS
+
+Always use HTTPS endpoints in production:
+
+```
+✅ https://api.yoursite.com/webhooks/pictify
+❌ http://api.yoursite.com/webhooks/pictify
+```
+
+### Validate Event Data
+
+```typescript
+function validateRenderCompleted(data: unknown): data is RenderCompletedData {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'imageId' in data &&
+    'url' in data
+  );
+}
+
+async function handleEvent(event: WebhookEvent) {
+  if (event.event === 'render.completed') {
+    if (!validateRenderCompleted(event.data)) {
+      throw new Error('Invalid render.completed payload');
+    }
+    await onRenderCompleted(event.data);
+  }
+}
+```
+
+## Debugging
+
+### Webhook Logs
+
+View webhook delivery logs in the dashboard:
+
+1. Go to **Settings** > **Webhooks**
+2. Click on a subscription
+3. View **Delivery Logs**
+
+Each log shows:
+- Timestamp
+- Response status
+- Response body
+- Response time
+
+### Test Mode
+
+Send test webhooks without triggering real events:
+
+```typescript
+await pictify.webhooks.test(subscriptionId, {
+  event: 'render.completed',
+  data: {
+    imageId: 'test_123',
+    url: 'https://cdn.pictify.io/test.png'
+  }
+});
+```
+
+### Local Development
+
+Use ngrok or similar for local testing:
+
+```bash
+ngrok http 3000
+# Use the ngrok URL for webhook subscriptions
+```

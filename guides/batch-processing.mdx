@@ -1,0 +1,376 @@
+---
+title: Batch Processing
+description: Generate images at scale with batch operations
+---
+
+# Batch Processing
+
+Batch operations let you generate hundreds or thousands of images efficiently from a single API call. Perfect for bulk social cards, certificates, personalized content, and data-driven graphics.
+
+## When to Use Batch
+
+| Use Case | Single API | Batch API |
+|----------|------------|-----------|
+| 1-10 images | ✅ Simple | ❌ Overkill |
+| 10-100 images | ⚠️ Slow | ✅ Better |
+| 100+ images | ❌ Rate limits | ✅ Required |
+
+## Basic Batch Workflow
+
+### 1. Prepare Your Data
+
+Structure your data as an array of variable objects:
+
+```typescript
+const posts = [
+  { title: 'Getting Started with APIs', author: 'Alice', date: '2026-01-15' },
+  { title: 'Advanced JavaScript', author: 'Bob', date: '2026-01-20' },
+  { title: 'Cloud Architecture', author: 'Charlie', date: '2026-01-25' },
+  // ... hundreds more
+];
+```
+
+### 2. Start the Batch Job
+
+```typescript
+import Pictify from '@pictify/sdk';
+
+const pictify = new Pictify(process.env.PICTIFY_API_KEY);
+
+const batch = await pictify.templates.batchRender('tmpl_blog_card', {
+  variableSets: posts.map(post => ({
+    title: post.title,
+    author: post.author,
+    publishDate: post.date
+  })),
+  format: 'png',
+  webhookUrl: 'https://yoursite.com/webhooks/batch-complete'
+});
+
+console.log(`Batch started: ${batch.id}`);
+console.log(`Processing ${batch.totalCount} images`);
+```
+
+### 3. Monitor Progress
+
+```typescript
+// Poll for status
+const checkStatus = async (batchId: string) => {
+  const status = await pictify.templates.getBatchResults(batchId);
+
+  console.log(`Progress: ${status.batch.completedCount}/${status.batch.totalCount}`);
+  console.log(`Failed: ${status.batch.failedCount}`);
+
+  return status.batch.status;
+};
+
+// Check every 5 seconds
+while (true) {
+  const status = await checkStatus(batch.id);
+  if (status === 'completed' || status === 'failed') break;
+  await sleep(5000);
+}
+```
+
+### 4. Retrieve Results
+
+```typescript
+const results = await pictify.templates.getBatchResults(batch.id);
+
+for (const result of results.results) {
+  if (result.status === 'completed') {
+    console.log(`Image ${result.index}: ${result.url}`);
+    // Save URL to your database
+    await saveImageUrl(result.variables.title, result.url);
+  } else {
+    console.error(`Image ${result.index} failed: ${result.error}`);
+  }
+}
+```
+
+## Webhook Integration
+
+Instead of polling, receive a webhook when the batch completes:
+
+### Setup Webhook Handler
+
+```typescript
+// routes/webhooks.ts
+app.post('/webhooks/batch-complete', async (req, res) => {
+  const event = req.body;
+
+  if (event.event === 'batch.completed') {
+    const { batchId, completedCount, failedCount } = event.data;
+
+    console.log(`Batch ${batchId} completed`);
+    console.log(`Success: ${completedCount}, Failed: ${failedCount}`);
+
+    // Process results
+    await processBatchResults(batchId);
+  }
+
+  res.sendStatus(200);
+});
+
+async function processBatchResults(batchId: string) {
+  const results = await pictify.templates.getBatchResults(batchId);
+
+  for (const result of results.results) {
+    if (result.status === 'completed') {
+      await saveToDatabase(result);
+    }
+  }
+}
+```
+
+### Webhook Payload
+
+```json
+{
+  "event": "batch.completed",
+  "timestamp": "2026-01-29T10:30:00Z",
+  "data": {
+    "batchId": "batch_abc123",
+    "templateUid": "tmpl_xyz789",
+    "status": "completed",
+    "totalCount": 500,
+    "completedCount": 498,
+    "failedCount": 2,
+    "duration": 45000
+  }
+}
+```
+
+## Real-World Examples
+
+### Social Cards for Blog Posts
+
+```typescript
+// Fetch all posts from your CMS
+const posts = await cms.getPosts({ limit: 1000 });
+
+// Prepare variable sets
+const variableSets = posts.map(post => ({
+  title: post.title,
+  excerpt: post.excerpt.substring(0, 120),
+  author: post.author.name,
+  authorAvatar: post.author.avatarUrl,
+  category: post.category.name,
+  readTime: `${post.readTime} min read`,
+  publishDate: formatDate(post.publishedAt)
+}));
+
+// Start batch
+const batch = await pictify.templates.batchRender('tmpl_social_card', {
+  variableSets,
+  format: 'png',
+  webhookUrl: `${process.env.BASE_URL}/webhooks/social-cards`
+});
+
+// Store batch ID for tracking
+await db.batches.create({
+  batchId: batch.id,
+  type: 'social-cards',
+  totalCount: posts.length,
+  status: 'processing'
+});
+```
+
+### Event Certificates
+
+```typescript
+const attendees = [
+  { name: 'Alice Johnson', email: 'alice@example.com', ticketId: 'TK001' },
+  { name: 'Bob Smith', email: 'bob@example.com', ticketId: 'TK002' },
+  // ... more attendees
+];
+
+const batch = await pictify.templates.batchRender('tmpl_certificate', {
+  variableSets: attendees.map(a => ({
+    recipientName: a.name,
+    eventName: 'Tech Conference 2026',
+    eventDate: 'January 29, 2026',
+    certificateId: `CERT-${a.ticketId}`
+  })),
+  format: 'png',
+  webhookUrl: `${process.env.BASE_URL}/webhooks/certificates`
+});
+
+// After batch completes, send emails
+async function sendCertificates(batchId: string) {
+  const results = await pictify.templates.getBatchResults(batchId);
+
+  for (const result of results.results) {
+    const attendee = attendees[result.index];
+    await sendEmail({
+      to: attendee.email,
+      subject: 'Your Conference Certificate',
+      body: `Download your certificate: ${result.url}`
+    });
+  }
+}
+```
+
+### Product Images
+
+```typescript
+const products = await db.products.findAll();
+
+const batch = await pictify.templates.batchRender('tmpl_product_card', {
+  variableSets: products.map(p => ({
+    productName: p.name,
+    price: formatCurrency(p.price),
+    originalPrice: p.salePrice ? formatCurrency(p.originalPrice) : null,
+    discount: p.salePrice ? `${p.discountPercent}% OFF` : null,
+    imageUrl: p.imageUrl,
+    rating: p.rating,
+    reviewCount: p.reviewCount,
+    badge: p.isNew ? 'NEW' : p.isBestseller ? 'BESTSELLER' : null
+  })),
+  format: 'jpeg',
+  quality: 90
+});
+```
+
+## Handling Failures
+
+### Identify Failed Items
+
+```typescript
+const results = await pictify.templates.getBatchResults(batchId);
+
+const failed = results.results.filter(r => r.status === 'failed');
+
+console.log(`${failed.length} items failed:`);
+for (const item of failed) {
+  console.log(`  Index ${item.index}: ${item.error}`);
+  console.log(`  Variables: ${JSON.stringify(item.variables)}`);
+}
+```
+
+### Retry Failed Items
+
+```typescript
+async function retryFailedItems(batchId: string) {
+  const results = await pictify.templates.getBatchResults(batchId, {
+    status: 'failed'
+  });
+
+  if (results.results.length === 0) {
+    console.log('No failed items to retry');
+    return;
+  }
+
+  // Extract failed variable sets
+  const failedVariables = results.results.map(r => r.variables);
+
+  // Start a new batch with just the failed items
+  const retryBatch = await pictify.templates.batchRender(
+    results.batch.templateUid,
+    {
+      variableSets: failedVariables,
+      webhookUrl: `${process.env.BASE_URL}/webhooks/batch-retry`
+    }
+  );
+
+  console.log(`Retry batch started: ${retryBatch.id}`);
+}
+```
+
+### Common Failure Reasons
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `INVALID_VARIABLE` | Missing required variable | Check data completeness |
+| `EXPRESSION_ERROR` | Invalid expression syntax | Fix template expressions |
+| `IMAGE_FETCH_FAILED` | Can't load external image | Verify image URLs |
+| `RENDER_TIMEOUT` | Complex template | Simplify template |
+
+## Performance Tips
+
+### Optimize Template
+
+1. **Simplify CSS** - Avoid complex gradients and shadows
+2. **Preload fonts** - Use web-safe fonts or inline font data
+3. **Optimize images** - Use appropriately sized source images
+4. **Reduce elements** - Fewer DOM elements = faster render
+
+### Batch Size
+
+| Items | Recommendation |
+|-------|---------------|
+| < 100 | Single batch |
+| 100-1000 | Single batch |
+| > 1000 | Split into multiple batches |
+
+```typescript
+// Split large datasets
+const BATCH_SIZE = 1000;
+
+for (let i = 0; i < items.length; i += BATCH_SIZE) {
+  const chunk = items.slice(i, i + BATCH_SIZE);
+
+  const batch = await pictify.templates.batchRender(templateId, {
+    variableSets: chunk,
+    webhookUrl: `${baseUrl}/webhooks/batch?chunk=${i / BATCH_SIZE}`
+  });
+
+  await db.batches.create({ batchId: batch.id, chunkIndex: i / BATCH_SIZE });
+}
+```
+
+### Parallel Processing
+
+Pictify processes batch items in parallel. Larger batches are more efficient than multiple small batches.
+
+## Monitoring
+
+### Track Batch Progress
+
+```typescript
+interface BatchMetrics {
+  batchId: string;
+  startedAt: Date;
+  completedAt?: Date;
+  totalCount: number;
+  successCount: number;
+  failedCount: number;
+  avgRenderTime?: number;
+}
+
+async function trackBatch(batchId: string): Promise<BatchMetrics> {
+  const result = await pictify.templates.getBatchResults(batchId);
+
+  return {
+    batchId,
+    startedAt: new Date(result.batch.createdAt),
+    completedAt: result.batch.completedAt
+      ? new Date(result.batch.completedAt)
+      : undefined,
+    totalCount: result.batch.totalCount,
+    successCount: result.batch.completedCount,
+    failedCount: result.batch.failedCount,
+    avgRenderTime: result.batch.completedAt
+      ? (new Date(result.batch.completedAt).getTime() -
+         new Date(result.batch.createdAt).getTime()) / result.batch.totalCount
+      : undefined
+  };
+}
+```
+
+### Set Up Alerts
+
+```typescript
+async function onBatchComplete(event: BatchCompleteEvent) {
+  const { completedCount, failedCount, totalCount } = event.data;
+  const failureRate = failedCount / totalCount;
+
+  if (failureRate > 0.05) {  // > 5% failure rate
+    await sendAlert({
+      type: 'batch_high_failure_rate',
+      message: `Batch ${event.data.batchId} had ${(failureRate * 100).toFixed(1)}% failure rate`,
+      batchId: event.data.batchId
+    });
+  }
+}
+```

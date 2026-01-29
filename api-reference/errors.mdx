@@ -1,0 +1,403 @@
+---
+title: Error Handling
+description: API error codes and troubleshooting
+---
+
+# Error Handling
+
+The Pictify API uses standard HTTP status codes and returns errors in [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457.html) Problem Details format.
+
+## Error Response Format
+
+All errors follow this structure:
+
+```json
+{
+  "type": "https://docs.pictify.io/errors/validation-error",
+  "title": "Validation Error",
+  "status": 400,
+  "detail": "The 'width' field must be a positive integer.",
+  "instance": "/v1/image",
+  "errors": [
+    {
+      "field": "width",
+      "message": "Must be a positive integer",
+      "code": "invalid_type"
+    }
+  ]
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `type` | URI identifying the error type (links to documentation) |
+| `title` | Short, human-readable summary |
+| `status` | HTTP status code |
+| `detail` | Detailed explanation of this specific error |
+| `instance` | The API endpoint that generated the error |
+| `errors` | Array of field-level errors (for validation errors) |
+
+## HTTP Status Codes
+
+### Success Codes
+
+| Code | Description |
+|------|-------------|
+| `200 OK` | Request succeeded |
+| `201 Created` | Resource created successfully |
+| `202 Accepted` | Async operation started (batch jobs) |
+| `204 No Content` | Success with no response body (DELETE) |
+
+### Client Error Codes
+
+| Code | Description |
+|------|-------------|
+| `400 Bad Request` | Invalid request syntax or parameters |
+| `401 Unauthorized` | Missing or invalid API key |
+| `403 Forbidden` | Valid API key but insufficient permissions |
+| `404 Not Found` | Resource doesn't exist |
+| `409 Conflict` | Resource state conflict |
+| `422 Unprocessable Entity` | Valid syntax but semantic errors |
+| `429 Too Many Requests` | Rate limit exceeded |
+
+### Server Error Codes
+
+| Code | Description |
+|------|-------------|
+| `500 Internal Server Error` | Unexpected server error |
+| `502 Bad Gateway` | Upstream service error |
+| `503 Service Unavailable` | Temporary overload or maintenance |
+| `504 Gateway Timeout` | Upstream service timeout |
+
+## Error Types
+
+### Authentication Errors
+
+#### `invalid-api-key`
+
+```json
+{
+  "type": "https://docs.pictify.io/errors/invalid-api-key",
+  "title": "Invalid API Key",
+  "status": 401,
+  "detail": "The API key provided is invalid or has been revoked."
+}
+```
+
+**Causes:**
+- API key is malformed
+- API key has been deleted or revoked
+- Using test key in production or vice versa
+
+**Solution:** Generate a new API key in your [dashboard](https://app.pictify.io/settings/api-keys).
+
+#### `missing-authorization`
+
+```json
+{
+  "type": "https://docs.pictify.io/errors/missing-authorization",
+  "title": "Missing Authorization",
+  "status": 401,
+  "detail": "No Authorization header provided."
+}
+```
+
+**Solution:** Include the `Authorization: Bearer pk_live_...` header in your request.
+
+### Validation Errors
+
+#### `validation-error`
+
+```json
+{
+  "type": "https://docs.pictify.io/errors/validation-error",
+  "title": "Validation Error",
+  "status": 400,
+  "detail": "Request validation failed.",
+  "errors": [
+    {
+      "field": "html",
+      "message": "Required field missing",
+      "code": "required"
+    },
+    {
+      "field": "width",
+      "message": "Must be between 1 and 4000",
+      "code": "out_of_range"
+    }
+  ]
+}
+```
+
+**Common validation codes:**
+- `required` - Field is required but missing
+- `invalid_type` - Wrong data type
+- `out_of_range` - Value outside allowed range
+- `invalid_format` - Wrong format (e.g., invalid URL)
+- `too_long` - String exceeds max length
+
+### Resource Errors
+
+#### `template-not-found`
+
+```json
+{
+  "type": "https://docs.pictify.io/errors/template-not-found",
+  "title": "Template Not Found",
+  "status": 404,
+  "detail": "Template with ID 'tmpl_abc123' was not found."
+}
+```
+
+**Causes:**
+- Template ID is incorrect
+- Template was deleted
+- Template belongs to a different project
+
+#### `binding-not-found`
+
+```json
+{
+  "type": "https://docs.pictify.io/errors/binding-not-found",
+  "title": "Binding Not Found",
+  "status": 404,
+  "detail": "Binding with ID 'bind_xyz789' was not found."
+}
+```
+
+### Rate Limiting
+
+#### `rate-limit-exceeded`
+
+```json
+{
+  "type": "https://docs.pictify.io/errors/rate-limit-exceeded",
+  "title": "Rate Limit Exceeded",
+  "status": 429,
+  "detail": "You have exceeded the rate limit of 60 requests per minute.",
+  "retryAfter": 45
+}
+```
+
+**Response Headers:**
+
+```http
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1706515320
+Retry-After: 45
+```
+
+**Solution:** Wait for the `Retry-After` duration, then retry. Consider implementing exponential backoff.
+
+### Rendering Errors
+
+#### `render-failed`
+
+```json
+{
+  "type": "https://docs.pictify.io/errors/render-failed",
+  "title": "Render Failed",
+  "status": 500,
+  "detail": "Failed to render the template due to invalid HTML."
+}
+```
+
+**Common causes:**
+- Invalid HTML/CSS syntax
+- Missing fonts or assets
+- JavaScript execution timeout
+- Memory limit exceeded
+
+#### `url-fetch-failed`
+
+```json
+{
+  "type": "https://docs.pictify.io/errors/url-fetch-failed",
+  "title": "URL Fetch Failed",
+  "status": 422,
+  "detail": "Failed to fetch content from the provided URL.",
+  "errors": [
+    {
+      "field": "url",
+      "message": "Connection timeout after 30 seconds",
+      "code": "timeout"
+    }
+  ]
+}
+```
+
+**Causes:**
+- URL is unreachable
+- Server returned non-200 status
+- Connection timeout
+- SSL certificate error
+
+#### `expression-error`
+
+```json
+{
+  "type": "https://docs.pictify.io/errors/expression-error",
+  "title": "Expression Error",
+  "status": 422,
+  "detail": "Failed to evaluate expression: undefined variable 'userName'",
+  "errors": [
+    {
+      "field": "variables",
+      "message": "Variable 'userName' is referenced but not provided",
+      "code": "undefined_variable"
+    }
+  ]
+}
+```
+
+### Batch Errors
+
+#### `batch-failed`
+
+```json
+{
+  "type": "https://docs.pictify.io/errors/batch-failed",
+  "title": "Batch Job Failed",
+  "status": 500,
+  "detail": "Batch job 'batch_abc123' failed with 3 errors.",
+  "failedCount": 3,
+  "successCount": 97
+}
+```
+
+### Webhook Errors
+
+#### `webhook-delivery-failed`
+
+```json
+{
+  "type": "https://docs.pictify.io/errors/webhook-delivery-failed",
+  "title": "Webhook Delivery Failed",
+  "status": 502,
+  "detail": "Failed to deliver webhook after 5 attempts.",
+  "lastAttempt": "2026-01-29T10:30:00Z",
+  "lastError": "Connection refused"
+}
+```
+
+## Error Handling Best Practices
+
+### 1. Check Status Codes First
+
+```typescript
+const response = await fetch('https://api.pictify.io/v1/image', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${apiKey}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({ html: '<h1>Hello</h1>' })
+});
+
+if (!response.ok) {
+  const error = await response.json();
+
+  switch (response.status) {
+    case 401:
+      throw new Error('Invalid API key');
+    case 429:
+      const retryAfter = response.headers.get('Retry-After');
+      throw new Error(`Rate limited. Retry after ${retryAfter}s`);
+    case 400:
+    case 422:
+      throw new Error(`Validation error: ${error.detail}`);
+    default:
+      throw new Error(`API error: ${error.title}`);
+  }
+}
+```
+
+### 2. Implement Retry Logic
+
+```typescript
+async function renderWithRetry(
+  options: RenderOptions,
+  maxRetries = 3
+): Promise<RenderResult> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await pictify.images.create(options);
+    } catch (error) {
+      if (error.status === 429) {
+        const delay = error.retryAfter * 1000 || Math.pow(2, attempt) * 1000;
+        await sleep(delay);
+        continue;
+      }
+
+      if (error.status >= 500 && attempt < maxRetries) {
+        await sleep(Math.pow(2, attempt) * 1000);
+        continue;
+      }
+
+      throw error;
+    }
+  }
+}
+```
+
+### 3. Log Errors for Debugging
+
+```typescript
+try {
+  const result = await pictify.templates.render(templateId, { variables });
+} catch (error) {
+  console.error('Pictify API Error:', {
+    type: error.type,
+    status: error.status,
+    detail: error.detail,
+    instance: error.instance,
+    requestId: error.requestId
+  });
+  throw error;
+}
+```
+
+### 4. Handle Field-Level Errors
+
+```typescript
+if (error.errors && Array.isArray(error.errors)) {
+  const fieldErrors = error.errors.reduce((acc, err) => {
+    acc[err.field] = err.message;
+    return acc;
+  }, {});
+
+  // Display field-specific error messages in UI
+  setFormErrors(fieldErrors);
+}
+```
+
+## Troubleshooting Common Issues
+
+### "Invalid HTML" Errors
+
+1. Validate your HTML with an online validator
+2. Ensure all tags are properly closed
+3. Check for unsupported CSS properties
+4. Test locally in a browser first
+
+### Timeout Errors
+
+1. Reduce page complexity
+2. Optimize images and assets
+3. Use inline styles instead of external CSS
+4. Consider using `waitForSelector` to wait for specific elements
+
+### Memory Errors
+
+1. Reduce image dimensions
+2. Simplify complex CSS (gradients, shadows)
+3. Limit number of DOM elements
+4. Use vector graphics (SVG) where possible
+
+### Rate Limit Errors
+
+1. Implement request queuing
+2. Use batch endpoints for bulk operations
+3. Cache rendered images
+4. Consider upgrading your plan

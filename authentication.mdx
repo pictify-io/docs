@@ -1,0 +1,178 @@
+---
+title: Authentication
+description: Secure your API requests with API keys
+---
+
+# Authentication
+
+All API requests require authentication using an API key passed in the `Authorization` header.
+
+## API Keys
+
+API keys are created in your [dashboard settings](https://pictify.io/dashboard/settings). Each key is associated with your team and has access to all team resources.
+
+### Creating an API Key
+
+1. Navigate to **Settings** > **API Keys** in the dashboard
+2. Click **Create API Key**
+3. Give your key a descriptive name (e.g., "Production Server", "Development")
+4. Copy the key immediately - it won't be shown again
+
+<Warning>
+API keys provide full access to your account. Keep them secure and never expose them in client-side code.
+</Warning>
+
+## Using Your API Key
+
+Include your API key in the `Authorization` header as a Bearer token:
+
+```bash
+curl -X POST https://api.pictify.io/v1/image \
+  -H "Authorization: Bearer pk_live_abc123..." \
+  -H "Content-Type: application/json" \
+  -d '{"html": "<h1>Hello</h1>"}'
+```
+
+### SDK Configuration
+
+<CodeGroup>
+```typescript Node.js
+import { Pictify } from '@pictify/sdk';
+
+const pictify = new Pictify({
+  apiKey: process.env.PICTIFY_API_KEY
+});
+```
+
+```python Python
+from pictify import Pictify
+
+client = Pictify(api_key=os.environ["PICTIFY_API_KEY"])
+```
+
+```go Go
+client := pictify.NewClient(os.Getenv("PICTIFY_API_KEY"))
+```
+
+```ruby Ruby
+client = Pictify::Client.new(api_key: ENV['PICTIFY_API_KEY'])
+```
+</CodeGroup>
+
+## API Key Types
+
+| Prefix | Type | Environment |
+|--------|------|-------------|
+| `pk_live_` | Production | Live API access |
+| `pk_test_` | Test | Sandbox environment |
+
+Test keys work identically to production keys but are rate-limited and do not count against your quota.
+
+## Security Best Practices
+
+### Environment Variables
+
+Never hardcode API keys. Use environment variables:
+
+```bash
+# .env
+PICTIFY_API_KEY=pk_live_abc123...
+```
+
+### Server-Side Only
+
+API keys should only be used in server-side code. Never include them in:
+- Client-side JavaScript
+- Mobile apps
+- Public repositories
+- Browser localStorage/cookies
+
+### Key Rotation
+
+If you suspect a key has been compromised:
+1. Create a new API key in the dashboard
+2. Update your application to use the new key
+3. Delete the compromised key
+
+### Least Privilege
+
+Create separate API keys for different environments and services:
+- Production server
+- Staging server
+- CI/CD pipeline
+- Local development
+
+## Rate Limits
+
+API requests are rate limited by API key:
+
+| Plan | Requests per Minute | Requests per Day |
+|------|--------------------:|----------------:|
+| Free | 60 | 1,000 |
+| Pro | 300 | 10,000 |
+| Business | 1,000 | 100,000 |
+| Enterprise | Custom | Custom |
+
+Rate limit headers are included in every response:
+
+```http
+X-RateLimit-Limit: 300
+X-RateLimit-Remaining: 299
+X-RateLimit-Reset: 1706515260
+```
+
+When rate limited, you'll receive a `429 Too Many Requests` response with a `Retry-After` header:
+
+```json
+{
+  "type": "https://docs.pictify.io/errors/rate-limit",
+  "title": "Rate Limit Exceeded",
+  "status": 429,
+  "detail": "You have exceeded the rate limit. Please retry after 60 seconds.",
+  "instance": "/v1/image"
+}
+```
+
+## Team API Keys
+
+API keys are scoped to your team. All team members share access to the same API keys and resources.
+
+To manage team members:
+1. Go to **Settings** > **Team**
+2. Invite members by email
+3. Assign roles (Admin, Editor, Viewer)
+
+Only Admins can create, view, and delete API keys.
+
+## Troubleshooting
+
+### Invalid API Key
+
+```json
+{
+  "type": "https://docs.pictify.io/errors/invalid-api-key",
+  "title": "Invalid API Key",
+  "status": 401,
+  "detail": "The provided API key is invalid or has been revoked."
+}
+```
+
+**Solutions:**
+- Verify the key is copied correctly (no extra spaces)
+- Check if the key has been deleted in the dashboard
+- Ensure you're using the correct environment (test vs production)
+
+### Missing Authorization Header
+
+```json
+{
+  "type": "https://docs.pictify.io/errors/missing-auth",
+  "title": "Missing Authentication",
+  "status": 401,
+  "detail": "No API key provided. Include your API key in the Authorization header."
+}
+```
+
+**Solutions:**
+- Add the `Authorization: Bearer {api_key}` header
+- Check for typos in the header name

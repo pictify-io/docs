@@ -1,0 +1,150 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "name": "Pictify",
+  "logo": {
+    "dark": "/images/logo-dark.svg",
+    "light": "/images/logo-light.svg"
+  },
+  "favicon": "/images/favicon.svg",
+  "colors": {
+    "primary": "#6366F1",
+    "light": "#818CF8",
+    "dark": "#4F46E5"
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": ["introduction", "quickstart", "authentication"]
+          },
+          {
+            "group": "Concepts",
+            "pages": [
+              "concepts/templates",
+              "concepts/expressions",
+              "concepts/rendering",
+              "concepts/webhooks"
+            ]
+          },
+          {
+            "group": "Security",
+            "pages": [
+              "security/webhook-verification",
+              "security/api-keys",
+              "security/ssrf-protection"
+            ]
+          },
+          {
+            "group": "Resources",
+            "pages": [
+              "resources/changelog",
+              "resources/troubleshooting",
+              "resources/glossary"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": ["api-reference/overview", "api-reference/errors"]
+          },
+          {
+            "group": "Generation",
+            "pages": [
+              "api-reference/generation/images",
+              "api-reference/generation/gifs",
+              "api-reference/generation/pdfs"
+            ]
+          },
+          {
+            "group": "Resources",
+            "pages": [
+              "api-reference/templates",
+              "api-reference/batch",
+              "api-reference/webhooks",
+              "api-reference/bindings"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "SDKs",
+        "groups": [
+          {
+            "group": "Official SDKs",
+            "pages": [
+              "sdks/nodejs",
+              "sdks/python",
+              "sdks/go",
+              "sdks/ruby"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Dashboard",
+            "pages": [
+              "dashboard/templates",
+              "dashboard/api-keys",
+              "dashboard/usage"
+            ]
+          },
+          {
+            "group": "Tutorials",
+            "pages": [
+              "guides/og-images",
+              "guides/batch-processing",
+              "guides/webhook-integration"
+            ]
+          },
+          {
+            "group": "AI Integration",
+            "pages": [
+              "agent-integration/mcp-server",
+              "agent-integration/tool-schemas"
+            ]
+          }
+        ]
+      }
+    ],
+    "anchors": [
+      {
+        "anchor": "API Status",
+        "href": "https://status.pictify.io",
+        "icon": "signal"
+      },
+      {
+        "anchor": "Changelog",
+        "href": "/resources/changelog",
+        "icon": "clock-rotate-left"
+      }
+    ]
+  },
+  "api": {
+    "playground": {
+      "display": "interactive"
+    },
+    "examples": {
+      "languages": ["curl", "javascript", "python", "go", "ruby"]
+    },
+    "mdx": {
+      "auth": {
+        "method": "bearer"
+      }
+    }
+  },
+  "openapi": ["openapi/v1.yaml"],
+  "feedback": {
+    "thumbsRating": true,
+    "suggestEdit": true
+  }
+}

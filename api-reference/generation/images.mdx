@@ -1,0 +1,308 @@
+---
+title: Image Generation
+description: Generate images from HTML, URLs, or templates
+openapi: post /image
+---
+
+# Image Generation
+
+Generate PNG, JPEG, or WebP images from HTML, URLs, or saved templates.
+
+## Generate from HTML
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://api.pictify.io/v1/image \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "html": "<div style=\"width: 1200px; height: 630px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center;\"><h1 style=\"color: white; font-size: 48px;\">Hello World</h1></div>",
+    "width": 1200,
+    "height": 630
+  }'
+```
+
+```typescript Node.js
+import Pictify from '@pictify/sdk';
+
+const pictify = new Pictify('pk_live_...');
+
+const result = await pictify.images.create({
+  html: `
+    <div style="width: 1200px; height: 630px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center;">
+      <h1 style="color: white; font-size: 48px;">Hello World</h1>
+    </div>
+  `,
+  width: 1200,
+  height: 630
+});
+
+console.log(result.url);
+```
+
+```python Python
+from pictify import Pictify
+
+pictify = Pictify('pk_live_...')
+
+result = pictify.images.create(
+    html='''
+    <div style="width: 1200px; height: 630px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center;">
+      <h1 style="color: white; font-size: 48px;">Hello World</h1>
+    </div>
+    ''',
+    width=1200,
+    height=630
+)
+
+print(result['url'])
+```
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "url": "https://cdn.pictify.io/renders/img_abc123.png",
+  "id": "img_abc123",
+  "width": 1200,
+  "height": 630,
+  "format": "png",
+  "size": 45678,
+  "createdAt": "2026-01-29T10:30:00Z"
+}
+```
+
+## Generate from URL
+
+Capture a screenshot of any publicly accessible URL.
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://api.pictify.io/v1/image \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://example.com",
+    "width": 1200,
+    "height": 630,
+    "fullPage": false
+  }'
+```
+
+```typescript Node.js
+const result = await pictify.images.create({
+  url: 'https://example.com',
+  width: 1200,
+  height: 630,
+  fullPage: false
+});
+```
+
+```python Python
+result = pictify.images.create(
+    url='https://example.com',
+    width=1200,
+    height=630,
+    full_page=False
+)
+```
+</CodeGroup>
+
+## Request Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `html` | string | * | HTML content to render |
+| `url` | string | * | URL to screenshot |
+| `width` | integer | Yes | Output width in pixels (1-4000) |
+| `height` | integer | Yes | Output height in pixels (1-4000) |
+| `format` | string | No | Output format: `png`, `jpeg`, `webp` (default: `png`) |
+| `quality` | integer | No | Quality for JPEG/WebP (1-100, default: 85) |
+| `deviceScaleFactor` | number | No | Device scale for retina (1-3, default: 1) |
+| `transparent` | boolean | No | Transparent background (PNG/WebP only) |
+| `selector` | string | No | CSS selector to capture specific element |
+| `fullPage` | boolean | No | Capture full scrollable page |
+| `waitForSelector` | string | No | Wait for element before capturing |
+| `waitForTimeout` | integer | No | Additional wait time in ms (max: 30000) |
+| `userAgent` | string | No | Custom user agent string |
+| `cookies` | array | No | Cookies to set before capture |
+| `headers` | object | No | Custom HTTP headers |
+
+<Note>
+Either `html` or `url` is required, but not both.
+</Note>
+
+## Canvas Rendering {#canvas}
+
+Render FabricJS canvas data directly to an image.
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://api.pictify.io/v1/image/canvas \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "fabricJSData": {
+      "version": "5.3.0",
+      "objects": [
+        {
+          "type": "rect",
+          "fill": "#667eea",
+          "width": 1200,
+          "height": 630,
+          "left": 0,
+          "top": 0
+        },
+        {
+          "type": "textbox",
+          "text": "{{title}}",
+          "fill": "white",
+          "fontSize": 48,
+          "left": 100,
+          "top": 200
+        }
+      ]
+    },
+    "variables": {
+      "title": "Dynamic Content"
+    },
+    "width": 1200,
+    "height": 630
+  }'
+```
+
+```typescript Node.js
+const result = await pictify.images.canvas({
+  fabricJSData: {
+    version: '5.3.0',
+    objects: [
+      { type: 'rect', fill: '#667eea', width: 1200, height: 630, left: 0, top: 0 },
+      { type: 'textbox', text: '{{title}}', fill: 'white', fontSize: 48, left: 100, top: 200 }
+    ]
+  },
+  variables: {
+    title: 'Dynamic Content'
+  },
+  width: 1200,
+  height: 630
+});
+```
+</CodeGroup>
+
+### Canvas Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `fabricJSData` | object | Yes | FabricJS canvas JSON export |
+| `variables` | object | No | Variables to interpolate in text |
+| `width` | integer | Yes | Output width |
+| `height` | integer | Yes | Output height |
+| `format` | string | No | Output format (default: `png`) |
+
+## Agent Screenshot {#agent-screenshot}
+
+Use AI to navigate to a page and capture specific content.
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://api.pictify.io/v1/image/agent-screenshot \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "Take a screenshot of the pricing section on stripe.com"
+  }'
+```
+
+```typescript Node.js
+const result = await pictify.images.agentScreenshot({
+  prompt: 'Take a screenshot of the pricing section on stripe.com'
+});
+```
+</CodeGroup>
+
+The AI agent will:
+1. Navigate to the relevant page
+2. Locate the specified content
+3. Capture a focused screenshot
+
+### Agent Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `prompt` | string | Yes | Natural language description of what to capture |
+| `width` | integer | No | Preferred output width |
+| `height` | integer | No | Preferred output height |
+
+## Advanced Options
+
+### Retina/High-DPI Images
+
+```typescript
+const result = await pictify.images.create({
+  html: '<h1>Retina Image</h1>',
+  width: 1200,
+  height: 630,
+  deviceScaleFactor: 2  // 2x resolution = 2400x1260 actual pixels
+});
+```
+
+### Transparent Background
+
+```typescript
+const result = await pictify.images.create({
+  html: '<h1 style="color: white;">Transparent</h1>',
+  width: 800,
+  height: 400,
+  format: 'png',
+  transparent: true
+});
+```
+
+### Capture Specific Element
+
+```typescript
+const result = await pictify.images.create({
+  url: 'https://example.com',
+  selector: '#hero-section',  // Only capture this element
+  width: 1200,
+  height: 630
+});
+```
+
+### Wait for Dynamic Content
+
+```typescript
+const result = await pictify.images.create({
+  url: 'https://example.com/dashboard',
+  waitForSelector: '.chart-loaded',  // Wait for charts to render
+  waitForTimeout: 2000  // Additional 2s wait
+});
+```
+
+### Custom Cookies & Headers
+
+```typescript
+const result = await pictify.images.create({
+  url: 'https://example.com/private',
+  cookies: [
+    { name: 'session', value: 'abc123', domain: 'example.com' }
+  ],
+  headers: {
+    'X-Custom-Header': 'value'
+  }
+});
+```
+
+## Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `url` | string | CDN URL of the rendered image |
+| `id` | string | Unique image identifier |
+| `width` | integer | Actual image width |
+| `height` | integer | Actual image height |
+| `format` | string | Image format |
+| `size` | integer | File size in bytes |
+| `createdAt` | string | ISO 8601 timestamp |
+| `userStorageUrl` | string | URL in your storage (if configured) |

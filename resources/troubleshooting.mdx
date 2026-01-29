@@ -1,0 +1,361 @@
+---
+title: Troubleshooting
+description: Common issues and solutions
+---
+
+# Troubleshooting
+
+This guide covers common issues and their solutions when using the Pictify API.
+
+## Authentication Issues
+
+### "Invalid API Key" (401)
+
+**Symptoms:** API returns 401 Unauthorized with "Invalid API Key" message.
+
+**Solutions:**
+
+1. **Verify the key format**
+   - Live keys start with `pk_live_`
+   - Test keys start with `pk_test_`
+
+2. **Check for extra characters**
+   ```bash
+   # Wrong - has quotes
+   PICTIFY_API_KEY="pk_live_..."
+
+   # Correct - no quotes in shell
+   PICTIFY_API_KEY=pk_live_...
+   ```
+
+3. **Verify the key isn't revoked**
+   - Check in Dashboard > Settings > API Keys
+
+4. **Ensure correct environment**
+   - Test keys don't work in production mode
+
+### "Missing Authorization" (401)
+
+**Symptoms:** API returns 401 with "Missing Authorization" message.
+
+**Solutions:**
+
+```bash
+# Make sure header is correct
+curl https://api.pictify.io/v1/image \
+  -H "Authorization: Bearer pk_live_your_key"  # ✅ Correct
+
+# Common mistakes:
+-H "Authorization: pk_live_your_key"           # ❌ Missing "Bearer"
+-H "Api-Key: pk_live_your_key"                 # ❌ Wrong header name
+```
+
+## Rendering Issues
+
+### Blank or White Images
+
+**Symptoms:** Generated image is blank or all white.
+
+**Solutions:**
+
+1. **Check HTML has visible content**
+   ```html
+   <!-- Wrong - no dimensions -->
+   <div>Hello</div>
+
+   <!-- Correct - explicit dimensions -->
+   <div style="width: 1200px; height: 630px; background: #fff;">
+     Hello
+   </div>
+   ```
+
+2. **Ensure content is within viewport**
+   - Content outside the width/height won't be captured
+
+3. **Check for transparent backgrounds**
+   ```typescript
+   // If using transparent: true, background may be invisible
+   { transparent: true }  // Background won't show
+   ```
+
+### Missing Fonts
+
+**Symptoms:** Text appears in default/fallback font.
+
+**Solutions:**
+
+1. **Use web fonts with @import**
+   ```html
+   <style>
+     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+     body { font-family: 'Inter', sans-serif; }
+   </style>
+   ```
+
+2. **Use web-safe fonts as fallback**
+   ```css
+   font-family: 'Inter', Arial, sans-serif;
+   ```
+
+3. **Wait for font loading**
+   ```typescript
+   {
+     waitForTimeout: 1000  // Give fonts time to load
+   }
+   ```
+
+### CSS Not Applied
+
+**Symptoms:** Styles are missing or incorrect.
+
+**Solutions:**
+
+1. **Use inline styles for reliability**
+   ```html
+   <!-- More reliable -->
+   <div style="color: red; font-size: 24px;">Hello</div>
+   ```
+
+2. **Check for unsupported CSS**
+   - Some advanced CSS features may not render correctly
+   - Test complex layouts in browser first
+
+3. **Avoid external stylesheets on slow domains**
+   - External CSS must load before rendering
+
+### Images Not Loading
+
+**Symptoms:** Images show as broken or missing.
+
+**Solutions:**
+
+1. **Use absolute URLs**
+   ```html
+   <!-- Wrong -->
+   <img src="/images/logo.png" />
+
+   <!-- Correct -->
+   <img src="https://yoursite.com/images/logo.png" />
+   ```
+
+2. **Verify URL is accessible**
+   - Images must be publicly accessible
+   - Check for CORS issues
+
+3. **Use waitForSelector**
+   ```typescript
+   {
+     waitForSelector: 'img[src*="logo"]',
+     waitForTimeout: 2000
+   }
+   ```
+
+### Timeout Errors
+
+**Symptoms:** Render fails with timeout error.
+
+**Solutions:**
+
+1. **Simplify the template**
+   - Remove complex gradients, shadows
+   - Reduce number of elements
+
+2. **Optimize images**
+   - Use smaller image files
+   - Compress before including
+
+3. **Reduce external resources**
+   - Minimize external CSS/JS
+   - Self-host critical resources
+
+## Template Issues
+
+### Variables Not Interpolating
+
+**Symptoms:** `{{variable}}` appears literally in output.
+
+**Solutions:**
+
+1. **Check variable syntax**
+   ```
+   ✅ {{title}}
+   ❌ {{ title }}  // Spaces may cause issues
+   ❌ {title}      // Single braces don't work
+   ```
+
+2. **Verify variable is provided**
+   ```typescript
+   // Make sure all variables are passed
+   await pictify.templates.render('tmpl_id', {
+     variables: {
+       title: 'Hello'  // Must match {{title}}
+     }
+   });
+   ```
+
+3. **Check for typos**
+   - Variable names are case-sensitive
+   - `{{Title}}` !== `{{title}}`
+
+### Expression Errors
+
+**Symptoms:** Expression fails to evaluate.
+
+**Solutions:**
+
+1. **Test expressions separately**
+   ```bash
+   curl -X POST https://api.pictify.io/v1/templates/expression/test \
+     -H "Authorization: Bearer $API_KEY" \
+     -d '{
+       "expression": "currency(price, 'USD')",
+       "variables": {"price": 99.99}
+     }'
+   ```
+
+2. **Check function syntax**
+   ```
+   ✅ {{currency(price, 'USD')}}
+   ❌ {{currency(price, USD)}}  // String needs quotes
+   ```
+
+3. **Ensure variables exist**
+   - Undefined variables cause expression errors
+
+## Rate Limiting
+
+### "Rate Limit Exceeded" (429)
+
+**Symptoms:** API returns 429 Too Many Requests.
+
+**Solutions:**
+
+1. **Check headers for limit info**
+   ```
+   X-RateLimit-Limit: 60
+   X-RateLimit-Remaining: 0
+   X-RateLimit-Reset: 1706515320
+   Retry-After: 45
+   ```
+
+2. **Implement exponential backoff**
+   ```typescript
+   async function withRetry(fn, maxRetries = 3) {
+     for (let i = 0; i < maxRetries; i++) {
+       try {
+         return await fn();
+       } catch (error) {
+         if (error.status === 429) {
+           const delay = error.retryAfter || Math.pow(2, i) * 1000;
+           await sleep(delay);
+           continue;
+         }
+         throw error;
+       }
+     }
+   }
+   ```
+
+3. **Use batch API for bulk operations**
+   - Single batch request vs. many individual requests
+
+4. **Consider upgrading plan**
+   - Higher tiers have higher limits
+
+## Webhook Issues
+
+### Webhooks Not Received
+
+**Symptoms:** Webhook endpoint never receives requests.
+
+**Solutions:**
+
+1. **Verify endpoint is accessible**
+   ```bash
+   curl -X POST https://yoursite.com/webhooks/pictify \
+     -H "Content-Type: application/json" \
+     -d '{"test": true}'
+   ```
+
+2. **Check firewall/security rules**
+   - Allow incoming requests from Pictify IPs
+   - Ensure HTTPS certificate is valid
+
+3. **Verify subscription is active**
+   - Check in Dashboard > Settings > Webhooks
+   - Status should be "active"
+
+### Signature Verification Failing
+
+**Symptoms:** Webhook signature doesn't match.
+
+**Solutions:**
+
+1. **Use raw body for verification**
+   ```typescript
+   // ❌ Wrong
+   const payload = JSON.stringify(req.body);
+
+   // ✅ Correct
+   const payload = req.body.toString();  // Raw body
+   ```
+
+2. **Check timestamp tolerance**
+   - Default is 5 minutes
+   - Ensure server clock is synced
+
+3. **Verify using correct secret**
+   - Each subscription has a unique secret
+   - Secret is only shown at creation
+
+## SDK Issues
+
+### Module Not Found
+
+**Symptoms:** `Cannot find module '@pictify/sdk'`
+
+**Solutions:**
+
+```bash
+# Ensure package is installed
+npm install @pictify/sdk
+
+# Clear node_modules and reinstall
+rm -rf node_modules package-lock.json
+npm install
+```
+
+### TypeScript Errors
+
+**Symptoms:** TypeScript compilation errors with SDK.
+
+**Solutions:**
+
+1. **Update TypeScript**
+   ```bash
+   npm install typescript@latest
+   ```
+
+2. **Check tsconfig.json**
+   ```json
+   {
+     "compilerOptions": {
+       "moduleResolution": "node",
+       "esModuleInterop": true
+     }
+   }
+   ```
+
+## Still Need Help?
+
+If you're still experiencing issues:
+
+1. **Check the status page:** [status.pictify.io](https://status.pictify.io)
+2. **Search existing issues:** [GitHub Issues](https://github.com/pictify/pictify/issues)
+3. **Contact support:** support@pictify.io
+
+When reporting issues, include:
+- API endpoint and method
+- Request payload (without API key)
+- Error response
+- SDK version (if applicable)

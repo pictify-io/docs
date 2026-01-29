@@ -1,0 +1,236 @@
+---
+title: API Key Management
+description: Create and manage API keys in the dashboard
+---
+
+# API Key Management
+
+API keys authenticate your applications with the Pictify API. This guide covers creating, managing, and securing your keys.
+
+## Creating an API Key
+
+1. Go to **Settings** > **API Keys**
+2. Click **Create Key**
+3. Enter a descriptive name (e.g., "Production Server", "CI/CD Pipeline")
+4. Click **Create**
+5. **Copy the key immediately** - it's only shown once
+
+<Warning>
+Store your API key securely. You won't be able to see it again after leaving this page.
+</Warning>
+
+## Key Types
+
+### Live Keys
+
+- Prefix: `pk_live_`
+- Full API access
+- Usage counts against your plan
+- Use in production
+
+### Test Keys
+
+- Prefix: `pk_test_`
+- Limited to 100 renders/day
+- Renders are watermarked
+- Use for development and testing
+
+## Viewing Keys
+
+The API Keys page shows:
+
+| Column | Description |
+|--------|-------------|
+| **Name** | Your key description |
+| **Key ID** | Public identifier (e.g., `key_abc123`) |
+| **Type** | Live or Test |
+| **Created** | Creation date |
+| **Last Used** | Most recent API call |
+| **Status** | Active or Revoked |
+
+<Note>
+For security, only the Key ID is displayed. The full key value is only shown at creation.
+</Note>
+
+## Managing Keys
+
+### Rename a Key
+
+1. Click the **...** menu on a key
+2. Select **Rename**
+3. Enter the new name
+4. Click **Save**
+
+### Revoke a Key
+
+Revoking a key immediately invalidates it:
+
+1. Click the **...** menu on a key
+2. Select **Revoke**
+3. Confirm the action
+
+<Warning>
+Revoking a key is immediate and permanent. Any applications using this key will stop working.
+</Warning>
+
+### Delete a Key
+
+Remove a key from your account:
+
+1. Click the **...** menu on a key
+2. Select **Delete**
+3. Confirm deletion
+
+Only revoked keys can be deleted.
+
+## Key Limits
+
+| Plan | Live Keys | Test Keys |
+|------|-----------|-----------|
+| Free | 2 | 5 |
+| Pro | 10 | 10 |
+| Business | 50 | 50 |
+| Enterprise | Unlimited | Unlimited |
+
+## Usage Tracking
+
+### Per-Key Usage
+
+View usage for each key:
+
+1. Click a key to expand details
+2. See requests in the last 24h, 7d, 30d
+3. View error rates and latency
+
+### Usage Alerts
+
+Set up alerts for unusual activity:
+
+1. Go to **Settings** > **Alerts**
+2. Click **Add Alert**
+3. Configure conditions:
+   - Requests exceed threshold
+   - Error rate above percentage
+   - Latency above threshold
+4. Choose notification method (email, Slack, webhook)
+
+## Security Best Practices
+
+### Use Descriptive Names
+
+Name keys by their purpose:
+
+```
+✅ "Production API Server"
+✅ "Staging Environment"
+✅ "GitHub Actions CI"
+❌ "Key 1"
+❌ "Test"
+```
+
+### Rotate Keys Regularly
+
+Schedule regular key rotation:
+
+1. Create a new key
+2. Update your application
+3. Verify the new key works
+4. Revoke the old key
+
+### Use Test Keys for Development
+
+Never use live keys in development:
+
+```bash
+# Development
+PICTIFY_API_KEY=pk_test_...
+
+# Production
+PICTIFY_API_KEY=pk_live_...
+```
+
+### Monitor for Misuse
+
+Watch for signs of compromised keys:
+
+- Unexpected usage spikes
+- Requests from unknown IPs
+- Unusual error patterns
+
+### Principle of Least Privilege
+
+Create separate keys for different services:
+
+| Service | Key | Access |
+|---------|-----|--------|
+| Web App | `prod-webapp` | Full access |
+| Mobile App | `prod-mobile` | Full access |
+| Analytics | `prod-analytics` | Read-only |
+| CI/CD | `ci-pipeline` | Test key |
+
+## Environment-Specific Keys
+
+### Development
+
+Use test keys with a local `.env`:
+
+```bash
+# .env.local
+PICTIFY_API_KEY=pk_test_development_key
+```
+
+### Staging
+
+Use test keys for staging environments:
+
+```bash
+# staging.env
+PICTIFY_API_KEY=pk_test_staging_key
+```
+
+### Production
+
+Use live keys, stored securely:
+
+```bash
+# Set via secrets manager, not in files
+PICTIFY_API_KEY=pk_live_production_key
+```
+
+## Troubleshooting
+
+### "Invalid API Key" Error
+
+1. Verify the key is correct (no extra spaces)
+2. Check the key hasn't been revoked
+3. Ensure you're using the right key type (live vs test)
+
+### Key Not Working After Creation
+
+1. Wait a few seconds - propagation takes up to 30 seconds
+2. Verify you copied the full key
+3. Check for encoding issues if copying from another source
+
+### Usage Not Updating
+
+Usage statistics may have up to 5 minutes delay. Real-time usage is available in the API response headers.
+
+## API Key API
+
+Manage keys programmatically with the [API Keys API](/api-reference/keys):
+
+```bash
+# List keys
+curl https://api.pictify.io/v1/api-keys \
+  -H "Authorization: Bearer $ADMIN_KEY"
+
+# Create key
+curl -X POST https://api.pictify.io/v1/api-keys \
+  -H "Authorization: Bearer $ADMIN_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "New Production Key", "type": "live"}'
+```
+
+<Note>
+API key management requires an admin-level key with key management permissions.
+</Note>

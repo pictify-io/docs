@@ -1,0 +1,193 @@
+---
+title: Quickstart
+description: Generate your first image in 5 minutes
+---
+
+# Quickstart
+
+This guide walks you through generating your first image with Pictify in under 5 minutes.
+
+## Prerequisites
+
+- A Pictify account ([sign up free](https://pictify.io/signup))
+- An API key (available in your [dashboard](https://pictify.io/dashboard/settings))
+
+## Step 1: Get Your API Key
+
+1. Log in to your [Pictify dashboard](https://pictify.io/dashboard)
+2. Navigate to **Settings** > **API Keys**
+3. Click **Create API Key**
+4. Copy and store your key securely
+
+<Warning>
+Keep your API key secret. Never expose it in client-side code or public repositories.
+</Warning>
+
+## Step 2: Install an SDK (Optional)
+
+Choose your preferred language:
+
+<CodeGroup>
+```bash npm
+npm install @pictify/sdk
+```
+
+```bash pip
+pip install pictify
+```
+
+```bash go
+go get github.com/pictify-io/pictify-go
+```
+
+```bash gem
+gem install pictify
+```
+</CodeGroup>
+
+## Step 3: Generate an Image
+
+### Using the SDK
+
+<CodeGroup>
+```typescript Node.js
+import { Pictify } from '@pictify/sdk';
+
+const pictify = new Pictify({
+  apiKey: 'your-api-key'
+});
+
+const result = await pictify.images.create({
+  html: `
+    <div style="width: 1200px; height: 630px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center;">
+      <h1 style="color: white; font-size: 64px; font-family: sans-serif;">Hello, Pictify!</h1>
+    </div>
+  `,
+  width: 1200,
+  height: 630
+});
+
+console.log('Image URL:', result.url);
+```
+
+```python Python
+from pictify import Pictify
+
+client = Pictify(api_key="your-api-key")
+
+result = client.images.create(
+    html="""
+    <div style="width: 1200px; height: 630px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center;">
+      <h1 style="color: white; font-size: 64px; font-family: sans-serif;">Hello, Pictify!</h1>
+    </div>
+    """,
+    width=1200,
+    height=630
+)
+
+print("Image URL:", result.url)
+```
+
+```go Go
+package main
+
+import (
+    "context"
+    "fmt"
+    "github.com/pictify-io/pictify-go"
+)
+
+func main() {
+    client := pictify.NewClient("your-api-key")
+
+    result, err := client.Images.Create(context.Background(), &pictify.ImageRequest{
+        HTML: `<div style="width: 1200px; height: 630px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center;">
+          <h1 style="color: white; font-size: 64px; font-family: sans-serif;">Hello, Pictify!</h1>
+        </div>`,
+        Width:  1200,
+        Height: 630,
+    })
+
+    if err != nil {
+        panic(err)
+    }
+
+    fmt.Println("Image URL:", result.URL)
+}
+```
+
+```ruby Ruby
+require 'pictify'
+
+client = Pictify::Client.new(api_key: 'your-api-key')
+
+result = client.images.create(
+  html: <<~HTML
+    <div style="width: 1200px; height: 630px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center;">
+      <h1 style="color: white; font-size: 64px; font-family: sans-serif;">Hello, Pictify!</h1>
+    </div>
+  HTML
+  width: 1200,
+  height: 630
+)
+
+puts "Image URL: #{result.url}"
+```
+</CodeGroup>
+
+### Using cURL
+
+```bash
+curl -X POST https://api.pictify.io/v1/image \
+  -H "Authorization: Bearer your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "html": "<div style=\"width: 1200px; height: 630px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center;\"><h1 style=\"color: white; font-size: 64px; font-family: sans-serif;\">Hello, Pictify!</h1></div>",
+    "width": 1200,
+    "height": 630
+  }'
+```
+
+## Step 4: Use a Template
+
+Templates let you create reusable designs with variables. Create a template in the dashboard, then render it:
+
+<CodeGroup>
+```typescript Node.js
+const result = await pictify.templates.render('your-template-id', {
+  variables: {
+    title: 'My Blog Post',
+    author: 'Jane Doe',
+    publishedAt: '2026-01-29'
+  }
+});
+```
+
+```python Python
+result = client.templates.render(
+    template_id="your-template-id",
+    variables={
+        "title": "My Blog Post",
+        "author": "Jane Doe",
+        "publishedAt": "2026-01-29"
+    }
+)
+```
+</CodeGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Templates" icon="palette" href="/concepts/templates">
+    Learn to create reusable templates with variables
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/overview">
+    Explore all API endpoints
+  </Card>
+  <Card title="SDKs" icon="box" href="/sdks/overview">
+    Full SDK documentation
+  </Card>
+  <Card title="Batch Processing" icon="layer-group" href="/guides/batch-processing">
+    Generate images at scale
+  </Card>
+</CardGroup>

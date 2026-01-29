@@ -1,0 +1,479 @@
+---
+title: Tool Schemas
+description: JSON schemas for AI tool integration
+---
+
+# Tool Schemas
+
+Use these JSON schemas to integrate Pictify with AI agents, function calling, and tool-use systems.
+
+## Image Generation
+
+### Create Image
+
+```json
+{
+  "name": "pictify_create_image",
+  "description": "Generate an image from HTML content. Supports PNG, JPEG, and WebP formats. Use for creating social media graphics, banners, cards, and any visual content from HTML/CSS.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "html": {
+        "type": "string",
+        "description": "HTML content to render. Can include inline CSS and external fonts."
+      },
+      "width": {
+        "type": "integer",
+        "description": "Output width in pixels (1-4000)",
+        "minimum": 1,
+        "maximum": 4000
+      },
+      "height": {
+        "type": "integer",
+        "description": "Output height in pixels (1-4000)",
+        "minimum": 1,
+        "maximum": 4000
+      },
+      "format": {
+        "type": "string",
+        "enum": ["png", "jpeg", "webp"],
+        "default": "png",
+        "description": "Output image format"
+      },
+      "quality": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 85,
+        "description": "Quality for JPEG/WebP (1-100)"
+      },
+      "transparent": {
+        "type": "boolean",
+        "default": false,
+        "description": "Enable transparent background (PNG/WebP only)"
+      }
+    },
+    "required": ["html", "width", "height"]
+  }
+}
+```
+
+### Screenshot URL
+
+```json
+{
+  "name": "pictify_screenshot",
+  "description": "Capture a screenshot of a web page. Use for documentation, comparisons, or archiving web content.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "url": {
+        "type": "string",
+        "format": "uri",
+        "description": "URL to screenshot (must be publicly accessible)"
+      },
+      "width": {
+        "type": "integer",
+        "default": 1200,
+        "description": "Viewport width in pixels"
+      },
+      "height": {
+        "type": "integer",
+        "default": 630,
+        "description": "Viewport height in pixels"
+      },
+      "fullPage": {
+        "type": "boolean",
+        "default": false,
+        "description": "Capture the full scrollable page"
+      },
+      "selector": {
+        "type": "string",
+        "description": "CSS selector to capture specific element"
+      },
+      "waitForSelector": {
+        "type": "string",
+        "description": "Wait for element before capturing"
+      }
+    },
+    "required": ["url"]
+  }
+}
+```
+
+## Template Operations
+
+### Render Template
+
+```json
+{
+  "name": "pictify_render_template",
+  "description": "Render a saved template with dynamic variables. Use for generating personalized images from pre-designed templates.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "templateId": {
+        "type": "string",
+        "description": "Template ID (e.g., tmpl_abc123)"
+      },
+      "variables": {
+        "type": "object",
+        "description": "Variables to inject into the template",
+        "additionalProperties": true
+      },
+      "format": {
+        "type": "string",
+        "enum": ["png", "jpeg", "webp"],
+        "default": "png"
+      }
+    },
+    "required": ["templateId"]
+  }
+}
+```
+
+### List Templates
+
+```json
+{
+  "name": "pictify_list_templates",
+  "description": "List available templates. Use to discover what templates are available before rendering.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "default": 20,
+        "maximum": 100,
+        "description": "Maximum number of templates to return"
+      },
+      "page": {
+        "type": "integer",
+        "default": 1,
+        "description": "Page number for pagination"
+      }
+    }
+  }
+}
+```
+
+### Get Template Variables
+
+```json
+{
+  "name": "pictify_get_template_variables",
+  "description": "Get the list of variables required by a template. Use before rendering to understand what data is needed.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "templateId": {
+        "type": "string",
+        "description": "Template ID to get variables for"
+      }
+    },
+    "required": ["templateId"]
+  }
+}
+```
+
+## GIF Generation
+
+### Create GIF
+
+```json
+{
+  "name": "pictify_create_gif",
+  "description": "Create an animated GIF from HTML with CSS animations. Use for loading spinners, animated banners, or any looping animation.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "html": {
+        "type": "string",
+        "description": "HTML content with CSS animations"
+      },
+      "width": {
+        "type": "integer",
+        "description": "GIF width in pixels (max 1200)",
+        "maximum": 1200
+      },
+      "height": {
+        "type": "integer",
+        "description": "GIF height in pixels (max 1200)",
+        "maximum": 1200
+      },
+      "quality": {
+        "type": "string",
+        "enum": ["low", "medium", "high"],
+        "default": "medium",
+        "description": "Quality preset affecting frame rate and duration"
+      }
+    },
+    "required": ["html", "width", "height"]
+  }
+}
+```
+
+### Capture GIF from URL
+
+```json
+{
+  "name": "pictify_capture_gif",
+  "description": "Record a GIF from a live web page. Use for capturing animations or interactions on existing websites.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "url": {
+        "type": "string",
+        "format": "uri",
+        "description": "URL to capture"
+      },
+      "width": {
+        "type": "integer",
+        "default": 800,
+        "description": "Capture width"
+      },
+      "height": {
+        "type": "integer",
+        "default": 600,
+        "description": "Capture height"
+      },
+      "duration": {
+        "type": "number",
+        "default": 5,
+        "description": "Recording duration in seconds"
+      },
+      "quality": {
+        "type": "string",
+        "enum": ["low", "medium", "high"],
+        "default": "medium"
+      }
+    },
+    "required": ["url"]
+  }
+}
+```
+
+## PDF Generation
+
+### Render PDF
+
+```json
+{
+  "name": "pictify_render_pdf",
+  "description": "Generate a PDF from a template. Use for invoices, reports, certificates, and other documents.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "templateId": {
+        "type": "string",
+        "description": "Template ID to render"
+      },
+      "variables": {
+        "type": "object",
+        "description": "Variables for the template"
+      },
+      "preset": {
+        "type": "string",
+        "enum": ["A4", "Letter", "Legal", "A3", "A5", "custom"],
+        "default": "A4",
+        "description": "Paper size preset"
+      },
+      "landscape": {
+        "type": "boolean",
+        "default": false,
+        "description": "Use landscape orientation"
+      },
+      "margins": {
+        "type": "object",
+        "properties": {
+          "top": { "type": "number" },
+          "bottom": { "type": "number" },
+          "left": { "type": "number" },
+          "right": { "type": "number" }
+        },
+        "description": "Page margins in pixels"
+      }
+    },
+    "required": ["templateId"]
+  }
+}
+```
+
+## OpenAI Function Calling Format
+
+For OpenAI's function calling, use this format:
+
+```json
+{
+  "type": "function",
+  "function": {
+    "name": "pictify_create_image",
+    "description": "Generate an image from HTML content",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "html": {
+          "type": "string",
+          "description": "HTML content to render"
+        },
+        "width": {
+          "type": "integer",
+          "description": "Width in pixels"
+        },
+        "height": {
+          "type": "integer",
+          "description": "Height in pixels"
+        }
+      },
+      "required": ["html", "width", "height"]
+    }
+  }
+}
+```
+
+## Anthropic Tool Use Format
+
+For Claude's tool use:
+
+```json
+{
+  "name": "pictify_create_image",
+  "description": "Generate an image from HTML content. Returns a URL to the generated image.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "html": {
+        "type": "string",
+        "description": "HTML content to render"
+      },
+      "width": {
+        "type": "integer",
+        "description": "Width in pixels (1-4000)"
+      },
+      "height": {
+        "type": "integer",
+        "description": "Height in pixels (1-4000)"
+      }
+    },
+    "required": ["html", "width", "height"]
+  }
+}
+```
+
+## Response Schemas
+
+### Image Response
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "url": {
+      "type": "string",
+      "format": "uri",
+      "description": "CDN URL of the generated image"
+    },
+    "id": {
+      "type": "string",
+      "description": "Unique image identifier"
+    },
+    "width": {
+      "type": "integer",
+      "description": "Actual image width"
+    },
+    "height": {
+      "type": "integer",
+      "description": "Actual image height"
+    },
+    "format": {
+      "type": "string",
+      "description": "Image format"
+    },
+    "size": {
+      "type": "integer",
+      "description": "File size in bytes"
+    }
+  }
+}
+```
+
+### Error Response
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string",
+      "format": "uri",
+      "description": "Error type URI"
+    },
+    "title": {
+      "type": "string",
+      "description": "Error title"
+    },
+    "status": {
+      "type": "integer",
+      "description": "HTTP status code"
+    },
+    "detail": {
+      "type": "string",
+      "description": "Detailed error message"
+    }
+  }
+}
+```
+
+## Usage Examples
+
+### OpenAI
+
+```python
+import openai
+
+response = openai.chat.completions.create(
+    model="gpt-4",
+    messages=[{"role": "user", "content": "Create a social card for my blog post about AI"}],
+    tools=[{
+        "type": "function",
+        "function": {
+            "name": "pictify_create_image",
+            "description": "Generate an image from HTML",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "html": {"type": "string"},
+                    "width": {"type": "integer"},
+                    "height": {"type": "integer"}
+                },
+                "required": ["html", "width", "height"]
+            }
+        }
+    }]
+)
+```
+
+### Anthropic
+
+```python
+import anthropic
+
+response = anthropic.messages.create(
+    model="claude-sonnet-4-20250514",
+    max_tokens=1024,
+    tools=[{
+        "name": "pictify_create_image",
+        "description": "Generate an image from HTML",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "html": {"type": "string"},
+                "width": {"type": "integer"},
+                "height": {"type": "integer"}
+            },
+            "required": ["html", "width", "height"]
+        }
+    }],
+    messages=[{"role": "user", "content": "Create a social card for my blog post"}]
+)
+```

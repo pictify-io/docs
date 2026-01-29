@@ -1,0 +1,429 @@
+---
+title: Node.js SDK
+description: Official Pictify SDK for Node.js
+---
+
+# Node.js SDK
+
+The official Pictify SDK for Node.js provides a type-safe, promise-based interface for the Pictify API.
+
+## Installation
+
+<CodeGroup>
+```bash npm
+npm install @pictify/sdk
+```
+
+```bash yarn
+yarn add @pictify/sdk
+```
+
+```bash pnpm
+pnpm add @pictify/sdk
+```
+</CodeGroup>
+
+## Quick Start
+
+```typescript
+import Pictify from '@pictify/sdk';
+
+const pictify = new Pictify('pk_live_your_api_key');
+
+// Generate an image from HTML
+const image = await pictify.images.create({
+  html: '<h1 style="color: #667eea;">Hello World</h1>',
+  width: 1200,
+  height: 630
+});
+
+console.log(image.url);
+```
+
+## Configuration
+
+### Basic Configuration
+
+```typescript
+const pictify = new Pictify('pk_live_your_api_key');
+```
+
+### Advanced Configuration
+
+```typescript
+const pictify = new Pictify('pk_live_your_api_key', {
+  baseUrl: 'https://api.pictify.io/v1',  // Custom base URL
+  timeout: 30000,                         // Request timeout in ms
+  retries: 3,                             // Number of retries
+  retryDelay: 1000                        // Initial retry delay in ms
+});
+```
+
+### Environment Variables
+
+```typescript
+// Reads PICTIFY_API_KEY from environment
+const pictify = new Pictify();
+```
+
+```bash .env
+PICTIFY_API_KEY=pk_live_your_api_key
+```
+
+## Images
+
+### Generate from HTML
+
+```typescript
+const image = await pictify.images.create({
+  html: `
+    <div style="width: 1200px; height: 630px; background: #667eea; display: flex; align-items: center; justify-content: center;">
+      <h1 style="color: white; font-size: 48px;">Hello World</h1>
+    </div>
+  `,
+  width: 1200,
+  height: 630,
+  format: 'png'
+});
+
+console.log(image.url);    // https://cdn.pictify.io/renders/...
+console.log(image.id);     // img_abc123
+console.log(image.width);  // 1200
+console.log(image.height); // 630
+```
+
+### Generate from URL
+
+```typescript
+const screenshot = await pictify.images.create({
+  url: 'https://example.com',
+  width: 1200,
+  height: 630,
+  fullPage: false
+});
+```
+
+### Canvas Rendering
+
+```typescript
+const canvas = await pictify.images.canvas({
+  fabricJSData: {
+    version: '5.3.0',
+    objects: [
+      { type: 'rect', fill: '#667eea', width: 1200, height: 630 },
+      { type: 'textbox', text: '{{title}}', fill: 'white', fontSize: 48 }
+    ]
+  },
+  variables: { title: 'Dynamic Content' },
+  width: 1200,
+  height: 630
+});
+```
+
+### Agent Screenshot
+
+```typescript
+const screenshot = await pictify.images.agentScreenshot({
+  prompt: 'Take a screenshot of the pricing section on stripe.com'
+});
+```
+
+## GIFs
+
+### Create from HTML
+
+```typescript
+const gif = await pictify.gifs.create({
+  html: `
+    <div class="container">
+      <style>
+        @keyframes pulse {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.1); }
+          100% { transform: scale(1); }
+        }
+        .pulse { animation: pulse 1s infinite; }
+      </style>
+      <div class="pulse">Animated!</div>
+    </div>
+  `,
+  width: 400,
+  height: 400
+});
+```
+
+### Capture from URL
+
+```typescript
+const gif = await pictify.gifs.capture({
+  url: 'https://example.com/animated',
+  width: 800,
+  height: 600,
+  quality: 'high',
+  frameDurationSeconds: 5
+});
+```
+
+## PDFs
+
+### Single Page
+
+```typescript
+const pdf = await pictify.pdfs.render({
+  templateUid: 'tmpl_invoice',
+  variables: {
+    invoiceNumber: 'INV-001',
+    items: [
+      { name: 'Service', price: 99.00 }
+    ],
+    total: 99.00
+  },
+  options: {
+    preset: 'A4',
+    margins: { top: 40, bottom: 40, left: 30, right: 30 }
+  }
+});
+```
+
+### Multi-Page
+
+```typescript
+const pdf = await pictify.pdfs.multiPage({
+  templateUid: 'tmpl_report',
+  variableSets: [
+    { pageTitle: 'Introduction', content: '...' },
+    { pageTitle: 'Analysis', content: '...' },
+    { pageTitle: 'Conclusion', content: '...' }
+  ],
+  options: { preset: 'A4' }
+});
+```
+
+## Templates
+
+### List Templates
+
+```typescript
+const { templates, pagination } = await pictify.templates.list({
+  page: 1,
+  limit: 20
+});
+```
+
+### Create Template
+
+```typescript
+const template = await pictify.templates.create({
+  name: 'Social Card',
+  html: '<h1>{{title}}</h1><p>{{description}}</p>',
+  width: 1200,
+  height: 630
+});
+```
+
+### Render Template
+
+```typescript
+const image = await pictify.templates.render('tmpl_abc123', {
+  variables: {
+    title: 'My Post',
+    description: 'An interesting article'
+  },
+  format: 'png'
+});
+```
+
+### Get Variables
+
+```typescript
+const { variables } = await pictify.templates.getVariables('tmpl_abc123');
+// [{ name: 'title', type: 'string', required: true }, ...]
+```
+
+### Batch Render
+
+```typescript
+const batch = await pictify.templates.batchRender('tmpl_abc123', {
+  variableSets: [
+    { title: 'Post 1' },
+    { title: 'Post 2' },
+    { title: 'Post 3' }
+  ],
+  webhookUrl: 'https://your-server.com/webhooks/batch'
+});
+
+// Later, get results
+const results = await pictify.templates.getBatchResults(batch.id);
+```
+
+## Webhooks
+
+### Create Subscription
+
+```typescript
+const subscription = await pictify.webhooks.create({
+  event: 'render.completed',
+  targetUrl: 'https://your-server.com/webhooks/pictify'
+});
+
+// Store this secret securely!
+console.log(subscription.secret);
+```
+
+### Verify Signature
+
+```typescript
+import { verifyWebhookSignature } from '@pictify/sdk';
+
+app.post('/webhooks/pictify', express.raw({ type: 'application/json' }), (req, res) => {
+  const signature = req.headers['x-pictify-signature'] as string;
+  const payload = req.body.toString();
+
+  try {
+    const isValid = verifyWebhookSignature(payload, signature, process.env.WEBHOOK_SECRET!);
+
+    if (!isValid) {
+      return res.status(401).send('Invalid signature');
+    }
+
+    const event = JSON.parse(payload);
+    console.log('Received:', event.event);
+
+    res.status(200).send('OK');
+  } catch (error) {
+    res.status(400).send(error.message);
+  }
+});
+```
+
+## Bindings
+
+### Create Binding
+
+```typescript
+const binding = await pictify.bindings.create({
+  name: 'GitHub Stats',
+  templateUid: 'tmpl_github',
+  dataUrl: 'https://api.github.com/repos/your/repo',
+  dataMapping: {
+    stars: 'stargazers_count',
+    forks: 'forks_count'
+  },
+  schedule: '0 * * * *'  // Hourly
+});
+
+// Permanent image URL that auto-updates
+console.log(binding.imageUrl);
+```
+
+### Trigger Refresh
+
+```typescript
+await pictify.bindings.refresh('bind_abc123');
+```
+
+## Error Handling
+
+```typescript
+import Pictify, { PictifyError, RateLimitError, ValidationError } from '@pictify/sdk';
+
+try {
+  const image = await pictify.images.create({ ... });
+} catch (error) {
+  if (error instanceof RateLimitError) {
+    // Wait and retry
+    console.log(`Rate limited. Retry after ${error.retryAfter}s`);
+    await sleep(error.retryAfter * 1000);
+  } else if (error instanceof ValidationError) {
+    // Fix validation issues
+    console.log('Validation errors:', error.errors);
+  } else if (error instanceof PictifyError) {
+    // General API error
+    console.log(`API Error: ${error.message}`);
+    console.log(`Status: ${error.status}`);
+    console.log(`Type: ${error.type}`);
+  } else {
+    throw error;
+  }
+}
+```
+
+## TypeScript Support
+
+The SDK is written in TypeScript and exports all types:
+
+```typescript
+import Pictify, {
+  ImageCreateOptions,
+  ImageResult,
+  Template,
+  TemplateRenderOptions,
+  Webhook,
+  Binding
+} from '@pictify/sdk';
+
+const options: ImageCreateOptions = {
+  html: '<h1>Hello</h1>',
+  width: 1200,
+  height: 630,
+  format: 'png'
+};
+
+const image: ImageResult = await pictify.images.create(options);
+```
+
+## Next.js Integration
+
+### Server Component
+
+```typescript
+// app/og/[slug]/route.ts
+import { NextRequest } from 'next/server';
+import Pictify from '@pictify/sdk';
+
+const pictify = new Pictify(process.env.PICTIFY_API_KEY!);
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { slug: string } }
+) {
+  const post = await getPost(params.slug);
+
+  const image = await pictify.templates.render('tmpl_og', {
+    variables: {
+      title: post.title,
+      description: post.excerpt,
+      author: post.author.name
+    }
+  });
+
+  // Redirect to image
+  return Response.redirect(image.url);
+}
+```
+
+### Webhook Handler
+
+```typescript
+// app/api/webhooks/pictify/route.ts
+import { NextRequest } from 'next/server';
+import { verifyWebhookSignature } from '@pictify/sdk';
+
+export async function POST(request: NextRequest) {
+  const payload = await request.text();
+  const signature = request.headers.get('x-pictify-signature')!;
+
+  if (!verifyWebhookSignature(payload, signature, process.env.WEBHOOK_SECRET!)) {
+    return new Response('Invalid signature', { status: 401 });
+  }
+
+  const event = JSON.parse(payload);
+  // Handle event...
+
+  return new Response('OK');
+}
+```
+
+## API Reference
+
+See the [API Reference](/api-reference/overview) for full endpoint documentation.

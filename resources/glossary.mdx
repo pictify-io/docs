@@ -1,0 +1,179 @@
+---
+title: Glossary
+description: Key terms and definitions
+---
+
+# Glossary
+
+A reference guide to terms used throughout the Pictify documentation.
+
+## A
+
+### API Key
+A secret token used to authenticate requests to the Pictify API. Comes in two types: live keys (`pk_live_`) for production and test keys (`pk_test_`) for development.
+
+### Agent Screenshot
+An AI-powered feature that uses natural language prompts to navigate to a webpage and capture specific content automatically.
+
+## B
+
+### Batch Operation
+Processing multiple renders in a single API request. More efficient than individual requests for generating many images.
+
+### Binding
+A connection between a template and an external data source that automatically refreshes the rendered image when data changes.
+
+## C
+
+### Canvas Rendering
+Generating images from FabricJS canvas JSON data, enabling programmatic image creation with objects, text, and shapes.
+
+### CDN (Content Delivery Network)
+A globally distributed network that serves rendered images from locations close to users for faster loading.
+
+## D
+
+### Device Scale Factor
+A multiplier for output resolution. A factor of 2 produces "retina" images at 2x the specified dimensions.
+
+## E
+
+### Expression
+Dynamic code within templates using `{{...}}` syntax. Supports variables, operators, and built-in functions.
+
+### Expression Engine
+The system that evaluates expressions in templates, providing features like string formatting, math operations, and conditionals.
+
+## F
+
+### FabricJS
+An open-source JavaScript canvas library. Pictify can render FabricJS canvas JSON directly to images.
+
+## G
+
+### GIF Capture
+Recording an animated GIF from a live webpage, capturing CSS animations or JavaScript-driven motion.
+
+## H
+
+### HMAC-SHA256
+The cryptographic algorithm used to sign webhooks, ensuring they originate from Pictify and haven't been tampered with.
+
+### HTML Rendering
+Converting HTML and CSS code into image formats like PNG, JPEG, or WebP.
+
+## I
+
+### Idempotency
+The ability to safely retry requests without duplicate effects. Enabled by the `Idempotency-Key` header.
+
+### Idempotency Key
+A unique identifier included in requests to ensure they're only processed once, even if sent multiple times.
+
+## M
+
+### MCP (Model Context Protocol)
+A standard protocol for connecting AI models to external tools. Pictify's MCP server enables AI agents to generate images.
+
+## O
+
+### OG Image (Open Graph Image)
+The preview image shown when content is shared on social media platforms like Facebook, Twitter, and LinkedIn.
+
+### OpenAPI
+A specification for documenting REST APIs. Pictify provides an OpenAPI 3.1 spec for API reference.
+
+## P
+
+### PDF Preset
+Standard paper sizes for PDF generation (A4, Letter, Legal, etc.) with predefined dimensions.
+
+### Problem Details (RFC 9457)
+A standard format for API error responses that includes type, title, status, and detail fields.
+
+## R
+
+### Rate Limit
+Restrictions on how many API requests can be made in a time period. Varies by plan (Free: 60/min, Pro: 300/min, etc.).
+
+### Render
+The process of converting templates, HTML, or URLs into images, GIFs, or PDFs.
+
+### Retina Image
+A high-resolution image (typically 2x or 3x) optimized for high-DPI displays like Apple Retina screens.
+
+### RFC 9457
+The IETF standard for "Problem Details for HTTP APIs" used by Pictify's error responses.
+
+## S
+
+### Selector
+A CSS selector used to capture a specific element on a page rather than the full viewport.
+
+### Signing Secret
+A cryptographic secret used to verify webhook signatures. Unique to each webhook subscription.
+
+### SSRF (Server-Side Request Forgery)
+A security vulnerability where attackers trick servers into making unintended requests. Pictify blocks private network URLs to prevent SSRF.
+
+## T
+
+### Template
+A reusable design with variable placeholders that can be rendered with different data.
+
+### Template Variable
+A placeholder in a template (like `{{title}}`) that gets replaced with actual data during rendering.
+
+### Tool Schema
+JSON schema definitions for AI tool integration, describing available functions and their parameters.
+
+### Transparent Background
+PNG or WebP images with alpha channel transparency instead of a solid background.
+
+## U
+
+### User Storage
+Optional cloud storage (S3, R2, etc.) where Pictify can upload rendered images in addition to the CDN.
+
+## V
+
+### Variable Interpolation
+The process of replacing template placeholders (`{{variable}}`) with actual values during rendering.
+
+### Variable Set
+A collection of variable values used to render a template. Batch operations accept arrays of variable sets.
+
+## W
+
+### Webhook
+An HTTP callback that notifies your server when events occur (render completed, batch finished, etc.).
+
+### Webhook Signature
+A cryptographic signature in the `X-Pictify-Signature` header used to verify webhook authenticity.
+
+### WebP
+A modern image format developed by Google offering better compression than PNG or JPEG while supporting transparency.
+
+## Common Abbreviations
+
+| Abbreviation | Full Term |
+|-------------|-----------|
+| API | Application Programming Interface |
+| CDN | Content Delivery Network |
+| CSS | Cascading Style Sheets |
+| DPI | Dots Per Inch |
+| GIF | Graphics Interchange Format |
+| HMAC | Hash-based Message Authentication Code |
+| HTML | HyperText Markup Language |
+| HTTP | HyperText Transfer Protocol |
+| JSON | JavaScript Object Notation |
+| JWT | JSON Web Token |
+| MCP | Model Context Protocol |
+| OG | Open Graph |
+| PDF | Portable Document Format |
+| PNG | Portable Network Graphics |
+| REST | Representational State Transfer |
+| SDK | Software Development Kit |
+| SSRF | Server-Side Request Forgery |
+| URL | Uniform Resource Locator |
+| UTC | Coordinated Universal Time |

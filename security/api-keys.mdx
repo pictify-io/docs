@@ -1,0 +1,275 @@
+---
+title: API Key Security
+description: Best practices for managing and securing API keys
+---
+
+# API Key Security
+
+API keys authenticate your requests to the Pictify API. Proper key management is essential for security.
+
+## Key Types
+
+| Type | Prefix | Environment | Capabilities |
+|------|--------|-------------|--------------|
+| Live | `pk_live_` | Production | Full API access |
+| Test | `pk_test_` | Development | Limited renders, test data |
+
+## Creating API Keys
+
+### Dashboard
+
+1. Go to **Settings** > **API Keys**
+2. Click **Create Key**
+3. Name your key (e.g., "Production Server", "CI/CD")
+4. Copy the key immediately - it's only shown once
+
+### Key Properties
+
+Each key includes:
+- **Key ID** - Public identifier (e.g., `key_abc123`)
+- **Secret** - The actual key value (e.g., `pk_live_xyz...`)
+- **Name** - Your description
+- **Created** - Creation timestamp
+- **Last Used** - Last API call timestamp
+
+## Storing Keys Securely
+
+### Environment Variables
+
+The recommended approach for most applications:
+
+```bash
+# .env (never commit this file)
+PICTIFY_API_KEY=pk_live_your_api_key
+```
+
+```typescript
+// Load from environment
+const pictify = new Pictify(process.env.PICTIFY_API_KEY);
+```
+
+<Warning>
+Never commit API keys to version control. Add `.env` to your `.gitignore`.
+</Warning>
+
+### Secrets Managers
+
+For production environments, use a secrets manager:
+
+#### AWS Secrets Manager
+
+```typescript
+import { SecretsManager } from '@aws-sdk/client-secrets-manager';
+
+const client = new SecretsManager();
+const response = await client.getSecretValue({ SecretId: 'pictify/api-key' });
+const apiKey = response.SecretString;
+
+const pictify = new Pictify(apiKey);
+```
+
+#### Google Secret Manager
+
+```typescript
+import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
+
+const client = new SecretManagerServiceClient();
+const [version] = await client.accessSecretVersion({
+  name: 'projects/my-project/secrets/pictify-api-key/versions/latest'
+});
+const apiKey = version.payload.data.toString();
+```
+
+#### HashiCorp Vault
+
+```typescript
+import Vault from 'node-vault';
+
+const vault = Vault({ endpoint: process.env.VAULT_ADDR });
+const result = await vault.read('secret/data/pictify');
+const apiKey = result.data.data.api_key;
+```
+
+### Kubernetes Secrets
+
+```yaml
+# secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: pictify-credentials
+type: Opaque
+stringData:
+  api-key: pk_live_your_api_key
+```
+
+```yaml
+# deployment.yaml
+env:
+  - name: PICTIFY_API_KEY
+    valueFrom:
+      secretKeyRef:
+        name: pictify-credentials
+        key: api-key
+```
+
+## Key Rotation
+
+Regularly rotate API keys to limit exposure from potential leaks.
+
+### Rotation Process
+
+1. **Create new key** - Generate a new API key in the dashboard
+2. **Update applications** - Deploy the new key to all services
+3. **Verify** - Confirm all services are using the new key
+4. **Revoke old key** - Delete the old key from the dashboard
+
+### Zero-Downtime Rotation
+
+For production systems, use overlapping validity:
+
+```typescript
+// During rotation, try both keys
+const keys = [
+  process.env.PICTIFY_API_KEY_NEW,
+  process.env.PICTIFY_API_KEY_OLD
+].filter(Boolean);
+
+async function makeRequest(options) {
+  for (const key of keys) {
+    try {
+      const pictify = new Pictify(key);
+      return await pictify.images.create(options);
+    } catch (error) {
+      if (error.status === 401 && keys.indexOf(key) < keys.length - 1) {
+        continue; // Try next key
+      }
+      throw error;
+    }
+  }
+}
+```
+
+## Access Control
+
+### Principle of Least Privilege
+
+Create separate keys for different purposes:
+
+| Key Name | Purpose | Access Level |
+|----------|---------|--------------|
+| `prod-api-server` | Production API | Full access |
+| `staging-server` | Staging environment | Test key |
+| `ci-cd-pipeline` | Automated tests | Test key |
+| `analytics-readonly` | Metrics collection | Read-only |
+
+### Team Access
+
+- **Limit who can create keys** - Only admins should create production keys
+- **Audit key usage** - Monitor which keys are being used
+- **Remove departed employees** - Revoke keys when team members leave
+
+## Monitoring & Auditing
+
+### Track Key Usage
+
+Monitor your API usage in the dashboard:
+
+- Requests per key
+- Error rates
+- Last used timestamp
+- Geographic distribution
+
+### Set Up Alerts
+
+Configure alerts for suspicious activity:
+
+- Sudden spike in requests
+- Requests from unexpected locations
+- High error rates
+- Usage outside business hours
+
+### Audit Logs
+
+Review audit logs regularly:
+
+```json
+{
+  "timestamp": "2026-01-29T10:30:00Z",
+  "action": "api.request",
+  "keyId": "key_abc123",
+  "endpoint": "/v1/image",
+  "method": "POST",
+  "status": 200,
+  "ip": "203.0.113.50",
+  "userAgent": "pictify-node/1.0.0"
+}
+```
+
+## Handling Compromised Keys
+
+If you suspect a key has been compromised:
+
+### Immediate Actions
+
+1. **Revoke immediately** - Delete the key in the dashboard
+2. **Create new key** - Generate a replacement
+3. **Update services** - Deploy the new key
+4. **Review logs** - Check for unauthorized usage
+
+### Investigation
+
+1. **Identify scope** - What data could have been accessed?
+2. **Check usage** - Review API logs for suspicious activity
+3. **Determine source** - How was the key exposed?
+4. **Prevent recurrence** - Implement safeguards
+
+## Security Checklist
+
+- [ ] API keys stored in environment variables or secrets manager
+- [ ] `.env` files excluded from version control
+- [ ] Separate keys for production and development
+- [ ] Keys rotated regularly (at least annually)
+- [ ] Unused keys revoked
+- [ ] API usage monitored for anomalies
+- [ ] Access to key creation restricted
+- [ ] Incident response plan documented
+
+## Common Mistakes
+
+### Hardcoding Keys
+
+```typescript
+// ❌ Never do this
+const pictify = new Pictify('pk_live_abc123xyz');
+
+// ✅ Use environment variables
+const pictify = new Pictify(process.env.PICTIFY_API_KEY);
+```
+
+### Committing Keys
+
+```bash
+# ❌ This exposes your key
+git commit -m "Add API integration"
+
+# ✅ Use .gitignore
+echo ".env" >> .gitignore
+```
+
+### Sharing Keys in Chat
+
+```
+❌ "Here's the API key: pk_live_abc123xyz"
+✅ "I've added the key to the team secrets manager"
+```
+
+### Using Production Keys in Development
+
+```bash
+# ❌ Development with production key
+PICTIFY_API_KEY=pk_live_production_key npm run dev
+
+# ✅ Use test key for development
+PICTIFY_API_KEY=pk_test_development_key npm run dev
+```

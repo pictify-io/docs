@@ -1,0 +1,503 @@
+---
+title: Ruby SDK
+description: Official Pictify SDK for Ruby
+---
+
+# Ruby SDK
+
+The official Pictify SDK for Ruby provides an idiomatic Ruby interface for the Pictify API.
+
+## Installation
+
+Add to your Gemfile:
+
+```ruby
+gem 'pictify'
+```
+
+Then run:
+
+```bash
+bundle install
+```
+
+Or install directly:
+
+```bash
+gem install pictify
+```
+
+## Quick Start
+
+```ruby
+require 'pictify'
+
+client = Pictify::Client.new('pk_live_your_api_key')
+
+image = client.images.create(
+  html: '<h1 style="color: #667eea;">Hello World</h1>',
+  width: 1200,
+  height: 630
+)
+
+puts image['url']
+```
+
+## Configuration
+
+### Basic Configuration
+
+```ruby
+client = Pictify::Client.new('pk_live_your_api_key')
+```
+
+### Advanced Configuration
+
+```ruby
+client = Pictify::Client.new(
+  'pk_live_your_api_key',
+  base_url: 'https://api.pictify.io/v1',
+  timeout: 30,
+  max_retries: 3
+)
+```
+
+### Environment Variables
+
+```ruby
+# Reads PICTIFY_API_KEY from environment
+client = Pictify::Client.new(ENV['PICTIFY_API_KEY'])
+```
+
+### Rails Configuration
+
+```ruby
+# config/initializers/pictify.rb
+Pictify.configure do |config|
+  config.api_key = Rails.application.credentials.pictify_api_key
+  config.timeout = 30
+end
+```
+
+Then use the global client:
+
+```ruby
+image = Pictify.images.create(html: '...', width: 1200, height: 630)
+```
+
+## Images
+
+### Generate from HTML
+
+```ruby
+image = client.images.create(
+  html: <<~HTML,
+    <div style="width: 1200px; height: 630px; background: #667eea;
+                display: flex; align-items: center; justify-content: center;">
+      <h1 style="color: white; font-size: 48px;">Hello World</h1>
+    </div>
+  HTML
+  width: 1200,
+  height: 630,
+  format: 'png'
+)
+
+puts image['url']    # https://cdn.pictify.io/renders/...
+puts image['id']     # img_abc123
+puts image['width']  # 1200
+puts image['height'] # 630
+```
+
+### Generate from URL
+
+```ruby
+screenshot = client.images.create(
+  url: 'https://example.com',
+  width: 1200,
+  height: 630,
+  full_page: false
+)
+```
+
+### Canvas Rendering
+
+```ruby
+image = client.images.canvas(
+  fabric_js_data: {
+    version: '5.3.0',
+    objects: [
+      { type: 'rect', fill: '#667eea', width: 1200, height: 630 },
+      { type: 'textbox', text: '{{title}}', fill: 'white', fontSize: 48 }
+    ]
+  },
+  variables: { title: 'Dynamic Content' },
+  width: 1200,
+  height: 630
+)
+```
+
+### Agent Screenshot
+
+```ruby
+screenshot = client.images.agent_screenshot(
+  prompt: 'Take a screenshot of the pricing section on stripe.com'
+)
+```
+
+## GIFs
+
+### Create from HTML
+
+```ruby
+gif = client.gifs.create(
+  html: <<~HTML,
+    <div class="container">
+      <style>
+        @keyframes pulse {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.1); }
+          100% { transform: scale(1); }
+        }
+        .pulse { animation: pulse 1s infinite; }
+      </style>
+      <div class="pulse">Animated!</div>
+    </div>
+  HTML
+  width: 400,
+  height: 400
+)
+```
+
+### Capture from URL
+
+```ruby
+gif = client.gifs.capture(
+  url: 'https://example.com/animated',
+  width: 800,
+  height: 600,
+  quality: 'high',
+  frame_duration_seconds: 5
+)
+```
+
+## PDFs
+
+### Single Page
+
+```ruby
+pdf = client.pdfs.render(
+  template_uid: 'tmpl_invoice',
+  variables: {
+    invoiceNumber: 'INV-001',
+    items: [{ name: 'Service', price: 99.00 }],
+    total: 99.00
+  },
+  options: {
+    preset: 'A4',
+    margins: { top: 40, bottom: 40, left: 30, right: 30 }
+  }
+)
+```
+
+### Multi-Page
+
+```ruby
+pdf = client.pdfs.multi_page(
+  template_uid: 'tmpl_report',
+  variable_sets: [
+    { pageTitle: 'Introduction', content: '...' },
+    { pageTitle: 'Analysis', content: '...' },
+    { pageTitle: 'Conclusion', content: '...' }
+  ],
+  options: { preset: 'A4' }
+)
+```
+
+## Templates
+
+### List Templates
+
+```ruby
+result = client.templates.list(page: 1, limit: 20)
+templates = result['templates']
+pagination = result['pagination']
+```
+
+### Create Template
+
+```ruby
+template = client.templates.create(
+  name: 'Social Card',
+  html: '<h1>{{title}}</h1><p>{{description}}</p>',
+  width: 1200,
+  height: 630
+)
+```
+
+### Render Template
+
+```ruby
+image = client.templates.render(
+  'tmpl_abc123',
+  variables: {
+    title: 'My Post',
+    description: 'An interesting article'
+  },
+  format: 'png'
+)
+```
+
+### Get Variables
+
+```ruby
+result = client.templates.get_variables('tmpl_abc123')
+variables = result['variables']
+# [{ 'name' => 'title', 'type' => 'string', 'required' => true }, ...]
+```
+
+### Batch Render
+
+```ruby
+batch = client.templates.batch_render(
+  'tmpl_abc123',
+  variable_sets: [
+    { title: 'Post 1' },
+    { title: 'Post 2' },
+    { title: 'Post 3' }
+  ],
+  webhook_url: 'https://your-server.com/webhooks/batch'
+)
+
+# Later, get results
+results = client.templates.get_batch_results(batch['id'])
+```
+
+## Webhooks
+
+### Create Subscription
+
+```ruby
+subscription = client.webhooks.create(
+  event: 'render.completed',
+  target_url: 'https://your-server.com/webhooks/pictify'
+)
+
+# Store this secret securely!
+puts subscription['secret']
+```
+
+### Verify Signature
+
+```ruby
+require 'openssl'
+
+def verify_webhook_signature(payload, signature_header, secret)
+  parts = signature_header.split(',').map { |p| p.split('=') }.to_h
+  timestamp = parts['t'].to_i
+  provided_signature = parts['v1']
+
+  # Reject if timestamp is older than 5 minutes
+  if (Time.now.to_i - timestamp).abs > 300
+    raise 'Webhook timestamp too old'
+  end
+
+  signed_payload = "#{timestamp}.#{payload}"
+  expected_signature = OpenSSL::HMAC.hexdigest('SHA256', secret, signed_payload)
+
+  Rack::Utils.secure_compare(provided_signature, expected_signature)
+end
+```
+
+### Rails Controller
+
+```ruby
+# app/controllers/webhooks_controller.rb
+class WebhooksController < ApplicationController
+  skip_before_action :verify_authenticity_token
+
+  def pictify
+    signature = request.headers['X-Pictify-Signature']
+    payload = request.raw_post
+
+    begin
+      unless verify_webhook_signature(payload, signature, ENV['PICTIFY_WEBHOOK_SECRET'])
+        return head :unauthorized
+      end
+
+      event = JSON.parse(payload)
+      Rails.logger.info "Received Pictify event: #{event['event']}"
+
+      # Handle the event
+      case event['event']
+      when 'render.completed'
+        handle_render_completed(event['data'])
+      when 'render.failed'
+        handle_render_failed(event['data'])
+      end
+
+      head :ok
+    rescue => e
+      Rails.logger.error "Webhook error: #{e.message}"
+      head :bad_request
+    end
+  end
+
+  private
+
+  def verify_webhook_signature(payload, signature_header, secret)
+    # ... signature verification code
+  end
+
+  def handle_render_completed(data)
+    # Update your records, notify users, etc.
+  end
+
+  def handle_render_failed(data)
+    # Log error, retry, notify, etc.
+  end
+end
+```
+
+### Sinatra Example
+
+```ruby
+require 'sinatra'
+require 'json'
+
+post '/webhooks/pictify' do
+  signature = request.env['HTTP_X_PICTIFY_SIGNATURE']
+  payload = request.body.read
+
+  begin
+    unless verify_webhook_signature(payload, signature, ENV['WEBHOOK_SECRET'])
+      halt 401, 'Invalid signature'
+    end
+
+    event = JSON.parse(payload)
+    puts "Received event: #{event['event']}"
+
+    status 200
+    'OK'
+  rescue => e
+    halt 400, e.message
+  end
+end
+```
+
+## Bindings
+
+### Create Binding
+
+```ruby
+binding = client.bindings.create(
+  name: 'GitHub Stats',
+  template_uid: 'tmpl_github',
+  data_url: 'https://api.github.com/repos/your/repo',
+  data_mapping: {
+    stars: 'stargazers_count',
+    forks: 'forks_count'
+  },
+  schedule: '0 * * * *'  # Hourly
+)
+
+# Permanent image URL that auto-updates
+puts binding['imageUrl']
+```
+
+### Trigger Refresh
+
+```ruby
+client.bindings.refresh('bind_abc123')
+```
+
+## Error Handling
+
+```ruby
+begin
+  image = client.images.create(...)
+rescue Pictify::RateLimitError => e
+  # Wait and retry
+  puts "Rate limited. Retry after #{e.retry_after}s"
+  sleep(e.retry_after)
+  retry
+rescue Pictify::ValidationError => e
+  # Fix validation issues
+  puts "Validation errors: #{e.errors}"
+rescue Pictify::AuthenticationError
+  # Check API key
+  puts "Invalid API key"
+rescue Pictify::APIError => e
+  # General API error
+  puts "API Error: #{e.message} (status: #{e.status})"
+end
+```
+
+## Rails Integration
+
+### Model Concern
+
+```ruby
+# app/models/concerns/pictify_renderable.rb
+module PictifyRenderable
+  extend ActiveSupport::Concern
+
+  included do
+    after_commit :generate_og_image, on: [:create, :update], if: :should_regenerate_og_image?
+  end
+
+  def og_image_url
+    return unless og_image_id
+    "https://cdn.pictify.io/renders/#{og_image_id}.png"
+  end
+
+  private
+
+  def should_regenerate_og_image?
+    saved_change_to_title? || saved_change_to_description?
+  end
+
+  def generate_og_image
+    GenerateOgImageJob.perform_later(self.class.name, id)
+  end
+end
+```
+
+### Background Job
+
+```ruby
+# app/jobs/generate_og_image_job.rb
+class GenerateOgImageJob < ApplicationJob
+  queue_as :default
+
+  def perform(model_class, model_id)
+    record = model_class.constantize.find(model_id)
+
+    image = Pictify.templates.render(
+      'tmpl_og',
+      variables: {
+        title: record.title,
+        description: record.description,
+        author: record.author&.name
+      }
+    )
+
+    record.update!(og_image_id: image['id'])
+  end
+end
+```
+
+### View Helper
+
+```ruby
+# app/helpers/pictify_helper.rb
+module PictifyHelper
+  def pictify_og_image(record)
+    return unless record.respond_to?(:og_image_url) && record.og_image_url
+    tag.meta property: 'og:image', content: record.og_image_url
+  end
+end
+```
+
+## API Reference
+
+See the [API Reference](/api-reference/overview) for full endpoint documentation.

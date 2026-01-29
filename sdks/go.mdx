@@ -1,0 +1,462 @@
+---
+title: Go SDK
+description: Official Pictify SDK for Go
+---
+
+# Go SDK
+
+The official Pictify SDK for Go provides an idiomatic Go interface for the Pictify API.
+
+## Installation
+
+```bash
+go get github.com/pictify/pictify-go
+```
+
+## Quick Start
+
+```go
+package main
+
+import (
+    "fmt"
+    "log"
+
+    "github.com/pictify/pictify-go"
+)
+
+func main() {
+    client := pictify.NewClient("pk_live_your_api_key")
+
+    image, err := client.Images.Create(&pictify.ImageCreateParams{
+        HTML:   "<h1 style=\"color: #667eea;\">Hello World</h1>",
+        Width:  1200,
+        Height: 630,
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    fmt.Println(image.URL)
+}
+```
+
+## Configuration
+
+### Basic Configuration
+
+```go
+client := pictify.NewClient("pk_live_your_api_key")
+```
+
+### Advanced Configuration
+
+```go
+client := pictify.NewClient(
+    "pk_live_your_api_key",
+    pictify.WithBaseURL("https://api.pictify.io/v1"),
+    pictify.WithTimeout(30 * time.Second),
+    pictify.WithRetries(3),
+)
+```
+
+### Environment Variables
+
+```go
+import "os"
+
+client := pictify.NewClient(os.Getenv("PICTIFY_API_KEY"))
+```
+
+## Images
+
+### Generate from HTML
+
+```go
+image, err := client.Images.Create(&pictify.ImageCreateParams{
+    HTML: `
+        <div style="width: 1200px; height: 630px; background: #667eea;
+                    display: flex; align-items: center; justify-content: center;">
+            <h1 style="color: white; font-size: 48px;">Hello World</h1>
+        </div>
+    `,
+    Width:  1200,
+    Height: 630,
+    Format: pictify.FormatPNG,
+})
+if err != nil {
+    log.Fatal(err)
+}
+
+fmt.Println(image.URL)    // https://cdn.pictify.io/renders/...
+fmt.Println(image.ID)     // img_abc123
+fmt.Println(image.Width)  // 1200
+fmt.Println(image.Height) // 630
+```
+
+### Generate from URL
+
+```go
+image, err := client.Images.Create(&pictify.ImageCreateParams{
+    URL:      "https://example.com",
+    Width:    1200,
+    Height:   630,
+    FullPage: false,
+})
+```
+
+### Canvas Rendering
+
+```go
+image, err := client.Images.Canvas(&pictify.CanvasParams{
+    FabricJSData: map[string]interface{}{
+        "version": "5.3.0",
+        "objects": []map[string]interface{}{
+            {"type": "rect", "fill": "#667eea", "width": 1200, "height": 630},
+            {"type": "textbox", "text": "{{title}}", "fill": "white", "fontSize": 48},
+        },
+    },
+    Variables: map[string]interface{}{
+        "title": "Dynamic Content",
+    },
+    Width:  1200,
+    Height: 630,
+})
+```
+
+### Agent Screenshot
+
+```go
+image, err := client.Images.AgentScreenshot(&pictify.AgentScreenshotParams{
+    Prompt: "Take a screenshot of the pricing section on stripe.com",
+})
+```
+
+## GIFs
+
+### Create from HTML
+
+```go
+gif, err := client.GIFs.Create(&pictify.GIFCreateParams{
+    HTML: `
+        <div class="container">
+            <style>
+                @keyframes pulse {
+                    0% { transform: scale(1); }
+                    50% { transform: scale(1.1); }
+                    100% { transform: scale(1); }
+                }
+                .pulse { animation: pulse 1s infinite; }
+            </style>
+            <div class="pulse">Animated!</div>
+        </div>
+    `,
+    Width:  400,
+    Height: 400,
+})
+```
+
+### Capture from URL
+
+```go
+gif, err := client.GIFs.Capture(&pictify.GIFCaptureParams{
+    URL:                  "https://example.com/animated",
+    Width:                800,
+    Height:               600,
+    Quality:              pictify.QualityHigh,
+    FrameDurationSeconds: 5,
+})
+```
+
+## PDFs
+
+### Single Page
+
+```go
+pdf, err := client.PDFs.Render(&pictify.PDFRenderParams{
+    TemplateUID: "tmpl_invoice",
+    Variables: map[string]interface{}{
+        "invoiceNumber": "INV-001",
+        "items": []map[string]interface{}{
+            {"name": "Service", "price": 99.00},
+        },
+        "total": 99.00,
+    },
+    Options: &pictify.PDFOptions{
+        Preset: pictify.PresetA4,
+        Margins: &pictify.Margins{
+            Top: 40, Bottom: 40, Left: 30, Right: 30,
+        },
+    },
+})
+```
+
+### Multi-Page
+
+```go
+pdf, err := client.PDFs.MultiPage(&pictify.PDFMultiPageParams{
+    TemplateUID: "tmpl_report",
+    VariableSets: []map[string]interface{}{
+        {"pageTitle": "Introduction", "content": "..."},
+        {"pageTitle": "Analysis", "content": "..."},
+        {"pageTitle": "Conclusion", "content": "..."},
+    },
+    Options: &pictify.PDFOptions{
+        Preset: pictify.PresetA4,
+    },
+})
+```
+
+## Templates
+
+### List Templates
+
+```go
+result, err := client.Templates.List(&pictify.ListParams{
+    Page:  1,
+    Limit: 20,
+})
+
+for _, tmpl := range result.Templates {
+    fmt.Printf("%s: %s\n", tmpl.UID, tmpl.Name)
+}
+```
+
+### Create Template
+
+```go
+template, err := client.Templates.Create(&pictify.TemplateCreateParams{
+    Name:   "Social Card",
+    HTML:   "<h1>{{title}}</h1><p>{{description}}</p>",
+    Width:  1200,
+    Height: 630,
+})
+```
+
+### Render Template
+
+```go
+image, err := client.Templates.Render("tmpl_abc123", &pictify.RenderParams{
+    Variables: map[string]interface{}{
+        "title":       "My Post",
+        "description": "An interesting article",
+    },
+    Format: pictify.FormatPNG,
+})
+```
+
+### Batch Render
+
+```go
+batch, err := client.Templates.BatchRender("tmpl_abc123", &pictify.BatchRenderParams{
+    VariableSets: []map[string]interface{}{
+        {"title": "Post 1"},
+        {"title": "Post 2"},
+        {"title": "Post 3"},
+    },
+    WebhookURL: "https://your-server.com/webhooks/batch",
+})
+
+// Later, get results
+results, err := client.Templates.GetBatchResults(batch.ID, nil)
+```
+
+## Webhooks
+
+### Create Subscription
+
+```go
+subscription, err := client.Webhooks.Create(&pictify.WebhookCreateParams{
+    Event:     pictify.EventRenderCompleted,
+    TargetURL: "https://your-server.com/webhooks/pictify",
+})
+
+// Store this secret securely!
+fmt.Println(subscription.Secret)
+```
+
+### Verify Signature
+
+```go
+package main
+
+import (
+    "crypto/hmac"
+    "crypto/sha256"
+    "encoding/hex"
+    "fmt"
+    "math"
+    "strconv"
+    "strings"
+    "time"
+)
+
+func VerifyWebhookSignature(payload, signatureHeader, secret string) error {
+    parts := make(map[string]string)
+    for _, pair := range strings.Split(signatureHeader, ",") {
+        kv := strings.SplitN(pair, "=", 2)
+        if len(kv) == 2 {
+            parts[kv[0]] = kv[1]
+        }
+    }
+
+    timestamp, _ := strconv.ParseInt(parts["t"], 10, 64)
+    providedSignature := parts["v1"]
+
+    // Reject if timestamp is older than 5 minutes
+    if math.Abs(float64(time.Now().Unix()-timestamp)) > 300 {
+        return fmt.Errorf("webhook timestamp too old")
+    }
+
+    signedPayload := fmt.Sprintf("%d.%s", timestamp, payload)
+    mac := hmac.New(sha256.New, []byte(secret))
+    mac.Write([]byte(signedPayload))
+    expectedSignature := hex.EncodeToString(mac.Sum(nil))
+
+    if !hmac.Equal([]byte(providedSignature), []byte(expectedSignature)) {
+        return fmt.Errorf("invalid signature")
+    }
+
+    return nil
+}
+```
+
+### HTTP Handler
+
+```go
+package main
+
+import (
+    "encoding/json"
+    "io"
+    "net/http"
+)
+
+func webhookHandler(w http.ResponseWriter, r *http.Request) {
+    signature := r.Header.Get("X-Pictify-Signature")
+
+    body, err := io.ReadAll(r.Body)
+    if err != nil {
+        http.Error(w, "Failed to read body", http.StatusBadRequest)
+        return
+    }
+
+    if err := VerifyWebhookSignature(string(body), signature, webhookSecret); err != nil {
+        http.Error(w, err.Error(), http.StatusUnauthorized)
+        return
+    }
+
+    var event pictify.WebhookEvent
+    if err := json.Unmarshal(body, &event); err != nil {
+        http.Error(w, "Invalid JSON", http.StatusBadRequest)
+        return
+    }
+
+    fmt.Printf("Received event: %s\n", event.Event)
+
+    w.WriteHeader(http.StatusOK)
+    w.Write([]byte("OK"))
+}
+```
+
+## Bindings
+
+### Create Binding
+
+```go
+binding, err := client.Bindings.Create(&pictify.BindingCreateParams{
+    Name:        "GitHub Stats",
+    TemplateUID: "tmpl_github",
+    DataURL:     "https://api.github.com/repos/your/repo",
+    DataMapping: map[string]string{
+        "stars": "stargazers_count",
+        "forks": "forks_count",
+    },
+    Schedule: "0 * * * *", // Hourly
+})
+
+// Permanent image URL that auto-updates
+fmt.Println(binding.ImageURL)
+```
+
+### Trigger Refresh
+
+```go
+err := client.Bindings.Refresh("bind_abc123")
+```
+
+## Error Handling
+
+```go
+image, err := client.Images.Create(&pictify.ImageCreateParams{...})
+if err != nil {
+    switch e := err.(type) {
+    case *pictify.RateLimitError:
+        // Wait and retry
+        fmt.Printf("Rate limited. Retry after %d seconds\n", e.RetryAfter)
+        time.Sleep(time.Duration(e.RetryAfter) * time.Second)
+    case *pictify.ValidationError:
+        // Fix validation issues
+        fmt.Printf("Validation errors: %v\n", e.Errors)
+    case *pictify.AuthenticationError:
+        // Check API key
+        fmt.Println("Invalid API key")
+    case *pictify.APIError:
+        // General API error
+        fmt.Printf("API Error: %s (status: %d)\n", e.Message, e.Status)
+    default:
+        // Network or other error
+        log.Fatal(err)
+    }
+}
+```
+
+## Context Support
+
+All methods support context for cancellation and timeouts:
+
+```go
+ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+defer cancel()
+
+image, err := client.Images.CreateWithContext(ctx, &pictify.ImageCreateParams{
+    HTML:   "<h1>Hello</h1>",
+    Width:  1200,
+    Height: 630,
+})
+```
+
+## Concurrent Requests
+
+The client is safe for concurrent use:
+
+```go
+var wg sync.WaitGroup
+results := make(chan *pictify.Image, 10)
+
+for i := 0; i < 10; i++ {
+    wg.Add(1)
+    go func(i int) {
+        defer wg.Done()
+        image, err := client.Images.Create(&pictify.ImageCreateParams{
+            HTML:   fmt.Sprintf("<h1>Image %d</h1>", i),
+            Width:  1200,
+            Height: 630,
+        })
+        if err == nil {
+            results <- image
+        }
+    }(i)
+}
+
+wg.Wait()
+close(results)
+
+for img := range results {
+    fmt.Println(img.URL)
+}
+```
+
+## API Reference
+
+See the [API Reference](/api-reference/overview) for full endpoint documentation.

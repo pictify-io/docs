@@ -1,0 +1,95 @@
+---
+title: Introduction
+description: Generate images, GIFs, and PDFs from templates programmatically
+---
+
+# Welcome to Pictify
+
+Pictify is a powerful API for generating images, GIFs, and PDFs from HTML templates. Use it to create dynamic social media cards, marketing assets, personalized content, and more.
+
+## What You Can Build
+
+<CardGroup cols={2}>
+  <Card title="OG Images" icon="image">
+    Generate dynamic Open Graph images for social media sharing
+  </Card>
+  <Card title="Marketing Assets" icon="paintbrush">
+    Create personalized marketing materials at scale
+  </Card>
+  <Card title="Animated GIFs" icon="film">
+    Render animated content from HTML/CSS animations
+  </Card>
+  <Card title="PDF Documents" icon="file-pdf">
+    Generate invoices, reports, and certificates
+  </Card>
+</CardGroup>
+
+## How It Works
+
+1. **Create a Template** - Design your template in the Pictify dashboard using the visual editor or import HTML/CSS
+2. **Define Variables** - Mark dynamic content like text, images, and colors as variables
+3. **Render via API** - Call the API with your template ID and variable values
+4. **Get Your Asset** - Receive a URL to your generated image, GIF, or PDF
+
+```typescript
+import { Pictify } from '@pictify/sdk';
+
+const pictify = new Pictify({
+  apiKey: process.env.PICTIFY_API_KEY
+});
+
+const result = await pictify.render({
+  templateId: 'og-image-template',
+  variables: {
+    title: 'My Blog Post',
+    author: 'Jane Doe',
+    date: '2026-01-29'
+  }
+});
+
+console.log(result.imageUrl);
+// https://cdn.pictify.io/renders/abc123.png
+```
+
+## Key Features
+
+### Template System
+Create reusable templates with the visual editor or HTML/CSS. Define variables for dynamic content and use expressions for conditional logic.
+
+### Multiple Output Formats
+Generate PNG, JPEG, WebP images, animated GIFs, and multi-page PDFs from the same templates.
+
+### Batch Processing
+Render up to 500 images in a single API request. Process thousands of assets efficiently for data-driven campaigns.
+
+### Official SDKs
+Native SDKs for Node.js, Python, Go, and Ruby with full TypeScript/type hints support.
+
+### Webhooks
+Receive notifications when renders complete. Integrate with Zapier, Make, n8n, or your own systems.
+
+### AI Integration
+MCP server for Claude Code, Cursor, and other AI tools. Generate images directly from AI conversations.
+
+## Getting Started
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Get your first image in 5 minutes
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/overview">
+    Explore the full API documentation
+  </Card>
+  <Card title="SDKs" icon="box" href="/sdks/overview">
+    Install an official SDK
+  </Card>
+  <Card title="Templates" icon="palette" href="/concepts/templates">
+    Learn about the template system
+  </Card>
+</CardGroup>
+
+## Need Help?
+
+- **Email**: support@pictify.io
+- **Discord**: [Join our community](https://discord.gg/pictify)
+- **GitHub**: [Report issues](https://github.com/pictify-io/pictify)

@@ -1,0 +1,359 @@
+---
+title: Dynamic OG Images
+description: Generate Open Graph images for better social sharing
+---
+
+# Dynamic OG Images
+
+Open Graph images are the preview images shown when your content is shared on social media. This guide shows you how to generate dynamic OG images for every page on your site.
+
+## Why Dynamic OG Images?
+
+| Static Images | Dynamic Images |
+|--------------|----------------|
+| Same image for every page | Unique image per page |
+| Manual creation required | Automated generation |
+| Outdated when content changes | Always current |
+| Generic appearance | Personalized and engaging |
+
+## Basic Setup
+
+### 1. Create a Template
+
+Design a template in the [dashboard](/dashboard/templates) or via API:
+
+```typescript
+const template = await pictify.templates.create({
+  name: 'Blog Post OG',
+  html: `
+    <div style="
+      width: 1200px;
+      height: 630px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 60px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      font-family: 'Inter', sans-serif;
+    ">
+      <h1 style="
+        color: white;
+        font-size: 56px;
+        font-weight: 700;
+        margin: 0;
+        line-height: 1.2;
+      ">{{title}}</h1>
+
+      <p style="
+        color: rgba(255,255,255,0.8);
+        font-size: 24px;
+        margin: 24px 0 0;
+        line-height: 1.5;
+      ">{{description}}</p>
+
+      <div style="
+        margin-top: auto;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      ">
+        <img src="{{authorAvatar}}" style="
+          width: 48px;
+          height: 48px;
+          border-radius: 50%;
+        " />
+        <span style="color: white; font-size: 18px;">{{authorName}}</span>
+      </div>
+    </div>
+  `,
+  width: 1200,
+  height: 630
+});
+
+console.log(`Template ID: ${template.uid}`);
+```
+
+### 2. Create an API Endpoint
+
+Create an endpoint that generates images on demand:
+
+<CodeGroup>
+```typescript Next.js (App Router)
+// app/api/og/[slug]/route.ts
+import { NextRequest } from 'next/server';
+import Pictify from '@pictify/sdk';
+
+const pictify = new Pictify(process.env.PICTIFY_API_KEY!);
+const TEMPLATE_ID = 'tmpl_your_template_id';
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { slug: string } }
+) {
+  // Fetch your content
+  const post = await getPostBySlug(params.slug);
+
+  if (!post) {
+    return new Response('Not found', { status: 404 });
+  }
+
+  // Generate the image
+  const image = await pictify.templates.render(TEMPLATE_ID, {
+    variables: {
+      title: post.title,
+      description: post.excerpt,
+      authorName: post.author.name,
+      authorAvatar: post.author.avatar
+    }
+  });
+
+  // Redirect to the image URL
+  return Response.redirect(image.url);
+}
+```
+
+```typescript Express.js
+// routes/og.ts
+import express from 'express';
+import Pictify from '@pictify/sdk';
+
+const router = express.Router();
+const pictify = new Pictify(process.env.PICTIFY_API_KEY!);
+const TEMPLATE_ID = 'tmpl_your_template_id';
+
+router.get('/og/:slug', async (req, res) => {
+  const post = await getPostBySlug(req.params.slug);
+
+  if (!post) {
+    return res.status(404).send('Not found');
+  }
+
+  const image = await pictify.templates.render(TEMPLATE_ID, {
+    variables: {
+      title: post.title,
+      description: post.excerpt,
+      authorName: post.author.name,
+      authorAvatar: post.author.avatar
+    }
+  });
+
+  res.redirect(image.url);
+});
+```
+
+```python FastAPI
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import RedirectResponse
+from pictify import Pictify
+
+app = FastAPI()
+pictify = Pictify(os.environ['PICTIFY_API_KEY'])
+TEMPLATE_ID = 'tmpl_your_template_id'
+
+@app.get("/og/{slug}")
+async def og_image(slug: str):
+    post = await get_post_by_slug(slug)
+
+    if not post:
+        raise HTTPException(status_code=404)
+
+    image = pictify.templates.render(TEMPLATE_ID,
+        variables={
+            'title': post.title,
+            'description': post.excerpt,
+            'authorName': post.author.name,
+            'authorAvatar': post.author.avatar
+        }
+    )
+
+    return RedirectResponse(url=image['url'])
+```
+</CodeGroup>
+
+### 3. Add Meta Tags
+
+Add the OG image to your page's `<head>`:
+
+```html
+<meta property="og:image" content="https://yoursite.com/api/og/your-post-slug" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:image" content="https://yoursite.com/api/og/your-post-slug" />
+```
+
+## Caching Strategies
+
+### Option 1: CDN Caching
+
+Set cache headers to serve cached images:
+
+```typescript
+export async function GET(request: NextRequest, { params }) {
+  const post = await getPostBySlug(params.slug);
+  const image = await pictify.templates.render(TEMPLATE_ID, { variables: {...} });
+
+  // Fetch the image and serve it with cache headers
+  const imageResponse = await fetch(image.url);
+  const imageBuffer = await imageResponse.arrayBuffer();
+
+  return new Response(imageBuffer, {
+    headers: {
+      'Content-Type': 'image/png',
+      'Cache-Control': 'public, max-age=86400, s-maxage=604800',
+    },
+  });
+}
+```
+
+### Option 2: Pre-Generate on Publish
+
+Generate images when content is created/updated:
+
+```typescript
+// On post publish
+async function onPostPublish(post: Post) {
+  const image = await pictify.templates.render(TEMPLATE_ID, {
+    variables: {
+      title: post.title,
+      description: post.excerpt,
+      authorName: post.author.name
+    }
+  });
+
+  // Store the URL
+  await updatePost(post.id, { ogImageUrl: image.url });
+}
+```
+
+### Option 3: Use Bindings
+
+Create a binding for automatic updates:
+
+```typescript
+const binding = await pictify.bindings.create({
+  name: `OG Image - ${post.slug}`,
+  templateUid: TEMPLATE_ID,
+  dataUrl: `https://yoursite.com/api/posts/${post.slug}/meta`,
+  schedule: '0 * * * *'  // Check hourly
+});
+
+// The imageUrl stays constant but content updates automatically
+post.ogImageUrl = binding.imageUrl;
+```
+
+## Template Design Tips
+
+### Social Platform Requirements
+
+| Platform | Size | Notes |
+|----------|------|-------|
+| Facebook | 1200 × 630 | Recommended size |
+| Twitter | 1200 × 600 | Slightly shorter |
+| LinkedIn | 1200 × 627 | Similar to Facebook |
+| Discord | 1200 × 630 | Same as Facebook |
+
+### Design Recommendations
+
+1. **Keep text readable** - Minimum 48px for titles
+2. **Use high contrast** - Text should stand out
+3. **Leave safe zones** - Platforms may crop edges
+4. **Include branding** - Add logo or brand colors
+5. **Test on dark/light** - Some apps have dark mode
+
+### Handling Long Titles
+
+Truncate or scale text dynamically:
+
+```html
+<h1 style="
+  font-size: {{titleLength > 50 ? '40px' : '56px'}};
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+">{{title}}</h1>
+```
+
+Or use the truncate expression:
+
+```html
+<h1>{{truncate(title, 80, '...')}}</h1>
+```
+
+## Framework Examples
+
+### Next.js with generateMetadata
+
+```typescript
+// app/blog/[slug]/page.tsx
+import { Metadata } from 'next';
+
+export async function generateMetadata({ params }): Promise<Metadata> {
+  const post = await getPost(params.slug);
+
+  return {
+    title: post.title,
+    description: post.excerpt,
+    openGraph: {
+      images: [{
+        url: `https://yoursite.com/api/og/${params.slug}`,
+        width: 1200,
+        height: 630,
+      }],
+    },
+  };
+}
+```
+
+### Astro
+
+```astro
+---
+// src/pages/blog/[slug].astro
+const { slug } = Astro.params;
+const post = await getPost(slug);
+---
+
+<html>
+<head>
+  <meta property="og:image" content={`https://yoursite.com/api/og/${slug}`} />
+</head>
+```
+
+### Remix
+
+```typescript
+// app/routes/blog.$slug.tsx
+export const meta: MetaFunction<typeof loader> = ({ data }) => {
+  return [
+    { property: 'og:image', content: `https://yoursite.com/api/og/${data.slug}` },
+  ];
+};
+```
+
+## Testing OG Images
+
+### Preview Tools
+
+- [Facebook Sharing Debugger](https://developers.facebook.com/tools/debug/)
+- [Twitter Card Validator](https://cards-dev.twitter.com/validator)
+- [LinkedIn Post Inspector](https://www.linkedin.com/post-inspector/)
+- [opengraph.xyz](https://www.opengraph.xyz/)
+
+### Common Issues
+
+**Image not showing:**
+- Verify the URL returns a valid image
+- Check image dimensions (minimum 200 × 200)
+- Ensure URL is publicly accessible
+
+**Old image showing:**
+- Social platforms cache images aggressively
+- Use debugger tools to clear cache
+- Consider adding version parameter to URL
+
+**Wrong image:**
+- Check meta tag order (first og:image wins)
+- Verify no conflicting meta tags
+- Test with incognito/private browser

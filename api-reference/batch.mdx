@@ -1,0 +1,302 @@
+---
+title: Batch Operations
+description: Generate multiple images efficiently with batch processing
+---
+
+# Batch Operations
+
+Batch operations allow you to generate multiple images from a single template with different variables. Ideal for bulk generation of social cards, certificates, or personalized content.
+
+## Start Batch Job {#create}
+
+Start a batch rendering job.
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://api.pictify.io/v1/templates/tmpl_abc123/batch-render \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "variableSets": [
+      {"title": "Post 1", "author": "Alice"},
+      {"title": "Post 2", "author": "Bob"},
+      {"title": "Post 3", "author": "Charlie"}
+    ],
+    "format": "png",
+    "webhookUrl": "https://your-server.com/webhooks/batch-complete"
+  }'
+```
+
+```typescript Node.js
+import Pictify from '@pictify/sdk';
+
+const pictify = new Pictify('pk_live_...');
+
+const batch = await pictify.templates.batchRender('tmpl_abc123', {
+  variableSets: [
+    { title: 'Post 1', author: 'Alice' },
+    { title: 'Post 2', author: 'Bob' },
+    { title: 'Post 3', author: 'Charlie' }
+  ],
+  format: 'png',
+  webhookUrl: 'https://your-server.com/webhooks/batch-complete'
+});
+
+console.log(`Batch job started: ${batch.id}`);
+```
+
+```python Python
+from pictify import Pictify
+
+pictify = Pictify('pk_live_...')
+
+batch = pictify.templates.batch_render('tmpl_abc123',
+    variable_sets=[
+        {'title': 'Post 1', 'author': 'Alice'},
+        {'title': 'Post 2', 'author': 'Bob'},
+        {'title': 'Post 3', 'author': 'Charlie'}
+    ],
+    format='png',
+    webhook_url='https://your-server.com/webhooks/batch-complete'
+)
+```
+</CodeGroup>
+
+### Request Body
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `variableSets` | array | Yes | Array of variable objects (max: 1000) |
+| `format` | string | No | Output format: `png`, `jpeg`, `webp` (default: `png`) |
+| `quality` | integer | No | Quality for JPEG/WebP (1-100) |
+| `webhookUrl` | string | No | URL to notify when batch completes |
+
+### Response
+
+```json
+{
+  "id": "batch_xyz789",
+  "templateUid": "tmpl_abc123",
+  "status": "processing",
+  "totalCount": 3,
+  "completedCount": 0,
+  "failedCount": 0,
+  "createdAt": "2026-01-29T10:30:00Z"
+}
+```
+
+## Get Batch Results {#results}
+
+Retrieve the results of a batch job.
+
+<CodeGroup>
+```bash cURL
+curl https://api.pictify.io/v1/templates/batch/batch_xyz789/results \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+```typescript Node.js
+const results = await pictify.templates.getBatchResults('batch_xyz789');
+```
+
+```python Python
+results = pictify.templates.get_batch_results('batch_xyz789')
+```
+</CodeGroup>
+
+### Query Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `page` | integer | 1 | Page number |
+| `limit` | integer | 100 | Results per page (max: 100) |
+| `status` | string | - | Filter by status: `completed`, `failed` |
+
+### Response
+
+```json
+{
+  "batch": {
+    "id": "batch_xyz789",
+    "templateUid": "tmpl_abc123",
+    "status": "completed",
+    "totalCount": 3,
+    "completedCount": 3,
+    "failedCount": 0,
+    "createdAt": "2026-01-29T10:30:00Z",
+    "completedAt": "2026-01-29T10:30:15Z"
+  },
+  "results": [
+    {
+      "index": 0,
+      "status": "completed",
+      "url": "https://cdn.pictify.io/renders/img_001.png",
+      "id": "img_001",
+      "variables": {"title": "Post 1", "author": "Alice"}
+    },
+    {
+      "index": 1,
+      "status": "completed",
+      "url": "https://cdn.pictify.io/renders/img_002.png",
+      "id": "img_002",
+      "variables": {"title": "Post 2", "author": "Bob"}
+    },
+    {
+      "index": 2,
+      "status": "completed",
+      "url": "https://cdn.pictify.io/renders/img_003.png",
+      "id": "img_003",
+      "variables": {"title": "Post 3", "author": "Charlie"}
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 100,
+    "total": 3,
+    "totalPages": 1
+  }
+}
+```
+
+## Cancel Batch Job {#cancel}
+
+Cancel a running batch job.
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://api.pictify.io/v1/templates/batch/batch_xyz789/cancel \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+```typescript Node.js
+await pictify.templates.cancelBatch('batch_xyz789');
+```
+
+```python Python
+pictify.templates.cancel_batch('batch_xyz789')
+```
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "id": "batch_xyz789",
+  "status": "cancelled",
+  "totalCount": 100,
+  "completedCount": 45,
+  "failedCount": 0,
+  "cancelledCount": 55
+}
+```
+
+## Batch Status
+
+| Status | Description |
+|--------|-------------|
+| `pending` | Job created, waiting to start |
+| `processing` | Currently rendering images |
+| `completed` | All items processed successfully |
+| `partial` | Completed with some failures |
+| `failed` | All items failed |
+| `cancelled` | Job was cancelled |
+
+## Webhook Notification
+
+When a batch job completes, Pictify sends a POST request to your webhook URL:
+
+```json
+{
+  "event": "batch.completed",
+  "timestamp": "2026-01-29T10:30:15Z",
+  "data": {
+    "batchId": "batch_xyz789",
+    "templateUid": "tmpl_abc123",
+    "status": "completed",
+    "totalCount": 100,
+    "completedCount": 100,
+    "failedCount": 0,
+    "duration": 15000
+  }
+}
+```
+
+## Examples
+
+### Generate Social Cards for Blog Posts
+
+```typescript
+const posts = await fetchBlogPosts(); // Your blog posts
+
+const batch = await pictify.templates.batchRender('tmpl_social_card', {
+  variableSets: posts.map(post => ({
+    title: post.title,
+    description: post.excerpt,
+    author: post.author.name,
+    date: post.publishedAt,
+    category: post.category
+  })),
+  format: 'png',
+  webhookUrl: 'https://api.yoursite.com/webhooks/social-cards'
+});
+
+// Poll for results or wait for webhook
+```
+
+### Generate Certificates
+
+```typescript
+const attendees = [
+  { name: 'Alice Johnson', course: 'React Fundamentals', date: '2026-01-29' },
+  { name: 'Bob Smith', course: 'React Fundamentals', date: '2026-01-29' },
+  // ... more attendees
+];
+
+const batch = await pictify.templates.batchRender('tmpl_certificate', {
+  variableSets: attendees,
+  format: 'png'
+});
+
+// Wait for completion
+const results = await pictify.templates.getBatchResults(batch.id);
+
+// Send certificates to attendees
+for (const result of results.results) {
+  await sendEmail(result.variables.name, result.url);
+}
+```
+
+### Handle Partial Failures
+
+```typescript
+const results = await pictify.templates.getBatchResults(batchId);
+
+if (results.batch.failedCount > 0) {
+  // Get failed items
+  const failedResults = await pictify.templates.getBatchResults(batchId, {
+    status: 'failed'
+  });
+
+  // Retry failed items
+  const retryBatch = await pictify.templates.batchRender(templateId, {
+    variableSets: failedResults.results.map(r => r.variables)
+  });
+}
+```
+
+## Limits
+
+| Plan | Max Items per Batch | Concurrent Batches |
+|------|--------------------|--------------------|
+| Free | 10 | 1 |
+| Pro | 100 | 3 |
+| Business | 1,000 | 10 |
+| Enterprise | 10,000 | Unlimited |
+
+## Best Practices
+
+1. **Use webhooks** - Don't poll for results; use webhooks for notification
+2. **Handle failures gracefully** - Some items may fail; implement retry logic
+3. **Batch appropriately** - Group related renders; avoid tiny batches
+4. **Monitor progress** - Track batch status for long-running jobs
+5. **Clean up** - Results are stored for 7 days; download and store permanently if needed

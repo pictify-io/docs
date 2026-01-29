@@ -1,0 +1,209 @@
+---
+title: Templates
+description: Create reusable designs with dynamic variables
+---
+
+# Templates
+
+Templates are reusable designs with dynamic content areas called variables. Create a template once, then render it with different data to generate unique images.
+
+## Creating Templates
+
+### Visual Editor
+
+The dashboard provides a drag-and-drop editor for creating templates:
+
+1. Go to **Templates** in the dashboard
+2. Click **Create Template**
+3. Use the canvas to add text, images, shapes, and backgrounds
+4. Mark elements as variables by clicking the variable icon
+5. Save your template
+
+### HTML/CSS Import
+
+You can also create templates from HTML/CSS:
+
+```html
+<div style="width: 1200px; height: 630px; background: #667eea; padding: 60px; font-family: Inter, sans-serif;">
+  <h1 style="color: white; font-size: 48px; margin: 0;">{{title}}</h1>
+  <p style="color: rgba(255,255,255,0.8); font-size: 24px;">{{description}}</p>
+  <img src="{{authorImage}}" style="width: 60px; height: 60px; border-radius: 50%;">
+  <span style="color: white;">{{authorName}}</span>
+</div>
+```
+
+## Variables
+
+Variables are placeholders that get replaced with actual values when rendering. Define variables using double curly braces: `{{variableName}}`.
+
+### Variable Types
+
+| Type | Description | Example |
+|------|-------------|---------|
+| `text` | Plain text content | `{{title}}`, `{{description}}` |
+| `image` | Image URL | `{{logo}}`, `{{avatar}}` |
+| `color` | Hex or RGB color | `{{backgroundColor}}`, `{{textColor}}` |
+| `number` | Numeric value | `{{price}}`, `{{count}}` |
+| `boolean` | True/false value | `{{showBadge}}`, `{{isPremium}}` |
+
+### Variable Definitions
+
+Each variable can have a definition that includes:
+
+```json
+{
+  "name": "title",
+  "type": "text",
+  "defaultValue": "Untitled",
+  "description": "The main headline",
+  "validation": {
+    "required": true,
+    "maxLength": 100
+  }
+}
+```
+
+### Getting Template Variables
+
+Retrieve variable definitions before rendering:
+
+<CodeGroup>
+```typescript Node.js
+const template = await pictify.templates.get('template-id');
+
+console.log(template.variables);
+// [
+//   { name: 'title', type: 'text', required: true },
+//   { name: 'backgroundColor', type: 'color', defaultValue: '#ffffff' }
+// ]
+```
+
+```python Python
+template = client.templates.get("template-id")
+
+for var in template.variables:
+    print(f"{var.name}: {var.type} (default: {var.default_value})")
+```
+</CodeGroup>
+
+## Rendering Templates
+
+Render a template by providing values for its variables:
+
+<CodeGroup>
+```typescript Node.js
+const result = await pictify.templates.render('og-template', {
+  variables: {
+    title: 'How to Build Great Products',
+    description: 'A guide to product development',
+    authorName: 'Jane Doe',
+    authorImage: 'https://example.com/jane.jpg'
+  }
+});
+```
+
+```bash cURL
+curl -X POST https://api.pictify.io/v1/templates/og-template/render \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "variables": {
+      "title": "How to Build Great Products",
+      "description": "A guide to product development",
+      "authorName": "Jane Doe",
+      "authorImage": "https://example.com/jane.jpg"
+    }
+  }'
+```
+</CodeGroup>
+
+## Template Structure
+
+Templates are stored as FabricJS canvas data with additional metadata:
+
+```json
+{
+  "uid": "tmpl_abc123",
+  "name": "OG Image Template",
+  "width": 1200,
+  "height": 630,
+  "outputFormat": "image",
+  "variableDefinitions": [
+    {
+      "name": "title",
+      "type": "text",
+      "defaultValue": "Untitled"
+    }
+  ],
+  "fabricJSData": {
+    "version": "5.3.0",
+    "objects": [
+      {
+        "type": "textbox",
+        "text": "{{title}}",
+        "isVariable": true,
+        "variableBindings": [
+          { "variableName": "title", "property": "text" }
+        ]
+      }
+    ]
+  }
+}
+```
+
+## Output Formats
+
+Templates support multiple output formats:
+
+| Format | Extension | Use Case |
+|--------|-----------|----------|
+| PNG | `.png` | Transparent backgrounds, screenshots |
+| JPEG | `.jpg` | Photos, smaller file sizes |
+| WebP | `.webp` | Modern browsers, best compression |
+| PDF | `.pdf` | Documents, print materials |
+| GIF | `.gif` | Animated content |
+
+Set the output format when rendering:
+
+```typescript
+const result = await pictify.templates.render('template-id', {
+  variables: { title: 'Hello' },
+  format: 'pdf'
+});
+```
+
+## Multi-Page Templates
+
+PDF templates can have multiple pages:
+
+```typescript
+const result = await pictify.templates.render('invoice-template', {
+  variableSets: [
+    { pageTitle: 'Page 1', items: [...] },
+    { pageTitle: 'Page 2', items: [...] }
+  ],
+  format: 'pdf'
+});
+```
+
+## Template Categories
+
+Organize templates with categories and tags:
+
+- **Categories**: `og-image`, `social-media`, `email`, `document`, `marketing`
+- **Tags**: Custom labels for filtering
+
+```typescript
+const templates = await pictify.templates.list({
+  category: 'og-image',
+  tags: ['blog', 'featured']
+});
+```
+
+## Best Practices
+
+1. **Use descriptive variable names**: `authorProfileImage` instead of `img1`
+2. **Set default values**: Ensure templates render even with missing data
+3. **Validate input**: Use validation rules to catch errors early
+4. **Keep templates focused**: One template per use case
+5. **Version templates**: Use naming conventions like `og-image-v2`
