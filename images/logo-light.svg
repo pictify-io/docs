@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 32">
+  <rect width="32" height="32" rx="6" fill="#6366F1"/>
+  <text x="16" y="50%" text-anchor="middle" dy=".35em" font-family="system-ui, sans-serif" font-size="18" font-weight="bold" fill="white">P</text>
+  <text x="44" y="50%" dy=".35em" font-family="system-ui, sans-serif" font-size="20" font-weight="600" fill="#1F2937">Pictify</text>
+</svg>

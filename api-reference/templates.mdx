@@ -7,7 +7,7 @@ description: Create, manage, and render reusable templates
 
 Templates are reusable designs with dynamic variables. Create once, render with different data.
 
-## List Templates {#list}
+## List Templates
 
 Retrieve all templates in your account.
 
@@ -63,7 +63,7 @@ templates = pictify.templates.list(page=1, limit=20)
 }
 ```
 
-## Create Template {#create}
+## Create Template
 
 Create a new template.
 
@@ -144,7 +144,7 @@ Either `html` or `fabricJSData` is required, but not both.
 }
 ```
 
-## Get Template {#get}
+## Get Template
 
 Retrieve a specific template.
 
@@ -179,7 +179,7 @@ template = pictify.templates.get('tmpl_abc123')
 }
 ```
 
-## Update Template {#update}
+## Update Template
 
 Update an existing template.
 
@@ -222,7 +222,7 @@ All fields are optional. Only include fields you want to update.
 | `width` | integer | New width |
 | `height` | integer | New height |
 
-## Delete Template {#delete}
+## Delete Template
 
 Delete a template.
 
@@ -249,7 +249,7 @@ pictify.templates.delete('tmpl_abc123')
 }
 ```
 
-## Render Template {#render}
+## Render Template
 
 Render a template with variables to generate an image.
 
@@ -316,7 +316,7 @@ result = pictify.templates.render('tmpl_abc123',
 }
 ```
 
-## Get Template Variables {#variables}
+## Get Template Variables
 
 Get the list of variables defined in a template.
 

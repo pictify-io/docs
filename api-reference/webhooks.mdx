@@ -11,7 +11,7 @@ Manage webhook subscriptions programmatically. Webhooks notify your server when 
 For webhook payload formats and signature verification, see [Webhooks Concept](/concepts/webhooks).
 </Note>
 
-## List Subscriptions {#list}
+## List Subscriptions
 
 Retrieve all webhook subscriptions.
 
@@ -55,7 +55,7 @@ subscriptions = pictify.webhooks.list()
 }
 ```
 
-## Create Subscription {#create}
+## Create Subscription
 
 Create a new webhook subscription.
 
@@ -123,7 +123,7 @@ print(f"Secret: {subscription['secret']}")
 The `secret` is only returned when creating a subscription. Store it securely for signature verification.
 </Warning>
 
-## Get Subscription {#get}
+## Get Subscription
 
 Retrieve a specific subscription.
 
@@ -163,7 +163,7 @@ subscription = pictify.webhooks.get('wh_abc123')
 }
 ```
 
-## Update Subscription {#update}
+## Update Subscription
 
 Update an existing subscription.
 
@@ -197,7 +197,7 @@ subscription = pictify.webhooks.update('wh_abc123',
 | `targetUrl` | string | New webhook URL |
 | `filters` | object | New filter criteria |
 
-## Delete Subscription {#delete}
+## Delete Subscription
 
 Delete a webhook subscription.
 
