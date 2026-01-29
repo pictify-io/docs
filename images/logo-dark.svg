@@ -1,5 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 32">
-  <rect width="32" height="32" rx="6" fill="#6366F1"/>
-  <text x="16" y="50%" text-anchor="middle" dy=".35em" font-family="system-ui, sans-serif" font-size="18" font-weight="bold" fill="white">P</text>
-  <text x="44" y="50%" dy=".35em" font-family="system-ui, sans-serif" font-size="20" font-weight="600" fill="white">Pictify</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 36" fill="none">
+  <defs>
+    <linearGradient id="iconGradDark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#E4518D"/>
+      <stop offset="50%" style="stop-color:#4F7AE8"/>
+      <stop offset="100%" style="stop-color:#5ECEC6"/>
+    </linearGradient>
+  </defs>
+  <!-- Icon -->
+  <rect width="36" height="36" rx="10" fill="url(#iconGradDark)"/>
+  <text x="18" y="18" text-anchor="middle" dy=".38em" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="700" fill="white">P</text>
+  <!-- Text -->
+  <text x="48" y="24" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="600" fill="#F8FAFC">Pictify</text>
 </svg>

@@ -8,9 +8,32 @@
   },
   "favicon": "/images/favicon.svg",
   "colors": {
-    "primary": "#6366F1",
-    "light": "#818CF8",
-    "dark": "#4F46E5"
+    "primary": "#E4518D",
+    "light": "#F472B6",
+    "dark": "#DB2777"
+  },
+  "font": {
+    "headings": {
+      "family": "Space Grotesk",
+      "weight": 600
+    },
+    "body": {
+      "family": "Inter"
+    }
+  },
+  "modeToggle": {
+    "default": "light",
+    "isHidden": false
+  },
+  "topbarLinks": [
+    {
+      "name": "Dashboard",
+      "url": "https://app.pictify.io"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Get API Key",
+    "url": "https://app.pictify.io/signup"
   },
   "navigation": {
     "tabs": [
@@ -127,10 +150,16 @@
         "anchor": "Changelog",
         "href": "/resources/changelog",
         "icon": "clock-rotate-left"
+      },
+      {
+        "anchor": "GitHub",
+        "href": "https://github.com/pictify-io",
+        "icon": "github"
       }
     ]
   },
   "api": {
+    "baseUrl": "https://api.pictify.io",
     "playground": {
       "display": "interactive"
     },
@@ -147,5 +176,22 @@
   "feedback": {
     "thumbsRating": true,
     "suggestEdit": true
+  },
+  "footerSocials": {
+    "twitter": "https://twitter.com/pictifyio",
+    "github": "https://github.com/pictify-io"
+  },
+  "analytics": {
+    "posthog": {
+      "apiKey": ""
+    }
+  },
+  "seo": {
+    "indexHiddenPages": false
+  },
+  "metadata": {
+    "og:site_name": "Pictify Documentation",
+    "og:image": "https://pictify.io/og-image.png",
+    "twitter:site": "@pictifyio"
   }
 }
