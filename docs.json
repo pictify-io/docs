@@ -8,13 +8,13 @@
   },
   "favicon": "/images/favicon.svg",
   "colors": {
-    "primary": "#E4518D",
-    "light": "#F472B6",
-    "dark": "#DB2777"
+    "primary": "#ff6b6b",
+    "light": "#ffc480",
+    "dark": "#1f2937"
   },
   "font": {
     "headings": {
-      "family": "Space Grotesk",
+      "family": "DynaPuff",
       "weight": 600
     },
     "body": {
