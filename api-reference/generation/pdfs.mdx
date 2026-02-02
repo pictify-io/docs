@@ -14,7 +14,7 @@ Render a template to a single-page PDF.
 
 <CodeGroup>
 ```bash cURL
-curl -X POST https://api.pictify.io/v1/pdf/render \
+curl -X POST https://api.pictify.io/pdf/render \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -103,7 +103,7 @@ Generate a PDF with multiple pages, each with different content.
 
 <CodeGroup>
 ```bash cURL
-curl -X POST https://api.pictify.io/v1/pdf/multi-page \
+curl -X POST https://api.pictify.io/pdf/multi-page \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{

@@ -13,7 +13,7 @@ Start a batch rendering job.
 
 <CodeGroup>
 ```bash cURL
-curl -X POST https://api.pictify.io/v1/templates/tmpl_abc123/batch-render \
+curl -X POST https://api.pictify.io/templates/tmpl_abc123/batch-render \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -91,7 +91,7 @@ Retrieve the results of a batch job.
 
 <CodeGroup>
 ```bash cURL
-curl https://api.pictify.io/v1/templates/batch/batch_xyz789/results \
+curl https://api.pictify.io/templates/batch/batch_xyz789/results \
   -H "Authorization: Bearer $API_KEY"
 ```
 
@@ -164,7 +164,7 @@ Cancel a running batch job.
 
 <CodeGroup>
 ```bash cURL
-curl -X POST https://api.pictify.io/v1/templates/batch/batch_xyz789/cancel \
+curl -X POST https://api.pictify.io/templates/batch/batch_xyz789/cancel \
   -H "Authorization: Bearer $API_KEY"
 ```
 

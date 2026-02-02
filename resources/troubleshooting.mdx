@@ -42,7 +42,7 @@ This guide covers common issues and their solutions when using the Pictify API.
 
 ```bash
 # Make sure header is correct
-curl https://api.pictify.io/v1/image \
+curl https://api.pictify.io/image \
   -H "Authorization: Bearer pk_live_your_key"  # ✅ Correct
 
 # Common mistakes:
@@ -205,7 +205,7 @@ curl https://api.pictify.io/v1/image \
 
 1. **Test expressions separately**
    ```bash
-   curl -X POST https://api.pictify.io/v1/templates/expression/test \
+   curl -X POST https://api.pictify.io/templates/expression/test \
      -H "Authorization: Bearer $API_KEY" \
      -d '{
        "expression": "currency(price, 'USD')",

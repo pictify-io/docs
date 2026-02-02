@@ -10,7 +10,7 @@ The Pictify API is a RESTful JSON API for generating images, GIFs, and PDFs prog
 ## Base URL
 
 ```
-https://api.pictify.io/v1
+https://api.pictify.io
 ```
 
 ## Authentication
@@ -18,7 +18,7 @@ https://api.pictify.io/v1
 All requests require a Bearer token:
 
 ```bash
-curl https://api.pictify.io/v1/image \
+curl https://api.pictify.io/image \
   -H "Authorization: Bearer pk_live_your_api_key"
 ```
 
@@ -31,7 +31,7 @@ See [Authentication](/authentication) for details.
 - Dates use ISO 8601 format
 
 ```bash
-curl -X POST https://api.pictify.io/v1/image \
+curl -X POST https://api.pictify.io/image \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -63,7 +63,7 @@ Error responses follow [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457.html) P
   "title": "Rate Limit Exceeded",
   "status": 429,
   "detail": "You have exceeded the rate limit. Please retry after 60 seconds.",
-  "instance": "/v1/image"
+  "instance": "/image"
 }
 ```
 
@@ -92,7 +92,7 @@ Rate limit headers are included in every response:
 List endpoints return paginated results:
 
 ```bash
-curl "https://api.pictify.io/v1/templates?page=2&limit=20" \
+curl "https://api.pictify.io/templates?page=2&limit=20" \
   -H "Authorization: Bearer $API_KEY"
 ```
 
@@ -132,7 +132,7 @@ Response includes pagination metadata:
 POST requests can include an `Idempotency-Key` header for safe retries:
 
 ```bash
-curl -X POST https://api.pictify.io/v1/image \
+curl -X POST https://api.pictify.io/image \
   -H "Authorization: Bearer $API_KEY" \
   -H "Idempotency-Key: unique-request-id-123" \
   -H "Content-Type: application/json" \
@@ -143,7 +143,7 @@ The same key with the same request will return the cached response for 24 hours.
 
 ## Versioning
 
-The API version is included in the URL path (`/v1/`). Breaking changes will be introduced in new versions while maintaining backwards compatibility in existing versions.
+The API does not currently use URL-based versioning. All endpoints are accessed directly from the base URL. Breaking changes will be communicated in advance via release notes.
 
 ## SDK Libraries
 
@@ -163,6 +163,7 @@ Official SDKs handle authentication, retries, and error handling:
 | `/image` | POST | [Generate an image](/api-reference/generation/images) |
 | `/image/canvas` | POST | [Image from FabricJS canvas](/api-reference/generation/images#canvas) |
 | `/image/agent-screenshot` | POST | [AI-powered screenshot](/api-reference/generation/images#agent-screenshot) |
+| `/templates/{uid}/render` | POST | [Render template to image](/api-reference/templates#render) |
 | `/gif` | POST | [Generate a GIF](/api-reference/generation/gifs) |
 | `/gif/capture` | POST | [Capture GIF from URL](/api-reference/generation/gifs#capture) |
 | `/pdf/render` | POST | [Generate a PDF](/api-reference/generation/pdfs) |

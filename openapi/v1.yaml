@@ -65,7 +65,7 @@ components:
         instance:
           type: string
           description: Request path that caused the error
-          example: /v1/image
+          example: /image
 
     ImageRequest:
       type: object

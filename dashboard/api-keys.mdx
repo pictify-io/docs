@@ -221,11 +221,11 @@ Manage keys programmatically with the [API Keys API](/api-reference/keys):
 
 ```bash
 # List keys
-curl https://api.pictify.io/v1/api-keys \
+curl https://api.pictify.io/api-keys \
   -H "Authorization: Bearer $ADMIN_KEY"
 
 # Create key
-curl -X POST https://api.pictify.io/v1/api-keys \
+curl -X POST https://api.pictify.io/api-keys \
   -H "Authorization: Bearer $ADMIN_KEY" \
   -H "Content-Type: application/json" \
   -d '{"name": "New Production Key", "type": "live"}'

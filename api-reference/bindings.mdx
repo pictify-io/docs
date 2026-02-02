@@ -24,7 +24,7 @@ Retrieve all bindings.
 
 <CodeGroup>
 ```bash cURL
-curl https://api.pictify.io/v1/bindings \
+curl https://api.pictify.io/bindings \
   -H "Authorization: Bearer $API_KEY"
 ```
 
@@ -101,7 +101,7 @@ Create a new binding.
 
 <CodeGroup>
 ```bash cURL
-curl -X POST https://api.pictify.io/v1/bindings \
+curl -X POST https://api.pictify.io/bindings \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -281,7 +281,7 @@ Retrieve a specific binding.
 
 <CodeGroup>
 ```bash cURL
-curl https://api.pictify.io/v1/bindings/bind_abc123 \
+curl https://api.pictify.io/bindings/bind_abc123 \
   -H "Authorization: Bearer $API_KEY"
 ```
 
@@ -300,7 +300,7 @@ Update an existing binding.
 
 <CodeGroup>
 ```bash cURL
-curl -X PUT https://api.pictify.io/v1/bindings/bind_abc123 \
+curl -X PUT https://api.pictify.io/bindings/bind_abc123 \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -348,7 +348,7 @@ Delete a binding.
 
 <CodeGroup>
 ```bash cURL
-curl -X DELETE https://api.pictify.io/v1/bindings/bind_abc123 \
+curl -X DELETE https://api.pictify.io/bindings/bind_abc123 \
   -H "Authorization: Bearer $API_KEY"
 ```
 
@@ -367,7 +367,7 @@ Test a binding's data source and mapping.
 
 <CodeGroup>
 ```bash cURL
-curl -X POST https://api.pictify.io/v1/bindings/bind_abc123/test \
+curl -X POST https://api.pictify.io/bindings/bind_abc123/test \
   -H "Authorization: Bearer $API_KEY"
 ```
 
@@ -403,7 +403,7 @@ Manually trigger a binding refresh.
 
 <CodeGroup>
 ```bash cURL
-curl -X POST https://api.pictify.io/v1/bindings/bind_abc123/refresh \
+curl -X POST https://api.pictify.io/bindings/bind_abc123/refresh \
   -H "Authorization: Bearer $API_KEY"
 ```
 
@@ -422,7 +422,7 @@ Pause a binding to stop automatic refreshes.
 
 <CodeGroup>
 ```bash cURL
-curl -X POST https://api.pictify.io/v1/bindings/bind_abc123/pause \
+curl -X POST https://api.pictify.io/bindings/bind_abc123/pause \
   -H "Authorization: Bearer $API_KEY"
 ```
 
@@ -437,7 +437,7 @@ Resume a paused binding.
 
 <CodeGroup>
 ```bash cURL
-curl -X POST https://api.pictify.io/v1/bindings/bind_abc123/resume \
+curl -X POST https://api.pictify.io/bindings/bind_abc123/resume \
   -H "Authorization: Bearer $API_KEY"
 ```
 

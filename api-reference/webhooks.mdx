@@ -17,7 +17,7 @@ Retrieve all webhook subscriptions.
 
 <CodeGroup>
 ```bash cURL
-curl https://api.pictify.io/v1/webhook-subscriptions \
+curl https://api.pictify.io/webhook-subscriptions \
   -H "Authorization: Bearer $API_KEY"
 ```
 
@@ -61,7 +61,7 @@ Create a new webhook subscription.
 
 <CodeGroup>
 ```bash cURL
-curl -X POST https://api.pictify.io/v1/webhook-subscriptions \
+curl -X POST https://api.pictify.io/webhook-subscriptions \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -129,7 +129,7 @@ Retrieve a specific subscription.
 
 <CodeGroup>
 ```bash cURL
-curl https://api.pictify.io/v1/webhook-subscriptions/wh_abc123 \
+curl https://api.pictify.io/webhook-subscriptions/wh_abc123 \
   -H "Authorization: Bearer $API_KEY"
 ```
 
@@ -169,7 +169,7 @@ Update an existing subscription.
 
 <CodeGroup>
 ```bash cURL
-curl -X PUT https://api.pictify.io/v1/webhook-subscriptions/wh_abc123 \
+curl -X PUT https://api.pictify.io/webhook-subscriptions/wh_abc123 \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -203,7 +203,7 @@ Delete a webhook subscription.
 
 <CodeGroup>
 ```bash cURL
-curl -X DELETE https://api.pictify.io/v1/webhook-subscriptions/wh_abc123 \
+curl -X DELETE https://api.pictify.io/webhook-subscriptions/wh_abc123 \
   -H "Authorization: Bearer $API_KEY"
 ```
 
@@ -230,7 +230,7 @@ Temporarily pause a webhook subscription.
 
 <CodeGroup>
 ```bash cURL
-curl -X POST https://api.pictify.io/v1/webhook-subscriptions/wh_abc123/pause \
+curl -X POST https://api.pictify.io/webhook-subscriptions/wh_abc123/pause \
   -H "Authorization: Bearer $API_KEY"
 ```
 
@@ -249,7 +249,7 @@ Resume a paused webhook subscription.
 
 <CodeGroup>
 ```bash cURL
-curl -X POST https://api.pictify.io/v1/webhook-subscriptions/wh_abc123/resume \
+curl -X POST https://api.pictify.io/webhook-subscriptions/wh_abc123/resume \
   -H "Authorization: Bearer $API_KEY"
 ```
 

@@ -17,7 +17,7 @@ All errors follow this structure:
   "title": "Validation Error",
   "status": 400,
   "detail": "The 'width' field must be a positive integer.",
-  "instance": "/v1/image",
+  "instance": "/image",
   "errors": [
     {
       "field": "width",
@@ -286,7 +286,7 @@ Retry-After: 45
 ### 1. Check Status Codes First
 
 ```typescript
-const response = await fetch('https://api.pictify.io/v1/image', {
+const response = await fetch('https://api.pictify.io/image', {
   method: 'POST',
   headers: {
     'Authorization': `Bearer ${apiKey}`,

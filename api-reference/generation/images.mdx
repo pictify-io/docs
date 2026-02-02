@@ -12,7 +12,7 @@ Generate PNG, JPEG, or WebP images from HTML, URLs, or saved templates.
 
 <CodeGroup>
 ```bash cURL
-curl -X POST https://api.pictify.io/v1/image \
+curl -X POST https://api.pictify.io/image \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -80,7 +80,7 @@ Capture a screenshot of any publicly accessible URL.
 
 <CodeGroup>
 ```bash cURL
-curl -X POST https://api.pictify.io/v1/image \
+curl -X POST https://api.pictify.io/image \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -113,7 +113,7 @@ Render an image using a saved template with variables.
 
 <CodeGroup>
 ```bash cURL
-curl -X POST https://api.pictify.io/v1/image \
+curl -X POST https://api.pictify.io/image \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -146,6 +146,10 @@ result = pictify.images.create(
 ```
 </CodeGroup>
 
+<Note>
+For dedicated template rendering with more options, use the [Template Render endpoint](/api-reference/templates#render) at `POST /templates/{uid}/render`.
+</Note>
+
 ## Request Parameters
 
 | Parameter | Type | Required | Description |
@@ -169,7 +173,7 @@ Render FabricJS canvas data directly to an image.
 
 <CodeGroup>
 ```bash cURL
-curl -X POST https://api.pictify.io/v1/image/canvas \
+curl -X POST https://api.pictify.io/image/canvas \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -236,7 +240,7 @@ Use AI to navigate to a page and capture specific content.
 
 <CodeGroup>
 ```bash cURL
-curl -X POST https://api.pictify.io/v1/image/agent-screenshot \
+curl -X POST https://api.pictify.io/image/agent-screenshot \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
