@@ -102,16 +102,24 @@ result = pictify.gifs.create(
 
 ```json
 {
-  "url": "https://cdn.pictify.io/renders/gif_abc123.gif",
-  "id": "gif_abc123",
-  "width": 400,
-  "height": 400,
-  "frameCount": 30,
-  "duration": 1000,
-  "size": 234567,
-  "createdAt": "2026-01-29T10:30:00Z"
+  "gif": {
+    "url": "https://cdn.pictify.io/renders/gif_abc123.gif",
+    "uid": "gif_abc123",
+    "width": 400,
+    "height": 400,
+    "animationLength": 1.0,
+    "userStorageUrl": "https://your-bucket.s3.amazonaws.com/...",
+    "createdAt": "2026-01-29T10:30:00Z"
+  },
+  "_meta": {
+    "processingTime": 1234
+  }
 }
 ```
+
+<Note>
+The response is wrapped in a `gif` object. The `userStorageUrl` field is only included if you have configured custom storage.
+</Note>
 
 ## Capture from URL
 
@@ -265,17 +273,18 @@ const result = await pictify.gifs.capture({
 
 ## Response Fields
 
+The response is wrapped in a `gif` object:
+
 | Field | Type | Description |
 |-------|------|-------------|
-| `url` | string | CDN URL of the generated GIF |
-| `id` | string | Unique GIF identifier |
-| `width` | integer | GIF width in pixels |
-| `height` | integer | GIF height in pixels |
-| `frameCount` | integer | Number of frames |
-| `duration` | integer | Total duration in milliseconds |
-| `size` | integer | File size in bytes |
-| `createdAt` | string | ISO 8601 timestamp |
-| `userStorageUrl` | string | URL in your storage (if configured) |
+| `gif.url` | string | CDN URL of the generated GIF |
+| `gif.uid` | string | Unique GIF identifier |
+| `gif.width` | integer | GIF width in pixels |
+| `gif.height` | integer | GIF height in pixels |
+| `gif.animationLength` | number | Animation duration in seconds |
+| `gif.userStorageUrl` | string | URL in your storage (if configured) |
+| `gif.createdAt` | string | ISO 8601 timestamp |
+| `_meta.processingTime` | integer | Processing time in milliseconds |
 
 ## Tips for Better GIFs
 

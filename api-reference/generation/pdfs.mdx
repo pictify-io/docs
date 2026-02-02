@@ -81,17 +81,21 @@ result = pictify.pdfs.render(
 
 ```json
 {
+  "success": true,
   "url": "https://cdn.pictify.io/renders/pdf_abc123.pdf",
-  "id": "pdf_abc123",
+  "userStorageUrl": "https://your-bucket.s3.amazonaws.com/...",
   "pageCount": 1,
   "preset": "A4",
   "pageSize": {
     "width": 595,
     "height": 842
-  },
-  "createdAt": "2026-01-29T10:30:00Z"
+  }
 }
 ```
+
+<Note>
+The `userStorageUrl` field is only included if you have configured custom storage. PDF endpoints currently use cookie-based authentication from the dashboard.
+</Note>
 
 ## Multi-Page PDF
 
@@ -165,15 +169,15 @@ result = pictify.pdfs.multi_page(
 
 ```json
 {
+  "success": true,
   "url": "https://cdn.pictify.io/renders/pdf_xyz789.pdf",
-  "id": "pdf_xyz789",
+  "userStorageUrl": "https://your-bucket.s3.amazonaws.com/...",
   "pageCount": 3,
   "preset": "A4",
   "pageSize": {
     "width": 595,
     "height": 842
-  },
-  "createdAt": "2026-01-29T10:30:00Z"
+  }
 }
 ```
 
@@ -333,13 +337,12 @@ const certificate = await pictify.pdfs.render({
 
 | Field | Type | Description |
 |-------|------|-------------|
+| `success` | boolean | Whether the PDF was generated successfully |
 | `url` | string | CDN URL of the generated PDF |
-| `id` | string | Unique PDF identifier |
+| `userStorageUrl` | string | URL in your storage (if configured) |
 | `pageCount` | integer | Number of pages |
 | `preset` | string | Paper size preset used |
 | `pageSize` | object | Actual page dimensions in points |
-| `createdAt` | string | ISO 8601 timestamp |
-| `userStorageUrl` | string | URL in your storage (if configured) |
 
 ## Best Practices
 

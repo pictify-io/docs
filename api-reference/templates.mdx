@@ -34,7 +34,10 @@ templates = pictify.templates.list(page=1, limit=20)
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `page` | integer | 1 | Page number |
-| `limit` | integer | 20 | Results per page (max: 100) |
+| `limit` | integer | 12 | Results per page (max: 100) |
+| `sort` | string | `newest` | Sort order: `newest`, `oldest`, `name` |
+| `outputFormat` | string | `all` | Filter by type: `all`, `image`, `pdf` |
+| `hasDynamicLink` | boolean | - | Filter by dynamic link status |
 
 ### Response
 
