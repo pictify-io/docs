@@ -1,0 +1,210 @@
+---
+title: Template Render
+description: Render templates to images with dynamic variables
+openapi: post /templates/{uid}/render
+---
+
+# Template Render
+
+Render a saved template to an image by providing variable values. This is the primary endpoint for generating images from templates.
+
+## Render Template
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://api.pictify.io/templates/tmpl_abc123/render \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "variables": {
+      "title": "My Blog Post",
+      "description": "An interesting article about APIs",
+      "author": "Jane Smith"
+    },
+    "format": "png"
+  }'
+```
+
+```typescript Node.js
+import Pictify from '@pictify/sdk';
+
+const pictify = new Pictify('pk_live_...');
+
+const result = await pictify.templates.render('tmpl_abc123', {
+  variables: {
+    title: 'My Blog Post',
+    description: 'An interesting article about APIs',
+    author: 'Jane Smith'
+  },
+  format: 'png'
+});
+
+console.log(result.url);
+```
+
+```python Python
+from pictify import Pictify
+
+pictify = Pictify('pk_live_...')
+
+result = pictify.templates.render('tmpl_abc123',
+    variables={
+        'title': 'My Blog Post',
+        'description': 'An interesting article about APIs',
+        'author': 'Jane Smith'
+    },
+    format='png'
+)
+
+print(result['url'])
+```
+
+```go Go
+package main
+
+import "github.com/pictify-io/pictify-go"
+
+func main() {
+    client := pictify.NewClient("pk_live_...")
+
+    result, _ := client.Templates.Render("tmpl_abc123", &pictify.RenderOptions{
+        Variables: map[string]interface{}{
+            "title":       "My Blog Post",
+            "description": "An interesting article about APIs",
+            "author":      "Jane Smith",
+        },
+        Format: "png",
+    })
+}
+```
+
+```ruby Ruby
+require 'pictify'
+
+client = Pictify::Client.new('pk_live_...')
+
+result = client.templates.render('tmpl_abc123',
+  variables: {
+    title: 'My Blog Post',
+    description: 'An interesting article about APIs',
+    author: 'Jane Smith'
+  },
+  format: 'png'
+)
+```
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "url": "https://cdn.pictify.io/renders/img_abc123.png",
+  "id": "img_abc123",
+  "templateUid": "tmpl_abc123",
+  "width": 1200,
+  "height": 630,
+  "format": "png",
+  "variables": ["title", "description", "author"],
+  "createdAt": "2026-01-29T10:30:00Z"
+}
+```
+
+<Note>
+The `variables` field in the response contains an array of variable names that were provided in the request.
+</Note>
+
+## Request Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `uid` | string | Yes | Template UID (in URL path) |
+| `variables` | object | No | Key-value pairs to inject into template |
+| `format` | string | No | Output format: `png`, `jpeg`, `webp`, `gif` (default: `png`) |
+| `quality` | number | No | Quality for JPEG/WebP (0.1-1.0, default: 0.9) |
+
+## Output Formats
+
+| Format | Best For | File Size |
+|--------|----------|-----------|
+| `png` | Graphics, logos, text | Larger |
+| `jpeg` | Photos, gradients | Smaller |
+| `webp` | Web delivery | Smallest |
+| `gif` | Animated templates | Varies |
+
+## Examples
+
+### Social Media OG Image
+
+```typescript
+const ogImage = await pictify.templates.render('tmpl_og_card', {
+  variables: {
+    title: 'How to Build a REST API',
+    author: 'Jane Developer',
+    readTime: '5 min read',
+    category: 'Tutorial'
+  },
+  format: 'png'
+});
+```
+
+### Product Card with Dynamic Pricing
+
+```typescript
+const productCard = await pictify.templates.render('tmpl_product', {
+  variables: {
+    productName: 'Premium Headphones',
+    price: 299.99,
+    originalPrice: 399.99,
+    discount: '25% OFF',
+    imageUrl: 'https://cdn.example.com/headphones.jpg'
+  },
+  format: 'webp',
+  quality: 0.85
+});
+```
+
+### Certificate Generation
+
+```typescript
+const certificate = await pictify.templates.render('tmpl_certificate', {
+  variables: {
+    recipientName: 'John Smith',
+    courseName: 'Advanced JavaScript',
+    completionDate: 'January 29, 2026',
+    instructorName: 'Sarah Johnson',
+    certificateId: 'CERT-2026-001'
+  },
+  format: 'png'
+});
+```
+
+## Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `url` | string | CDN URL of the rendered image |
+| `id` | string | Unique image identifier |
+| `templateUid` | string | Template that was rendered |
+| `width` | integer | Image width in pixels |
+| `height` | integer | Image height in pixels |
+| `format` | string | Output format used |
+| `variables` | array | List of variable names provided |
+| `createdAt` | string | ISO 8601 timestamp |
+
+## Error Handling
+
+Common errors when rendering templates:
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `template_not_found` | Invalid template UID | Verify the template exists |
+| `missing_required_variable` | Required variable not provided | Check template variable definitions |
+| `invalid_variable_type` | Wrong data type for variable | Match expected type (string, number, etc.) |
+| `render_timeout` | Template too complex | Simplify template or contact support |
+
+## Tips
+
+1. **Cache rendered images** - Use the returned URL; images are cached on CDN
+2. **Use appropriate format** - PNG for graphics, JPEG for photos, WebP for web
+3. **Validate variables** - Check template variables before rendering to avoid errors
+4. **Handle missing variables** - Templates may have default values for optional variables

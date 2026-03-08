@@ -53,7 +53,9 @@
               "concepts/templates",
               "concepts/expressions",
               "concepts/rendering",
-              "concepts/webhooks"
+              "concepts/webhooks",
+              "concepts/experiments",
+              "concepts/url-rendering"
             ]
           },
           {
@@ -82,20 +84,107 @@
             "pages": ["api-reference/overview", "api-reference/errors"]
           },
           {
-            "group": "Generation",
+            "group": "Images",
             "pages": [
               "api-reference/generation/images",
-              "api-reference/generation/gifs",
-              "api-reference/generation/pdfs"
+              "api-reference/endpoints/images/create",
+              "api-reference/endpoints/images/list",
+              "api-reference/endpoints/images/get",
+              "api-reference/endpoints/images/canvas",
+              "api-reference/endpoints/images/og-image",
+              "api-reference/endpoints/images/agent-screenshot",
+              "api-reference/endpoints/images/agent-screenshot-stream"
             ]
           },
           {
-            "group": "Resources",
+            "group": "GIFs",
+            "pages": [
+              "api-reference/generation/gifs",
+              "api-reference/endpoints/gifs/create",
+              "api-reference/endpoints/gifs/list",
+              "api-reference/endpoints/gifs/get",
+              "api-reference/endpoints/gifs/capture"
+            ]
+          },
+          {
+            "group": "PDFs",
+            "pages": [
+              "api-reference/generation/pdfs",
+              "api-reference/endpoints/pdfs/render",
+              "api-reference/endpoints/pdfs/multi-page",
+              "api-reference/endpoints/pdfs/presets"
+            ]
+          },
+          {
+            "group": "Templates",
             "pages": [
               "api-reference/templates",
+              "api-reference/endpoints/templates/list",
+              "api-reference/endpoints/templates/create",
+              "api-reference/endpoints/templates/get",
+              "api-reference/endpoints/templates/update",
+              "api-reference/endpoints/templates/delete",
+              "api-reference/endpoints/templates/render",
+              "api-reference/endpoints/templates/variables",
+              "api-reference/endpoints/templates/multi-size-render"
+            ]
+          },
+          {
+            "group": "Batch",
+            "pages": [
               "api-reference/batch",
+              "api-reference/endpoints/batch/render",
+              "api-reference/endpoints/batch/results",
+              "api-reference/endpoints/batch/cancel"
+            ]
+          },
+          {
+            "group": "Experiments",
+            "pages": [
+              "api-reference/experiments",
+              "api-reference/endpoints/experiments/list",
+              "api-reference/endpoints/experiments/create",
+              "api-reference/endpoints/experiments/get",
+              "api-reference/endpoints/experiments/update",
+              "api-reference/endpoints/experiments/delete",
+              "api-reference/endpoints/experiments/start",
+              "api-reference/endpoints/experiments/pause",
+              "api-reference/endpoints/experiments/complete",
+              "api-reference/endpoints/experiments/quota",
+              "api-reference/endpoints/experiments/events",
+              "api-reference/endpoints/experiments/click",
+              "api-reference/endpoints/experiments/pixel"
+            ]
+          },
+          {
+            "group": "Webhooks",
+            "pages": [
               "api-reference/webhooks",
-              "api-reference/bindings"
+              "api-reference/endpoints/webhooks/list",
+              "api-reference/endpoints/webhooks/create",
+              "api-reference/endpoints/webhooks/get",
+              "api-reference/endpoints/webhooks/update",
+              "api-reference/endpoints/webhooks/delete"
+            ]
+          },
+          {
+            "group": "Bindings",
+            "pages": [
+              "api-reference/bindings",
+              "api-reference/endpoints/bindings/list",
+              "api-reference/endpoints/bindings/create",
+              "api-reference/endpoints/bindings/get",
+              "api-reference/endpoints/bindings/update",
+              "api-reference/endpoints/bindings/delete"
+            ]
+          },
+          {
+            "group": "URL Rendering",
+            "pages": [
+              "api-reference/url-rendering",
+              "api-reference/endpoints/url-rendering/template-render",
+              "api-reference/endpoints/url-rendering/binding-render",
+              "api-reference/endpoints/url-rendering/experiment-render"
             ]
           }
         ]
@@ -128,9 +217,10 @@
           {
             "group": "Tutorials",
             "pages": [
-              "guides/og-images",
               "guides/batch-processing",
-              "guides/webhook-integration"
+              "guides/webhook-integration",
+              "guides/ab-testing",
+              "guides/url-embedding"
             ]
           },
           {

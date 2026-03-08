@@ -1,0 +1,147 @@
+---
+title: URL Rendering
+description: Embed dynamic images with simple URLs
+---
+
+# URL Rendering
+
+Pictify provides public URLs that render images on-the-fly. Use these in `<img>` tags, emails, Open Graph meta tags, and anywhere you need embeddable dynamic images.
+
+## Rendering Patterns
+
+Pictify supports three URL rendering patterns:
+
+| Pattern | URL Format | Auth Required |
+|---------|-----------|--------------|
+| Template Render | `/r/{templateUid}.{format}` | API token (query param or header) |
+| Binding Render | `/b/{bindingId}.{format}` | None |
+| Experiment Render | `/s/{slug}.{format}` | None |
+
+### Supported Formats
+
+All rendering URLs support: `png`, `jpeg`, `jpg`, `webp`
+
+## Template URL Rendering
+
+Render a template with variables passed as query parameters:
+
+```
+https://api.pictify.io/r/tmpl_abc123.png?token=pk_live_...&name=John&company=Acme
+```
+
+### Authentication
+
+Template rendering requires an API token, passed either as:
+- **Query parameter**: `?token=pk_live_...` (for `<img>` tags)
+- **Authorization header**: `Authorization: Bearer pk_live_...` (for server-side requests)
+
+<Warning>
+**Security**: API tokens in URLs are visible in server logs, browser history, and CDN logs. Use query parameter authentication only when header-based auth is not possible (e.g., `<img>` tags). The server sets `Referrer-Policy: no-referrer` to prevent token leakage via referrer headers.
+</Warning>
+
+### Usage Examples
+
+**HTML image tag:**
+```html
+<img src="https://api.pictify.io/r/tmpl_abc123.png?token=pk_live_...&name=John" />
+```
+
+**Open Graph meta tag:**
+```html
+<meta property="og:image" content="https://api.pictify.io/r/tmpl_abc123.png?token=pk_live_...&title=My%20Page" />
+```
+
+**Markdown:**
+```markdown
+![Profile](https://api.pictify.io/r/tmpl_abc123.png?token=pk_live_...&name=John)
+```
+
+### Query Parameters
+
+| Parameter | Description |
+|-----------|-------------|
+| `token` | API token for authentication |
+| `quality` | Image quality 0.1-1.0 (default: 0.9) |
+| `{variable}` | Any additional parameter is treated as a template variable |
+
+## Binding URL Rendering
+
+Bindings auto-render images from external data sources. The rendered image is served from a public URL with no authentication required:
+
+```
+https://api.pictify.io/b/bind_abc123.png
+```
+
+### How It Works
+
+1. Create a binding that connects a template to a data source
+2. Pictify periodically refreshes the data and re-renders the image
+3. The URL always serves the latest rendered version
+
+### Usage
+
+```html
+<img src="https://api.pictify.io/b/bind_abc123.png" alt="Live stats" />
+```
+
+### Caching
+
+Binding images are cached based on the refresh policy. The `Cache-Control` and `ETag` headers control browser and CDN caching. Pass a cache-busting parameter to bypass:
+
+```
+https://api.pictify.io/b/bind_abc123.png?_t=1709913600
+```
+
+## Experiment URL Rendering
+
+Experiment images serve variant images based on the experiment type:
+
+```
+https://api.pictify.io/s/homepage-hero.png
+```
+
+No authentication required. The server selects a variant based on:
+- **A/B tests**: Thompson Sampling or equal split
+- **Smart links**: First matching condition
+- **Scheduled**: Currently active schedule
+
+### Tracking
+
+Pair the image with tracking for full experiment analytics:
+
+```html
+<!-- Image with tracking pixel -->
+<img src="https://api.pictify.io/s/homepage-hero.png" alt="Hero" />
+<img src="https://api.pictify.io/s/homepage-hero/pixel.gif" width="1" height="1" />
+
+<!-- Clickable image with click tracking -->
+<a href="https://api.pictify.io/s/homepage-hero/click">
+  <img src="https://api.pictify.io/s/homepage-hero.png" alt="Hero" />
+</a>
+```
+
+## Caching Behavior
+
+| Endpoint | Cache-Control | Notes |
+|----------|--------------|-------|
+| Template render (`/r/`) | `private, max-age=300` | 5 min cache, private (token in URL) |
+| Binding render (`/b/`) | `public, max-age={ttl}` | TTL based on refresh policy |
+| Experiment render (`/s/`) | `no-store, no-cache, must-revalidate, private` | Never cached (variant selection must be fresh) |
+
+All endpoints return `ETag` headers for conditional requests (`If-None-Match`). A `304 Not Modified` response is returned when the content hasn't changed.
+
+## Error Handling
+
+If a rendering error occurs, the server returns a transparent 1x1 pixel PNG instead of an error response. This prevents broken images in production contexts.
+
+For experiments that have expired, the server returns:
+- The `fallbackImageUrl` if configured
+- A `410 Gone` status if no fallback is set
+
+## Best Practices
+
+1. **Use header-based auth** for template rendering when possible -- only use `?token=` for `<img>` tags
+2. **Set fallback images** for experiments to prevent broken images after completion
+3. **Use ETag-based caching** for binding images in performance-critical contexts
+4. **Never expose API tokens** in client-side JavaScript -- use URL rendering only in server-rendered HTML or emails
+5. **Use experiment rendering** for email campaigns where you need variant tracking

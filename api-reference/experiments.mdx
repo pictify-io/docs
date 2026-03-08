@@ -1,0 +1,70 @@
+---
+title: Experiments
+description: Manage A/B tests, smart links, and scheduled variants via API
+openapi: get /experiments/api
+---
+
+# Experiments
+
+Create and manage experiments to test image variants. Supports A/B tests with Thompson Sampling, smart links with condition-based routing, and scheduled variants.
+
+<Note>
+For experiment types, lifecycle, and tracking details, see [Experiments Concept](/concepts/experiments).
+</Note>
+
+## Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/experiments/api` | [List experiments](/api-reference/endpoints/experiments/list) |
+| `POST` | `/experiments/api` | [Create experiment](/api-reference/endpoints/experiments/create) |
+| `GET` | `/experiments/api/{uid}` | [Get experiment](/api-reference/endpoints/experiments/get) |
+| `PUT` | `/experiments/api/{uid}` | [Update experiment](/api-reference/endpoints/experiments/update) |
+| `DELETE` | `/experiments/api/{uid}` | [Delete experiment](/api-reference/endpoints/experiments/delete) |
+| `POST` | `/experiments/api/{uid}/start` | [Start experiment](/api-reference/endpoints/experiments/start) |
+| `POST` | `/experiments/api/{uid}/pause` | [Pause experiment](/api-reference/endpoints/experiments/pause) |
+| `POST` | `/experiments/api/{uid}/complete` | [Complete experiment](/api-reference/endpoints/experiments/complete) |
+| `GET` | `/experiments/api/quota` | [Check quota](/api-reference/endpoints/experiments/quota) |
+| `POST` | `/s/events` | [Track events](/api-reference/endpoints/experiments/events) |
+| `GET` | `/s/{slug}/click` | [Click redirect](/api-reference/endpoints/experiments/click) |
+| `GET` | `/s/{slug}/pixel.gif` | [Tracking pixel](/api-reference/endpoints/experiments/pixel) |
+
+## Editable Fields by Status
+
+| Status | Editable Fields |
+|--------|----------------|
+| `draft` / `paused` | All fields |
+| `running` | `name`, `confidenceThreshold`, `minimumRunDays`, `goalConfig.destinationUrl` |
+| `completed` | `name` only |
+
+<Warning>
+Variant weights must sum to exactly **10,000** (basis points). A 50/50 split uses weights of 5000 and 5000.
+</Warning>
+
+## Experiment Status
+
+| Status | Description |
+|--------|-------------|
+| `draft` | Created but not started |
+| `running` | Actively serving variants and tracking events |
+| `paused` | Temporarily stopped, can be restarted |
+| `completed` | Finished with a declared winner |
+| `archived` | Soft-deleted |
+
+## Slug Requirements
+
+| Rule | Details |
+|------|---------|
+| Length | 3-60 characters |
+| Format | Lowercase alphanumeric and hyphens |
+| Pattern | Must start and end with alphanumeric |
+| Uniqueness | Must be unique among active experiments |
+| Reserved | `events`, `api`, `admin`, `health`, `status`, `pixel`, `track`, `sdk` |
+
+## Best Practices
+
+1. **Use descriptive slugs** that identify the test (e.g., `email-banner-cta-test`)
+2. **Start with a 50/50 split** before enabling auto-optimization
+3. **Set clear goals** -- use `click_through` when you want to measure engagement
+4. **Check your quota** before creating experiments with `GET /experiments/api/quota`
+5. **Always send a write key** with event tracking to prevent data tampering

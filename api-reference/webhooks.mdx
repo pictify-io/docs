@@ -1,6 +1,7 @@
 ---
 title: Webhook Subscriptions
 description: Manage webhook subscriptions via API
+openapi: get /webhook-subscriptions
 ---
 
 # Webhook Subscriptions
@@ -226,41 +227,19 @@ pictify.webhooks.delete('wh_abc123')
 
 ## Pause Subscription
 
-Temporarily pause a webhook subscription.
+<Note>
+Pause and resume are currently available via the dashboard only. API token support is coming soon.
+</Note>
 
-<CodeGroup>
-```bash cURL
-curl -X POST https://api.pictify.io/webhook-subscriptions/wh_abc123/pause \
-  -H "Authorization: Bearer $API_KEY"
-```
-
-```typescript Node.js
-await pictify.webhooks.pause('wh_abc123');
-```
-
-```python Python
-pictify.webhooks.pause('wh_abc123')
-```
-</CodeGroup>
+Temporarily pause a webhook subscription via the dashboard. Paused webhooks do not receive events.
 
 ## Resume Subscription
 
-Resume a paused webhook subscription.
+<Note>
+Pause and resume are currently available via the dashboard only. API token support is coming soon.
+</Note>
 
-<CodeGroup>
-```bash cURL
-curl -X POST https://api.pictify.io/webhook-subscriptions/wh_abc123/resume \
-  -H "Authorization: Bearer $API_KEY"
-```
-
-```typescript Node.js
-await pictify.webhooks.resume('wh_abc123');
-```
-
-```python Python
-pictify.webhooks.resume('wh_abc123')
-```
-</CodeGroup>
+Resume a paused webhook subscription via the dashboard.
 
 ## Supported Events
 

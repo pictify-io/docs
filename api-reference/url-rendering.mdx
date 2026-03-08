@@ -1,0 +1,48 @@
+---
+title: URL Rendering
+description: Serve dynamic images via public URLs for embedding in emails, websites, and social media
+---
+
+# URL Rendering
+
+Pictify provides three URL rendering patterns for embedding dynamic images directly in HTML, emails, and social media — no API calls required.
+
+<Note>
+For detailed concepts and caching behavior, see [URL Rendering Concept](/concepts/url-rendering).
+</Note>
+
+## Endpoints
+
+| Pattern | URL | Auth | Use Case |
+|---------|-----|------|----------|
+| **Template** | `/r/{templateUid}.{format}` | Query token | Render with dynamic variables |
+| **Binding** | `/b/{bindingId}.{format}` | None (public) | Auto-refreshing data-driven images |
+| **Experiment** | `/s/{slug}.{format}` | None (public) | A/B test variant serving |
+
+## Supported Formats
+
+All endpoints accept `.png`, `.jpeg`, `.jpg`, and `.webp` extensions.
+
+## Quick Examples
+
+### Template Rendering
+
+```html
+<img src="https://api.pictify.io/r/tmpl_abc123.png?token=pk_live_...&name=John" />
+```
+
+### Binding Rendering
+
+```html
+<img src="https://api.pictify.io/b/bind_abc123.png" />
+```
+
+### Experiment Rendering
+
+```html
+<img src="https://api.pictify.io/s/homepage-hero.png" />
+```
+
+<Warning>
+Template rendering requires an API token in the query string. Only use this where header-based auth is not possible (e.g., `<img>` tags). Tokens in URLs are visible in server logs and browser history.
+</Warning>

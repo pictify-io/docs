@@ -314,19 +314,11 @@ curl https://api.pictify.io/webhook-subscriptions \
   -H "Authorization: Bearer $API_KEY"
 ```
 
-### Pause a Webhook
+### Pause / Resume a Webhook
 
-```bash
-curl -X POST https://api.pictify.io/webhook-subscriptions/{uid}/pause \
-  -H "Authorization: Bearer $API_KEY"
-```
-
-### Resume a Webhook
-
-```bash
-curl -X POST https://api.pictify.io/webhook-subscriptions/{uid}/resume \
-  -H "Authorization: Bearer $API_KEY"
-```
+<Note>
+Pause and resume are currently available via the dashboard only. API support is coming soon.
+</Note>
 
 ### Delete a Webhook
 
