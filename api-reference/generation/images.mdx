@@ -6,301 +6,49 @@ openapi: post /image
 
 # Image Generation
 
-Generate PNG, JPEG, or WebP images from HTML, URLs, or saved templates.
-
-## Generate from HTML
-
-<CodeGroup>
-```bash cURL
-curl -X POST https://api.pictify.io/image \
-  -H "Authorization: Bearer $API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "html": "<div style=\"width: 1200px; height: 630px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center;\"><h1 style=\"color: white; font-size: 48px;\">Hello World</h1></div>",
-    "width": 1200,
-    "height": 630
-  }'
-```
-
-```typescript Node.js
-import Pictify from '@pictify/sdk';
-
-const pictify = new Pictify('pk_live_...');
-
-const result = await pictify.images.create({
-  html: `
-    <div style="width: 1200px; height: 630px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center;">
-      <h1 style="color: white; font-size: 48px;">Hello World</h1>
-    </div>
-  `,
-  width: 1200,
-  height: 630
-});
-
-console.log(result.url);
-```
-
-```python Python
-from pictify import Pictify
-
-pictify = Pictify('pk_live_...')
-
-result = pictify.images.create(
-    html='''
-    <div style="width: 1200px; height: 630px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center;">
-      <h1 style="color: white; font-size: 48px;">Hello World</h1>
-    </div>
-    ''',
-    width=1200,
-    height=630
-)
-
-print(result['url'])
-```
-</CodeGroup>
-
-### Response
-
-```json
-{
-  "url": "https://cdn.pictify.io/renders/img_abc123.png",
-  "userStorageUrl": "https://your-bucket.s3.amazonaws.com/...",
-  "id": "img_abc123",
-  "createdAt": "2026-01-29T10:30:00Z"
-}
-```
+Generate PNG, JPEG, or WebP images from HTML content, URLs, or saved templates. You can also render FabricJS canvas data directly.
 
 <Note>
-The `userStorageUrl` field is only included if you have configured custom storage in your account settings.
+One of `html`, `url`, or `template` is required. See each endpoint page for full request/response details.
 </Note>
 
-## Generate from URL
+## Endpoints
 
-Capture a screenshot of any publicly accessible URL.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/image` | [Generate image](/api-reference/endpoints/images/generate) from HTML, URL, or template |
+| `GET` | `/image` | [List images](/api-reference/endpoints/images/list) |
+| `GET` | `/image/{uid}` | [Get image](/api-reference/endpoints/images/get) |
+| `POST` | `/image/canvas` | [Canvas render](/api-reference/endpoints/images/canvas) from FabricJS data |
 
-<CodeGroup>
-```bash cURL
-curl -X POST https://api.pictify.io/image \
-  -H "Authorization: Bearer $API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "url": "https://example.com",
-    "width": 1200,
-    "height": 630
-  }'
-```
+## Input Sources
 
-```typescript Node.js
-const result = await pictify.images.create({
-  url: 'https://example.com',
-  width: 1200,
-  height: 630
-});
-```
+| Source | Parameter | Description |
+|--------|-----------|-------------|
+| HTML | `html` | Render raw HTML/CSS content |
+| URL | `url` | Screenshot a publicly accessible URL |
+| Template | `template` | Render a saved template with `variables` |
+| Canvas | `fabricJSData` | Render FabricJS canvas JSON export |
 
-```python Python
-result = pictify.images.create(
-    url='https://example.com',
-    width=1200,
-    height=630
-)
-```
-</CodeGroup>
+## Output Formats
 
-## Generate from Template
+| Format | Extension | Best For |
+|--------|-----------|----------|
+| PNG | `png` | Default, lossless, supports transparency |
+| JPEG | `jpg` / `jpeg` | Smaller file size, photos |
+| WebP | `webp` | Modern format, best compression |
 
-Render an image using a saved template with variables.
+Use the `fileExtension` parameter to change the output format.
 
-<CodeGroup>
-```bash cURL
-curl -X POST https://api.pictify.io/image \
-  -H "Authorization: Bearer $API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "template": "tmpl_abc123",
-    "variables": {
-      "title": "Hello World",
-      "subtitle": "Generated with Pictify"
-    }
-  }'
-```
+## Key Parameters
 
-```typescript Node.js
-const result = await pictify.images.create({
-  template: 'tmpl_abc123',
-  variables: {
-    title: 'Hello World',
-    subtitle: 'Generated with Pictify'
-  }
-});
-```
-
-```python Python
-result = pictify.images.create(
-    template='tmpl_abc123',
-    variables={
-        'title': 'Hello World',
-        'subtitle': 'Generated with Pictify'
-    }
-)
-```
-</CodeGroup>
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `width` | integer | 1200 | Output width in pixels (1-4000) |
+| `height` | integer | 630 | Output height in pixels (1-4000) |
+| `selector` | string | - | CSS selector to capture a specific element |
+| `fileExtension` | string | `png` | Output format |
 
 <Note>
-For dedicated template rendering with more options, use the [Template Render endpoint](/api-reference/templates#render) at `POST /templates/{uid}/render`.
+The `userStorageUrl` response field is only included if you have configured custom storage in your account settings.
 </Note>
-
-## Request Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `html` | string | * | HTML content to render |
-| `url` | string | * | URL to screenshot |
-| `template` | string | * | Template UID to render |
-| `variables` | object | No | Variables to populate in the template |
-| `width` | integer | No | Output width in pixels (1-4000, default: 1200) |
-| `height` | integer | No | Output height in pixels (1-4000, default: 630) |
-| `selector` | string | No | CSS selector to capture specific element |
-| `fileExtension` | string | No | Output format: `png`, `jpg`, `jpeg`, `webp` (default: `png`) |
-
-<Note>
-One of `html`, `url`, or `template` is required. When using `template`, you can pass `variables` to populate the template.
-</Note>
-
-## Canvas Rendering
-
-Render FabricJS canvas data directly to an image.
-
-<CodeGroup>
-```bash cURL
-curl -X POST https://api.pictify.io/image/canvas \
-  -H "Authorization: Bearer $API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "fabricJSData": {
-      "version": "5.3.0",
-      "objects": [
-        {
-          "type": "rect",
-          "fill": "#667eea",
-          "width": 1200,
-          "height": 630,
-          "left": 0,
-          "top": 0
-        },
-        {
-          "type": "textbox",
-          "text": "{{title}}",
-          "fill": "white",
-          "fontSize": 48,
-          "left": 100,
-          "top": 200
-        }
-      ]
-    },
-    "variables": {
-      "title": "Dynamic Content"
-    },
-    "width": 1200,
-    "height": 630
-  }'
-```
-
-```typescript Node.js
-const result = await pictify.images.canvas({
-  fabricJSData: {
-    version: '5.3.0',
-    objects: [
-      { type: 'rect', fill: '#667eea', width: 1200, height: 630, left: 0, top: 0 },
-      { type: 'textbox', text: '{{title}}', fill: 'white', fontSize: 48, left: 100, top: 200 }
-    ]
-  },
-  variables: {
-    title: 'Dynamic Content'
-  },
-  width: 1200,
-  height: 630
-});
-```
-</CodeGroup>
-
-### Canvas Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `fabricJSData` | object | Yes | FabricJS canvas JSON export |
-| `variables` | object | No | Variables to interpolate in text |
-| `width` | integer | Yes | Output width |
-| `height` | integer | Yes | Output height |
-| `format` | string | No | Output format (default: `png`) |
-
-## Agent Screenshot
-
-Use AI to navigate to a page and capture specific content.
-
-<CodeGroup>
-```bash cURL
-curl -X POST https://api.pictify.io/image/agent-screenshot \
-  -H "Authorization: Bearer $API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "prompt": "Take a screenshot of the pricing section on stripe.com"
-  }'
-```
-
-```typescript Node.js
-const result = await pictify.images.agentScreenshot({
-  prompt: 'Take a screenshot of the pricing section on stripe.com'
-});
-```
-</CodeGroup>
-
-The AI agent will:
-1. Navigate to the relevant page
-2. Locate the specified content
-3. Capture a focused screenshot
-
-### Agent Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `prompt` | string | Yes | Natural language description of what to capture |
-| `width` | integer | No | Preferred output width |
-| `height` | integer | No | Preferred output height |
-
-## Advanced Options
-
-### Capture Specific Element
-
-Use the `selector` parameter to capture only a specific element on the page.
-
-```typescript
-const result = await pictify.images.create({
-  url: 'https://example.com',
-  selector: '#hero-section',  // Only capture this element
-  width: 1200,
-  height: 630
-});
-```
-
-### Change Output Format
-
-Use `fileExtension` to generate JPEG or WebP images instead of PNG.
-
-```typescript
-const result = await pictify.images.create({
-  html: '<h1>Hello World</h1>',
-  width: 1200,
-  height: 630,
-  fileExtension: 'webp'  // 'png', 'jpg', 'jpeg', or 'webp'
-});
-```
-
-## Response Fields
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `url` | string | CDN URL of the rendered image |
-| `id` | string | Unique image identifier (e.g., `img_abc123`) |
-| `createdAt` | string | ISO 8601 timestamp |
-| `userStorageUrl` | string | URL in your storage (only if configured) |

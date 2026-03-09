@@ -54,8 +54,7 @@
               "concepts/expressions",
               "concepts/rendering",
               "concepts/webhooks",
-              "concepts/experiments",
-              "concepts/url-rendering"
+              "concepts/experiments"
             ]
           },
           {
@@ -87,13 +86,10 @@
             "group": "Images",
             "pages": [
               "api-reference/generation/images",
-              "api-reference/endpoints/images/create",
+              "api-reference/endpoints/images/generate",
               "api-reference/endpoints/images/list",
               "api-reference/endpoints/images/get",
-              "api-reference/endpoints/images/canvas",
-              "api-reference/endpoints/images/og-image",
-              "api-reference/endpoints/images/agent-screenshot",
-              "api-reference/endpoints/images/agent-screenshot-stream"
+              "api-reference/endpoints/images/canvas"
             ]
           },
           {
@@ -125,8 +121,7 @@
               "api-reference/endpoints/templates/update",
               "api-reference/endpoints/templates/delete",
               "api-reference/endpoints/templates/render",
-              "api-reference/endpoints/templates/variables",
-              "api-reference/endpoints/templates/multi-size-render"
+              "api-reference/endpoints/templates/variables"
             ]
           },
           {
@@ -177,15 +172,6 @@
               "api-reference/endpoints/bindings/update",
               "api-reference/endpoints/bindings/delete"
             ]
-          },
-          {
-            "group": "URL Rendering",
-            "pages": [
-              "api-reference/url-rendering",
-              "api-reference/endpoints/url-rendering/template-render",
-              "api-reference/endpoints/url-rendering/binding-render",
-              "api-reference/endpoints/url-rendering/experiment-render"
-            ]
           }
         ]
       },
@@ -219,8 +205,7 @@
             "pages": [
               "guides/batch-processing",
               "guides/webhook-integration",
-              "guides/ab-testing",
-              "guides/url-embedding"
+              "guides/ab-testing"
             ]
           },
           {
