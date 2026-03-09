@@ -8,493 +8,30 @@ openapi: get /bindings
 
 Bindings connect templates to external data sources, enabling automatic image generation when data changes. Perfect for dynamic dashboards, real-time stats, and automated social media images.
 
-## How Bindings Work
+<Note>
+For a step-by-step tutorial, see [Webhook Integration](/guides/webhook-integration).
+</Note>
 
-1. **Create a binding** - Link a template to an external data URL
-2. **Pictify fetches data** - Based on refresh policy, Pictify fetches your data
-3. **Template renders** - Variables from the data are injected into the template
-4. **Image updates** - The rendered image URL stays the same, content updates
+## How Bindings Work
 
 ```
 [Your Data API] → [Binding] → [Template] → [Updated Image]
 ```
 
-## List Bindings
-
-Retrieve all bindings.
-
-<CodeGroup>
-```bash cURL
-curl https://api.pictify.io/bindings \
-  -H "Authorization: Bearer $API_KEY"
-```
-
-```typescript Node.js
-const bindings = await pictify.bindings.list();
-```
-
-```python Python
-bindings = pictify.bindings.list()
-```
-</CodeGroup>
-
-### Query Parameters
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `templateId` | string | Filter by template ID |
-| `status` | string | Filter by status: `active`, `paused`, `error` |
-| `page` | integer | Page number (default: 1) |
-| `limit` | integer | Results per page (default: 20, max: 100) |
-
-### Response
-
-```json
-{
-  "bindings": [
-    {
-      "uid": "bind_abc123",
-      "name": "GitHub Stars Counter",
-      "templateId": "tmpl_xyz789",
-      "dataSource": {
-        "type": "http",
-        "url": "https://api.github.com/repos/your/repo",
-        "method": "GET",
-        "headers": {}
-      },
-      "mapping": {
-        "repoName": "name",
-        "stars": "stargazers_count"
-      },
-      "defaults": {},
-      "refreshPolicy": {
-        "type": "ttl",
-        "ttlSeconds": 300,
-        "onError": "serve_stale"
-      },
-      "outputConfig": {
-        "format": "png",
-        "quality": 90
-      },
-      "status": "active",
-      "renderUrl": "https://cdn.pictify.io/bindings/bind_abc123.png",
-      "webhookUrl": "https://api.pictify.io/webhooks/bind_abc123",
-      "lastFetchAt": "2026-01-29T10:00:00Z",
-      "lastRenderAt": "2026-01-29T10:00:05Z",
-      "lastError": null,
-      "errorCount": 0,
-      "createdAt": "2026-01-15T10:00:00Z",
-      "updatedAt": "2026-01-29T10:00:05Z"
-    }
-  ],
-  "pagination": {
-    "page": 1,
-    "limit": 20,
-    "total": 5,
-    "totalPages": 1
-  }
-}
-```
-
-## Create Binding
-
-Create a new binding.
-
-<CodeGroup>
-```bash cURL
-curl -X POST https://api.pictify.io/bindings \
-  -H "Authorization: Bearer $API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "templateId": "tmpl_github_card",
-    "name": "GitHub Stats",
-    "dataSource": {
-      "type": "http",
-      "url": "https://api.github.com/repos/your/repo",
-      "method": "GET"
-    },
-    "mapping": {
-      "repoName": "name",
-      "stars": "stargazers_count",
-      "forks": "forks_count",
-      "description": "description"
-    },
-    "refreshPolicy": {
-      "type": "ttl",
-      "ttlSeconds": 3600
-    },
-    "outputConfig": {
-      "format": "png",
-      "quality": 90
-    }
-  }'
-```
-
-```typescript Node.js
-const binding = await pictify.bindings.create({
-  templateId: 'tmpl_github_card',
-  name: 'GitHub Stats',
-  dataSource: {
-    type: 'http',
-    url: 'https://api.github.com/repos/your/repo',
-    method: 'GET'
-  },
-  mapping: {
-    repoName: 'name',
-    stars: 'stargazers_count',
-    forks: 'forks_count',
-    description: 'description'
-  },
-  refreshPolicy: {
-    type: 'ttl',
-    ttlSeconds: 3600  // 1 hour
-  },
-  outputConfig: {
-    format: 'png',
-    quality: 90
-  }
-});
-
-// Use this URL in your README, website, etc.
-console.log(`Render URL: ${binding.renderUrl}`);
-```
-
-```python Python
-binding = pictify.bindings.create(
-    template_id='tmpl_github_card',
-    name='GitHub Stats',
-    data_source={
-        'type': 'http',
-        'url': 'https://api.github.com/repos/your/repo',
-        'method': 'GET'
-    },
-    mapping={
-        'repoName': 'name',
-        'stars': 'stargazers_count',
-        'forks': 'forks_count',
-        'description': 'description'
-    },
-    refresh_policy={
-        'type': 'ttl',
-        'ttl_seconds': 3600  # 1 hour
-    },
-    output_config={
-        'format': 'png',
-        'quality': 90
-    }
-)
-```
-</CodeGroup>
-
-### Request Body
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `templateId` | string | Yes | Template UID to render |
-| `name` | string | No | Binding name (max 255 chars) |
-| `dataSource` | object | Yes | Data source configuration |
-| `mapping` | object | Yes | Map API fields to template variables |
-| `defaults` | object | No | Default values for missing fields |
-| `refreshPolicy` | object | No | When and how to refresh data |
-| `outputConfig` | object | No | Output image configuration |
-
-### dataSource Object
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `type` | string | Yes | `http`, `webhook`, or `static` |
-| `url` | string | No | URL to fetch data from (required for `http`) |
-| `method` | string | No | HTTP method: `GET` or `POST` (default: `GET`) |
-| `headers` | object | No | Custom HTTP headers |
-| `body` | any | No | Request body for POST requests |
-| `credentials` | object | No | Authentication configuration |
-
-### credentials Object
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `type` | string | `api_key`, `bearer_token`, `basic_auth`, or `custom_header` |
-| `value` | string | Token or API key value |
-| `username` | string | Username for `basic_auth` |
-| `headerName` | string | Header name for `custom_header` |
-
-### refreshPolicy Object
-
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `type` | string | `ttl` | `ttl`, `etag`, `webhook`, or `manual` |
-| `ttlSeconds` | integer | 300 | Cache duration (60-604800 seconds) |
-| `onError` | string | `serve_stale` | `serve_stale`, `serve_error`, or `serve_default` |
-
-### outputConfig Object
-
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `format` | string | `png` | `png`, `jpeg`, `webp`, or `pdf` |
-| `quality` | integer | 90 | Image quality (1-100) |
-| `width` | integer | - | Override template width |
-| `height` | integer | - | Override template height |
-
-### Response
-
-```json
-{
-  "binding": {
-    "uid": "bind_xyz789",
-    "name": "GitHub Stats",
-    "templateId": "tmpl_github_card",
-    "dataSource": {
-      "type": "http",
-      "url": "https://api.github.com/repos/your/repo",
-      "method": "GET",
-      "headers": {}
-    },
-    "mapping": {
-      "repoName": "name",
-      "stars": "stargazers_count"
-    },
-    "defaults": {},
-    "refreshPolicy": {
-      "type": "ttl",
-      "ttlSeconds": 3600,
-      "onError": "serve_stale"
-    },
-    "outputConfig": {
-      "format": "png",
-      "quality": 90
-    },
-    "status": "active",
-    "renderUrl": "https://cdn.pictify.io/bindings/bind_xyz789.png",
-    "webhookUrl": "https://api.pictify.io/webhooks/bind_xyz789",
-    "lastFetchAt": null,
-    "lastRenderAt": null,
-    "lastError": null,
-    "errorCount": 0,
-    "createdAt": "2026-01-29T10:30:00Z",
-    "updatedAt": "2026-01-29T10:30:00Z"
-  }
-}
-```
-
-## Get Binding
-
-Retrieve a specific binding.
-
-<CodeGroup>
-```bash cURL
-curl https://api.pictify.io/bindings/bind_abc123 \
-  -H "Authorization: Bearer $API_KEY"
-```
-
-```typescript Node.js
-const binding = await pictify.bindings.get('bind_abc123');
-```
-
-```python Python
-binding = pictify.bindings.get('bind_abc123')
-```
-</CodeGroup>
-
-## Update Binding
-
-Update an existing binding.
-
-<CodeGroup>
-```bash cURL
-curl -X PUT https://api.pictify.io/bindings/bind_abc123 \
-  -H "Authorization: Bearer $API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "refreshPolicy": {
-      "ttlSeconds": 1800
-    },
-    "status": "active"
-  }'
-```
-
-```typescript Node.js
-const binding = await pictify.bindings.update('bind_abc123', {
-  refreshPolicy: {
-    ttlSeconds: 1800  // 30 minutes
-  },
-  status: 'active'
-});
-```
-
-```python Python
-binding = pictify.bindings.update('bind_abc123',
-    refresh_policy={'ttl_seconds': 1800},
-    status='active'
-)
-```
-</CodeGroup>
-
-### Request Body
-
-All fields are optional:
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `name` | string | New binding name |
-| `dataSource` | object | New data source configuration |
-| `mapping` | object | New field mapping |
-| `defaults` | object | New default values |
-| `refreshPolicy` | object | New refresh policy |
-| `outputConfig` | object | New output configuration |
-| `status` | string | `active` or `paused` |
-
-## Delete Binding
-
-Delete a binding.
-
-<CodeGroup>
-```bash cURL
-curl -X DELETE https://api.pictify.io/bindings/bind_abc123 \
-  -H "Authorization: Bearer $API_KEY"
-```
-
-```typescript Node.js
-await pictify.bindings.delete('bind_abc123');
-```
-
-```python Python
-pictify.bindings.delete('bind_abc123')
-```
-</CodeGroup>
-
-## Test Binding
-
-Test a binding's data source and mapping.
-
-<CodeGroup>
-```bash cURL
-curl -X POST https://api.pictify.io/bindings/bind_abc123/test \
-  -H "Authorization: Bearer $API_KEY"
-```
-
-```typescript Node.js
-const result = await pictify.bindings.test('bind_abc123');
-```
-</CodeGroup>
-
-### Response
-
-```json
-{
-  "fetch": {
-    "success": true,
-    "data": { "name": "my-repo", "stargazers_count": 1234 },
-    "statusCode": 200
-  },
-  "mapping": {
-    "valid": true,
-    "errors": []
-  },
-  "variables": {
-    "repoName": "my-repo",
-    "stars": 1234
-  },
-  "availablePaths": ["name", "stargazers_count", "forks_count", "description"]
-}
-```
-
-## Trigger Refresh
-
-Manually trigger a binding refresh.
-
-<CodeGroup>
-```bash cURL
-curl -X POST https://api.pictify.io/bindings/bind_abc123/refresh \
-  -H "Authorization: Bearer $API_KEY"
-```
-
-```typescript Node.js
-await pictify.bindings.refresh('bind_abc123');
-```
-
-```python Python
-pictify.bindings.refresh('bind_abc123')
-```
-</CodeGroup>
-
-## Pause Binding
-
-Pause a binding to stop automatic refreshes.
-
-<CodeGroup>
-```bash cURL
-curl -X POST https://api.pictify.io/bindings/bind_abc123/pause \
-  -H "Authorization: Bearer $API_KEY"
-```
-
-```typescript Node.js
-await pictify.bindings.pause('bind_abc123');
-```
-</CodeGroup>
-
-## Resume Binding
-
-Resume a paused binding.
-
-<CodeGroup>
-```bash cURL
-curl -X POST https://api.pictify.io/bindings/bind_abc123/resume \
-  -H "Authorization: Bearer $API_KEY"
-```
-
-```typescript Node.js
-await pictify.bindings.resume('bind_abc123');
-```
-</CodeGroup>
-
-## Data Mapping
-
-Map fields from your API response to template variables:
-
-### Direct Mapping
-
-```json
-{
-  "mapping": {
-    "title": "name",
-    "count": "stargazers_count"
-  }
-}
-```
-
-API Response:
-```json
-{ "name": "My Repo", "stargazers_count": 500 }
-```
-
-Template Variables:
-```json
-{ "title": "My Repo", "count": 500 }
-```
-
-### Nested Fields
-
-Use dot notation for nested fields:
-
-```json
-{
-  "mapping": {
-    "userName": "user.name",
-    "avatarUrl": "user.avatar_url"
-  }
-}
-```
-
-### Array Access
-
-```json
-{
-  "mapping": {
-    "firstItem": "items[0].name",
-    "itemCount": "items.length"
-  }
-}
-```
+1. **Create a binding** -- link a template to an external data URL
+2. **Pictify fetches data** -- based on your refresh policy
+3. **Template renders** -- variables from the data are injected into the template
+4. **Image updates** -- the rendered image URL stays the same, content updates automatically
+
+## Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/bindings` | [List bindings](/api-reference/endpoints/bindings/list) |
+| `POST` | `/bindings` | [Create binding](/api-reference/endpoints/bindings/create) |
+| `GET` | `/bindings/{uid}` | [Get binding](/api-reference/endpoints/bindings/get) |
+| `PUT` | `/bindings/{uid}` | [Update binding](/api-reference/endpoints/bindings/update) |
+| `DELETE` | `/bindings/{uid}` | [Delete binding](/api-reference/endpoints/bindings/delete) |
 
 ## Binding Status
 
@@ -508,89 +45,48 @@ Use dot notation for nested fields:
 
 | Type | Description |
 |------|-------------|
-| `ttl` | Refresh after time-to-live expires (default) |
+| `ttl` | Refresh after time-to-live expires (default, 60-604800 seconds) |
 | `etag` | Refresh when ETag changes |
 | `webhook` | Refresh when webhook is triggered |
 | `manual` | Only refresh when manually triggered |
 
-## Examples
+## Data Mapping
 
-### GitHub Stats Badge
+Map fields from your API response to template variables using dot notation and array access:
 
-```typescript
-const binding = await pictify.bindings.create({
-  templateId: 'tmpl_github_badge',
-  name: 'GitHub Stars',
-  dataSource: {
-    type: 'http',
-    url: 'https://api.github.com/repos/owner/repo',
-    method: 'GET'
-  },
-  mapping: {
-    stars: 'stargazers_count',
-    forks: 'forks_count',
-    issues: 'open_issues_count'
-  },
-  refreshPolicy: {
-    type: 'ttl',
-    ttlSeconds: 3600  // Hourly
+```json
+{
+  "mapping": {
+    "title": "name",
+    "stars": "stargazers_count",
+    "userName": "user.name",
+    "firstItem": "items[0].name"
   }
-});
-
-// Use in README.md
-// ![GitHub Stats](https://cdn.pictify.io/bindings/bind_xyz.png)
+}
 ```
 
-### Authenticated API
+## Data Source Authentication
 
-```typescript
-const binding = await pictify.bindings.create({
-  templateId: 'tmpl_stats_card',
-  name: 'Private Stats',
-  dataSource: {
-    type: 'http',
-    url: 'https://your-api.com/stats',
-    method: 'GET',
-    credentials: {
-      type: 'bearer_token',
-      value: 'your-api-token'
-    }
-  },
-  mapping: {
-    revenue: 'metrics.revenue',
-    users: 'metrics.active_users'
-  },
-  refreshPolicy: {
-    type: 'ttl',
-    ttlSeconds: 300,
-    onError: 'serve_stale'
-  }
-});
-```
+| Type | Description |
+|------|-------------|
+| `api_key` | API key authentication |
+| `bearer_token` | Bearer token in Authorization header |
+| `basic_auth` | Username/password authentication |
+| `custom_header` | Custom header name and value |
 
-## Webhooks for Bindings
+## Binding Events
 
-Subscribe to binding events:
+Subscribe to binding events via [Webhooks](/api-reference/webhooks):
 
 | Event | Description |
 |-------|-------------|
 | `binding.updated` | Binding successfully refreshed |
 | `binding.failed` | Binding refresh failed |
 
-```typescript
-await pictify.webhooks.create({
-  event: 'binding.updated',
-  targetUrl: 'https://your-server.com/webhooks/binding',
-  filters: {
-    bindingId: 'bind_abc123'
-  }
-});
-```
-
 ## Best Practices
 
-1. **Set appropriate TTL** - Don't refresh more often than data changes
-2. **Use defaults** - Provide fallback values for missing fields
-3. **Handle errors gracefully** - Use `serve_stale` for critical images
-4. **Monitor binding health** - Set up webhooks for `binding.failed` events
-5. **Test before deploying** - Use the `/test` endpoint to validate your setup
+1. **Set appropriate TTL** -- don't refresh more often than data changes
+2. **Use defaults** -- provide fallback values for missing fields
+3. **Handle errors gracefully** -- use `serve_stale` for critical images
+4. **Monitor binding health** -- set up webhooks for `binding.failed` events
+5. **Test before deploying** -- validate your data source and mapping first
