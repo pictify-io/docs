@@ -27,7 +27,7 @@ API keys provide full access to your account. Keep them secure and never expose 
 Include your API key in the `Authorization` header as a Bearer token:
 
 ```bash
-curl -X POST https://api.pictify.io/v1/image \
+curl -X POST https://api.pictify.io/image \
   -H "Authorization: Bearer pk_live_abc123..." \
   -H "Content-Type: application/json" \
   -d '{"html": "<h1>Hello</h1>"}'
@@ -129,7 +129,7 @@ When rate limited, you'll receive a `429 Too Many Requests` response with a `Ret
   "title": "Rate Limit Exceeded",
   "status": 429,
   "detail": "You have exceeded the rate limit. Please retry after 60 seconds.",
-  "instance": "/v1/image"
+  "instance": "/image"
 }
 ```
 

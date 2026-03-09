@@ -186,7 +186,7 @@ Test expressions before using them in templates:
 ### Validate Syntax
 
 ```bash
-curl -X POST https://api.pictify.io/v1/templates/expression/validate \
+curl -X POST https://api.pictify.io/templates/expression/validate \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"expression": "price * quantity"}'
@@ -203,7 +203,7 @@ Response:
 ### Test with Data
 
 ```bash
-curl -X POST https://api.pictify.io/v1/templates/expression/test \
+curl -X POST https://api.pictify.io/templates/expression/test \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -227,7 +227,7 @@ Response:
 ### List Available Functions
 
 ```bash
-curl https://api.pictify.io/v1/templates/expression/functions \
+curl https://api.pictify.io/templates/expression/functions \
   -H "Authorization: Bearer $API_KEY"
 ```
 

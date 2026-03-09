@@ -1,0 +1,184 @@
+---
+title: A/B Testing Images
+description: Test image variants to optimize click-through rates and engagement
+---
+
+# A/B Testing Images
+
+This guide walks you through creating an A/B test experiment, embedding it in your site or emails, tracking events, and completing the test.
+
+## Prerequisites
+
+- A Pictify API key
+- At least two templates to test
+
+## Step 1: Create an Experiment
+
+Create an A/B test with two variants:
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://api.pictify.io/experiments/api \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Email Banner CTR Test",
+    "type": "ab_test",
+    "slug": "email-banner-ctr",
+    "variants": [
+      {
+        "id": "control",
+        "name": "Current Design",
+        "weight": 5000,
+        "templateUid": "tmpl_current123"
+      },
+      {
+        "id": "new-design",
+        "name": "New Design",
+        "weight": 5000,
+        "templateUid": "tmpl_new456"
+      }
+    ],
+    "goalConfig": {
+      "type": "click_through",
+      "destinationUrl": "https://example.com/landing"
+    }
+  }'
+```
+
+```typescript Node.js
+const experiment = await pictify.experiments.create({
+  name: 'Email Banner CTR Test',
+  type: 'ab_test',
+  slug: 'email-banner-ctr',
+  variants: [
+    { id: 'control', name: 'Current Design', weight: 5000, templateUid: 'tmpl_current123' },
+    { id: 'new-design', name: 'New Design', weight: 5000, templateUid: 'tmpl_new456' }
+  ],
+  goalConfig: { type: 'click_through', destinationUrl: 'https://example.com/landing' }
+});
+```
+
+```python Python
+experiment = pictify.experiments.create(
+    name='Email Banner CTR Test',
+    type='ab_test',
+    slug='email-banner-ctr',
+    variants=[
+        {'id': 'control', 'name': 'Current Design', 'weight': 5000, 'template_uid': 'tmpl_current123'},
+        {'id': 'new-design', 'name': 'New Design', 'weight': 5000, 'template_uid': 'tmpl_new456'}
+    ],
+    goal_config={'type': 'click_through', 'destination_url': 'https://example.com/landing'}
+)
+```
+</CodeGroup>
+
+The experiment is created in `draft` status.
+
+## Step 2: Start the Experiment
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://api.pictify.io/experiments/api/exp_abc123/start \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+```typescript Node.js
+await pictify.experiments.start('exp_abc123');
+```
+
+```python Python
+pictify.experiments.start('exp_abc123')
+```
+</CodeGroup>
+
+## Step 3: Embed in Your Content
+
+### Email
+
+```html
+<!-- Variant image with click tracking -->
+<a href="https://api.pictify.io/s/email-banner-ctr/click">
+  <img src="https://api.pictify.io/s/email-banner-ctr.png" alt="Special offer" />
+</a>
+
+<!-- Tracking pixel for open tracking -->
+<img src="https://api.pictify.io/s/email-banner-ctr/pixel.gif" width="1" height="1" />
+```
+
+### Website
+
+```html
+<img src="https://api.pictify.io/s/email-banner-ctr.png" alt="Hero banner" />
+```
+
+Each viewer automatically receives a variant based on the weight distribution.
+
+## Step 4: Track Events (Optional)
+
+For server-side or custom tracking:
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://api.pictify.io/s/events \
+  -H "Content-Type: application/json" \
+  -H "X-Write-Key: $WRITE_KEY" \
+  -d '{
+    "event": "conversion",
+    "experiment": "email-banner-ctr",
+    "variantId": "new-design"
+  }'
+```
+
+```typescript Node.js
+await fetch('https://api.pictify.io/s/events', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-Write-Key': writeKey
+  },
+  body: JSON.stringify({
+    event: 'conversion',
+    experiment: 'email-banner-ctr',
+    variantId: 'new-design'
+  })
+});
+```
+</CodeGroup>
+
+<Warning>
+Always include a write key to prevent third parties from injecting fake events into your experiment.
+</Warning>
+
+## Step 5: Complete the Experiment
+
+Once you have enough data, declare a winner:
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://api.pictify.io/experiments/api/exp_abc123/complete \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "winnerVariantId": "new-design" }'
+```
+
+```typescript Node.js
+await pictify.experiments.complete('exp_abc123', {
+  winnerVariantId: 'new-design'
+});
+```
+
+```python Python
+pictify.experiments.complete('exp_abc123', winner_variant_id='new-design')
+```
+</CodeGroup>
+
+After completion, the experiment URL (`/s/email-banner-ctr.png`) serves only the winning variant.
+
+## Tips
+
+1. **Check your quota first**: `GET /experiments/api/quota` shows your plan limits
+2. **Run for at least 7 days** to account for day-of-week variations
+3. **Use at least 1,000 impressions** per variant before drawing conclusions
+4. **Enable auto-optimization** with `banditConfig.enabled: true` for low-traffic tests
+5. **Set a fallback image** so the experiment URL works even after the experiment expires

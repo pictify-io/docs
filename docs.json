@@ -8,9 +8,35 @@
   },
   "favicon": "/images/favicon.svg",
   "colors": {
-    "primary": "#6366F1",
-    "light": "#818CF8",
-    "dark": "#4F46E5"
+    "primary": "#ff6b6b",
+    "light": "#ffc480",
+    "dark": "#1f2937"
+  },
+  "font": {
+    "headings": {
+      "family": "DynaPuff",
+      "weight": 600
+    },
+    "body": {
+      "family": "Inter"
+    }
+  },
+  "modeToggle": {
+    "default": "light",
+    "isHidden": false
+  },
+  "background": {
+    "style": "gradient"
+  },
+  "topbarLinks": [
+    {
+      "name": "Dashboard",
+      "url": "https://app.pictify.io"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Get API Key",
+    "url": "https://app.pictify.io/signup"
   },
   "navigation": {
     "tabs": [
@@ -27,7 +53,8 @@
               "concepts/templates",
               "concepts/expressions",
               "concepts/rendering",
-              "concepts/webhooks"
+              "concepts/webhooks",
+              "concepts/experiments"
             ]
           },
           {
@@ -56,20 +83,94 @@
             "pages": ["api-reference/overview", "api-reference/errors"]
           },
           {
-            "group": "Generation",
+            "group": "Images",
             "pages": [
               "api-reference/generation/images",
-              "api-reference/generation/gifs",
-              "api-reference/generation/pdfs"
+              "api-reference/endpoints/images/generate",
+              "api-reference/endpoints/images/list",
+              "api-reference/endpoints/images/get",
+              "api-reference/endpoints/images/canvas"
             ]
           },
           {
-            "group": "Resources",
+            "group": "GIFs",
+            "pages": [
+              "api-reference/generation/gifs",
+              "api-reference/endpoints/gifs/create",
+              "api-reference/endpoints/gifs/list",
+              "api-reference/endpoints/gifs/get",
+              "api-reference/endpoints/gifs/capture"
+            ]
+          },
+          {
+            "group": "PDFs",
+            "pages": [
+              "api-reference/generation/pdfs",
+              "api-reference/endpoints/pdfs/render",
+              "api-reference/endpoints/pdfs/multi-page",
+              "api-reference/endpoints/pdfs/presets"
+            ]
+          },
+          {
+            "group": "Templates",
             "pages": [
               "api-reference/templates",
+              "api-reference/endpoints/templates/list",
+              "api-reference/endpoints/templates/create",
+              "api-reference/endpoints/templates/get",
+              "api-reference/endpoints/templates/update",
+              "api-reference/endpoints/templates/delete",
+              "api-reference/endpoints/templates/render",
+              "api-reference/endpoints/templates/variables"
+            ]
+          },
+          {
+            "group": "Batch",
+            "pages": [
               "api-reference/batch",
+              "api-reference/endpoints/batch/render",
+              "api-reference/endpoints/batch/results",
+              "api-reference/endpoints/batch/cancel"
+            ]
+          },
+          {
+            "group": "Experiments",
+            "pages": [
+              "api-reference/experiments",
+              "api-reference/endpoints/experiments/list",
+              "api-reference/endpoints/experiments/create",
+              "api-reference/endpoints/experiments/get",
+              "api-reference/endpoints/experiments/update",
+              "api-reference/endpoints/experiments/delete",
+              "api-reference/endpoints/experiments/start",
+              "api-reference/endpoints/experiments/pause",
+              "api-reference/endpoints/experiments/complete",
+              "api-reference/endpoints/experiments/quota",
+              "api-reference/endpoints/experiments/events",
+              "api-reference/endpoints/experiments/click",
+              "api-reference/endpoints/experiments/pixel"
+            ]
+          },
+          {
+            "group": "Webhooks",
+            "pages": [
               "api-reference/webhooks",
-              "api-reference/bindings"
+              "api-reference/endpoints/webhooks/list",
+              "api-reference/endpoints/webhooks/create",
+              "api-reference/endpoints/webhooks/get",
+              "api-reference/endpoints/webhooks/update",
+              "api-reference/endpoints/webhooks/delete"
+            ]
+          },
+          {
+            "group": "Bindings",
+            "pages": [
+              "api-reference/bindings",
+              "api-reference/endpoints/bindings/list",
+              "api-reference/endpoints/bindings/create",
+              "api-reference/endpoints/bindings/get",
+              "api-reference/endpoints/bindings/update",
+              "api-reference/endpoints/bindings/delete"
             ]
           }
         ]
@@ -102,9 +203,9 @@
           {
             "group": "Tutorials",
             "pages": [
-              "guides/og-images",
               "guides/batch-processing",
-              "guides/webhook-integration"
+              "guides/webhook-integration",
+              "guides/ab-testing"
             ]
           },
           {
@@ -127,10 +228,16 @@
         "anchor": "Changelog",
         "href": "/resources/changelog",
         "icon": "clock-rotate-left"
+      },
+      {
+        "anchor": "GitHub",
+        "href": "https://github.com/pictify-io",
+        "icon": "github"
       }
     ]
   },
   "api": {
+    "baseUrl": "https://api.pictify.io",
     "playground": {
       "display": "interactive"
     },
@@ -147,5 +254,22 @@
   "feedback": {
     "thumbsRating": true,
     "suggestEdit": true
+  },
+  "footerSocials": {
+    "twitter": "https://twitter.com/pictifyio",
+    "github": "https://github.com/pictify-io"
+  },
+  "analytics": {
+    "posthog": {
+      "apiKey": ""
+    }
+  },
+  "seo": {
+    "indexHiddenPages": false
+  },
+  "metadata": {
+    "og:site_name": "Pictify Documentation",
+    "og:image": "https://pictify.io/og-image.png",
+    "twitter:site": "@pictifyio"
   }
 }

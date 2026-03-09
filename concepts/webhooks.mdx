@@ -29,7 +29,7 @@ Webhooks allow you to receive real-time HTTP notifications when events occur in 
 ### API
 
 ```bash
-curl -X POST https://api.pictify.io/v1/webhook-subscriptions \
+curl -X POST https://api.pictify.io/webhook-subscriptions \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -310,28 +310,20 @@ end
 ### List Webhooks
 
 ```bash
-curl https://api.pictify.io/v1/webhook-subscriptions \
+curl https://api.pictify.io/webhook-subscriptions \
   -H "Authorization: Bearer $API_KEY"
 ```
 
-### Pause a Webhook
+### Pause / Resume a Webhook
 
-```bash
-curl -X POST https://api.pictify.io/v1/webhook-subscriptions/{uid}/pause \
-  -H "Authorization: Bearer $API_KEY"
-```
-
-### Resume a Webhook
-
-```bash
-curl -X POST https://api.pictify.io/v1/webhook-subscriptions/{uid}/resume \
-  -H "Authorization: Bearer $API_KEY"
-```
+<Note>
+Pause and resume are currently available via the dashboard only. API support is coming soon.
+</Note>
 
 ### Delete a Webhook
 
 ```bash
-curl -X DELETE https://api.pictify.io/v1/webhook-subscriptions/{uid} \
+curl -X DELETE https://api.pictify.io/webhook-subscriptions/{uid} \
   -H "Authorization: Bearer $API_KEY"
 ```
 
@@ -340,7 +332,7 @@ curl -X DELETE https://api.pictify.io/v1/webhook-subscriptions/{uid} \
 Filter webhooks to receive only specific events:
 
 ```bash
-curl -X POST https://api.pictify.io/v1/webhook-subscriptions \
+curl -X POST https://api.pictify.io/webhook-subscriptions \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
