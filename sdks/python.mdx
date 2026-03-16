@@ -213,14 +213,40 @@ template = pictify.templates.create(
 ### Render Template
 
 ```python
-image = pictify.templates.render(
-    'tmpl_abc123',
+result = pictify.render(
+    template_id='tmpl_abc123',
     variables={
         'title': 'My Post',
         'description': 'An interesting article'
     },
     format='png'
 )
+
+# Access the rendered image
+print(result.results[0].url)
+```
+
+### Render Specific Layout
+
+```python
+result = pictify.render(
+    template_id='tmpl_abc123',
+    variables={'title': 'My Post'},
+    layout='twitter-post'
+)
+```
+
+### Render Multiple Layouts
+
+```python
+result = pictify.render(
+    template_id='tmpl_abc123',
+    variables={'title': 'My Post'},
+    layouts=['default', 'twitter-post', 'facebook-post']
+)
+
+for r in result.results:
+    print(f"{r.name} ({r.width}x{r.height}): {r.url}")
 ```
 
 ### Get Variables

@@ -224,12 +224,40 @@ const template = await pictify.templates.create({
 ### Render Template
 
 ```typescript
-const image = await pictify.templates.render('tmpl_abc123', {
+const result = await pictify.render({
+  templateId: 'tmpl_abc123',
   variables: {
     title: 'My Post',
     description: 'An interesting article'
   },
   format: 'png'
+});
+
+// Access the rendered image
+console.log(result.results[0].url);
+```
+
+### Render Specific Layout
+
+```typescript
+const result = await pictify.render({
+  templateId: 'tmpl_abc123',
+  variables: { title: 'My Post' },
+  layout: 'twitter-post'
+});
+```
+
+### Render Multiple Layouts
+
+```typescript
+const result = await pictify.render({
+  templateId: 'tmpl_abc123',
+  variables: { title: 'My Post' },
+  layouts: ['default', 'twitter-post', 'facebook-post']
+});
+
+result.results.forEach(r => {
+  console.log(`${r.name} (${r.width}x${r.height}): ${r.url}`);
 });
 ```
 

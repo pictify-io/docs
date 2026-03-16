@@ -237,14 +237,41 @@ template = client.templates.create(
 ### Render Template
 
 ```ruby
-image = client.templates.render(
-  'tmpl_abc123',
+result = client.render(
+  template_id: 'tmpl_abc123',
   variables: {
     title: 'My Post',
     description: 'An interesting article'
   },
-  format: 'png'
+  format: :png
 )
+
+# Access the rendered image
+puts result.results.first.url
+```
+
+### Render Specific Layout
+
+```ruby
+result = client.render(
+  template_id: 'tmpl_abc123',
+  variables: { title: 'My Post' },
+  layout: 'twitter-post'
+)
+```
+
+### Render Multiple Layouts
+
+```ruby
+result = client.render(
+  template_id: 'tmpl_abc123',
+  variables: { title: 'My Post' },
+  layouts: ['default', 'twitter-post', 'facebook-post']
+)
+
+result.results.each do |r|
+  puts "#{r.name} (#{r.width}x#{r.height}): #{r.url}"
+end
 ```
 
 ### Get Variables

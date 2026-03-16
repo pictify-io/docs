@@ -131,7 +131,37 @@ const result = await pictify.templates.render('template-id', {
     title: 'Dynamic Content'
   }
 });
+
+// Access the rendered image
+console.log(result.results[0].url);
 ```
+
+### Layout Variants
+
+Templates can have multiple layout variants for different platforms (e.g., Twitter, Facebook, Instagram). Render a specific layout or multiple layouts at once:
+
+```typescript
+// Render a specific layout
+const result = await pictify.templates.render('template-id', {
+  variables: { title: 'Hello' },
+  layout: 'twitter-post'
+});
+
+// Render multiple layouts in one request
+const result = await pictify.templates.render('template-id', {
+  variables: { title: 'Hello' },
+  layouts: ['default', 'twitter-post', 'facebook-post']
+});
+
+// Each layout is a separate result
+result.results.forEach(r => {
+  console.log(`${r.name} (${r.width}x${r.height}): ${r.url}`);
+});
+```
+
+<Note>
+The `default` layout is the base template. Use the layout key (e.g., `twitter-post`, `facebook-post`) to render a specific variant. Layout keys are set when creating variants via the AI Resize feature in the editor.
+</Note>
 
 ### From Canvas Data
 
@@ -270,7 +300,60 @@ The AI agent navigates to the page, finds the relevant section, and captures it.
 
 ## Response Format
 
-All render endpoints return:
+The template render endpoint always returns a `results` array, even for single-layout renders:
+
+```json
+{
+  "results": [
+    {
+      "layout": "default",
+      "name": "Default",
+      "url": "https://cdn.pictify.io/renders/abc123.png",
+      "width": 1200,
+      "height": 630,
+      "format": "png",
+      "id": "abc123"
+    }
+  ],
+  "errors": [],
+  "totalLayouts": 1,
+  "totalRendered": 1,
+  "totalErrors": 0,
+  "templateUid": "TEMPLATE_UID"
+}
+```
+
+Multi-layout response:
+
+```json
+{
+  "results": [
+    {
+      "layout": "default",
+      "name": "Default",
+      "url": "https://cdn.pictify.io/renders/abc123.png",
+      "width": 1080,
+      "height": 1080,
+      "format": "png"
+    },
+    {
+      "layout": "twitter-post",
+      "name": "Twitter/X Post",
+      "url": "https://cdn.pictify.io/renders/def456.png",
+      "width": 1200,
+      "height": 675,
+      "format": "png"
+    }
+  ],
+  "errors": [],
+  "totalLayouts": 2,
+  "totalRendered": 2,
+  "totalErrors": 0,
+  "templateUid": "TEMPLATE_UID"
+}
+```
+
+Other render endpoints (HTML, URL, GIF) return:
 
 ```json
 {
@@ -282,17 +365,6 @@ All render endpoints return:
 }
 ```
 
-For PDFs:
-
-```json
-{
-  "url": "https://cdn.pictify.io/renders/abc123.pdf",
-  "pageCount": 3,
-  "preset": "A4",
-  "pageSize": { "width": 595, "height": 842 }
-}
-```
-
 ## User Storage
 
 If you've configured user storage (S3, R2, etc.), renders are also uploaded to your storage:
@@ -301,6 +373,107 @@ If you've configured user storage (S3, R2, etc.), renders are also uploaded to y
 {
   "url": "https://cdn.pictify.io/renders/abc123.png",
   "userStorageUrl": "https://your-bucket.s3.amazonaws.com/renders/abc123.png"
+}
+```
+
+## Batch Rendering
+
+Render multiple variable sets from a single template in one API call. Each batch item can produce multiple layout variants.
+
+### Request
+
+```typescript
+const result = await pictify.renderBatch({
+  templateId: 'product-card',
+  items: [
+    { variables: { title: 'Card 1' } },
+    { variables: { title: 'Card 2' } },
+  ],
+  layouts: ['default', 'twitter-post']
+});
+```
+
+Pass `layout` (string) for a single variant, or `layouts` (array) for multiple variants per item.
+
+### Batch Response Format
+
+Each item in the batch results contains a nested `results` array (one entry per layout) and an `errors` array:
+
+```json
+{
+  "batchId": "batch_abc123",
+  "status": "completed",
+  "totalItems": 2,
+  "completedItems": 2,
+  "failedItems": 0,
+  "results": [
+    {
+      "index": 0,
+      "success": true,
+      "variables": ["title"],
+      "results": [
+        {
+          "layout": "default",
+          "name": "Default",
+          "url": "https://cdn.pictify.io/renders/img_1.png",
+          "width": 1080,
+          "height": 1080,
+          "format": "png",
+          "id": "img_1"
+        },
+        {
+          "layout": "twitter-post",
+          "name": "Twitter/X Post",
+          "url": "https://cdn.pictify.io/renders/img_2.png",
+          "width": 1200,
+          "height": 675,
+          "format": "png",
+          "id": "img_2"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "index": 1,
+      "success": true,
+      "variables": ["title"],
+      "results": [
+        {
+          "layout": "default",
+          "name": "Default",
+          "url": "https://cdn.pictify.io/renders/img_3.png",
+          "width": 1080,
+          "height": 1080,
+          "format": "png",
+          "id": "img_3"
+        },
+        {
+          "layout": "twitter-post",
+          "name": "Twitter/X Post",
+          "url": "https://cdn.pictify.io/renders/img_4.png",
+          "width": 1200,
+          "height": 675,
+          "format": "png",
+          "id": "img_4"
+        }
+      ],
+      "errors": []
+    }
+  ]
+}
+```
+
+### Accessing Batch Results
+
+```typescript
+for (const item of result.results) {
+  console.log(`Item ${item.index}: success=${item.success}`);
+  for (const r of item.results) {
+    console.log(`  ${r.layout} (${r.width}x${r.height}): ${r.url}`);
+  }
+  for (const e of item.errors) {
+    console.log(`  Error in ${e.layout}: ${e.error}`);
+  }
 }
 ```
 

@@ -236,13 +236,41 @@ template, err := client.Templates.Create(&pictify.TemplateCreateParams{
 ### Render Template
 
 ```go
-image, err := client.Templates.Render("tmpl_abc123", &pictify.RenderParams{
+result, err := client.Render(ctx, &pictify.RenderOptions{
+    TemplateID: "tmpl_abc123",
     Variables: map[string]interface{}{
         "title":       "My Post",
         "description": "An interesting article",
     },
-    Format: pictify.FormatPNG,
+    Format: "png",
 })
+
+// Access the rendered image
+fmt.Println(result.Results[0].URL)
+```
+
+### Render Specific Layout
+
+```go
+result, err := client.Render(ctx, &pictify.RenderOptions{
+    TemplateID: "tmpl_abc123",
+    Variables:  map[string]interface{}{"title": "My Post"},
+    Layout:     "twitter-post",
+})
+```
+
+### Render Multiple Layouts
+
+```go
+result, err := client.Render(ctx, &pictify.RenderOptions{
+    TemplateID: "tmpl_abc123",
+    Variables:  map[string]interface{}{"title": "My Post"},
+    Layouts:    []string{"default", "twitter-post", "facebook-post"},
+})
+
+for _, r := range result.Results {
+    fmt.Printf("%s (%dx%d): %s\n", r.Name, r.Width, r.Height, r.URL)
+}
 ```
 
 ### Batch Render
