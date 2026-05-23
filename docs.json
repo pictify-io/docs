@@ -186,6 +186,12 @@
               "sdks/go",
               "sdks/ruby"
             ]
+          },
+          {
+            "group": "No-Code & Automation",
+            "pages": [
+              "integrations/n8n"
+            ]
           }
         ]
       },
