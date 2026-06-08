@@ -61,16 +61,20 @@ The Pictify MCP server follows the standard MCP protocol and works with any comp
 
 ### `pictify_create_image`
 
-Generate an image from HTML content.
+Generate a static image from HTML, a URL screenshot, or a template. Provide exactly one of `html`, `url`, or `template`.
 
 **Parameters:**
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `html` | string | Yes | HTML content to render |
-| `width` | number | Yes | Width in pixels |
-| `height` | number | Yes | Height in pixels |
-| `format` | string | No | `png`, `jpeg`, or `webp` |
+| `html` | string | One of | HTML/CSS content to render |
+| `url` | string | One of | Public URL to screenshot |
+| `template` | string | One of | Template UID (use with `variables`) |
+| `variables` | object | No | Template variables (when `template` is set) |
+| `width` | number | No | Width in pixels, 1–4000 (default: 1200) |
+| `height` | number | No | Height in pixels, 1–4000 (default: 630) |
+| `selector` | string | No | CSS selector to capture a single element |
+| `fileExtension` | string | No | `png` (default), `jpg`, `jpeg`, or `webp` |
 
 **Example:**
 
@@ -78,26 +82,7 @@ Generate an image from HTML content.
 Create a social media card with the title "Hello World" on a purple gradient background, 1200x630 pixels.
 ```
 
-The AI will call `pictify_create_image` with appropriate HTML.
-
-### `pictify_screenshot`
-
-Capture a screenshot of a URL.
-
-**Parameters:**
-
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| `url` | string | Yes | URL to screenshot |
-| `width` | number | No | Viewport width |
-| `height` | number | No | Viewport height |
-| `fullPage` | boolean | No | Capture full page |
-
-**Example:**
-
-```
-Take a screenshot of the Stripe pricing page.
-```
+The AI will call `pictify_create_image` with appropriate HTML. To screenshot a page, it passes `url` instead (optionally with `selector` to crop to a section).
 
 ### `pictify_render_template`
 
@@ -107,9 +92,12 @@ Render a saved template with variables.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `templateId` | string | Yes | Template ID |
+| `templateId` | string | Yes | Template UID |
 | `variables` | object | No | Template variables |
-| `format` | string | No | Output format |
+| `format` | string | No | `png` (default), `jpeg`, `webp`, or `pdf` |
+| `quality` | number | No | Output quality 0.1–1.0 (JPEG/WebP only, default: 0.9) |
+| `layout` | string | No | Render a specific layout variant |
+| `layouts` | string[] | No | Render multiple layout variants in one call |
 
 **Example:**
 
@@ -119,16 +107,22 @@ Render my blog post template with title "AI in 2026" and author "Jane Smith".
 
 ### `pictify_create_gif`
 
-Create an animated GIF.
+Create an animated GIF from animated HTML, a URL, or a template. Provide exactly one of `html`, `url`, or `template`.
 
 **Parameters:**
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `html` | string | Yes | HTML with CSS animations |
-| `width` | number | Yes | Width in pixels |
-| `height` | number | Yes | Height in pixels |
-| `duration` | number | No | Animation duration in seconds |
+| `html` | string | One of | HTML with CSS `@keyframes`/transitions |
+| `url` | string | One of | URL to capture as a GIF |
+| `template` | string | One of | Template UID (use with `variables`) |
+| `variables` | object | No | Template variables (when `template` is set) |
+| `width` | number | No | Width in pixels, 1–2000 (default: 800) |
+| `height` | number | No | Height in pixels, 1–2000 (default: 600) |
+
+<Note>
+To record a live web page over a fixed duration, use the `pictify_capture_gif` tool instead — it takes a `url` plus `frameDurationSeconds` (1–30) and a `quality` preset (`low` | `medium` | `high`).
+</Note>
 
 ### `pictify_list_templates`
 
@@ -138,7 +132,10 @@ List available templates.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `limit` | number | No | Number of templates to return |
+| `page` | number | No | Page number, starts at 1 (default: 1) |
+| `limit` | number | No | Templates per page, 1–100 (default: 12) |
+| `sort` | string | No | `newest` (default), `oldest`, or `name` |
+| `outputFormat` | string | No | Filter by `all` (default), `image`, or `pdf` |
 
 ## Example Conversations
 
@@ -180,7 +177,7 @@ Here are your blog post images:
 
 **Claude:** I'll capture screenshots of each page for your documentation.
 
-*Calls `pictify_screenshot` for each URL*
+*Calls `pictify_create_image` with a `url` for each page*
 
 Here are your documentation screenshots:
 1. Dashboard - [Image URL]
@@ -194,7 +191,7 @@ Here are your documentation screenshots:
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `PICTIFY_API_KEY` | Your Pictify API key | Required |
-| `PICTIFY_BASE_URL` | Custom API base URL | `https://api.pictify.io/v1` |
+| `PICTIFY_BASE_URL` | Custom API base URL | `https://api.pictify.io` |
 
 ### Server Options
 
@@ -206,7 +203,7 @@ Here are your documentation screenshots:
       "args": ["-y", "@pictify/mcp-server"],
       "env": {
         "PICTIFY_API_KEY": "pk_live_...",
-        "PICTIFY_BASE_URL": "https://api.pictify.io/v1"
+        "PICTIFY_BASE_URL": "https://api.pictify.io"
       }
     }
   }
@@ -219,10 +216,10 @@ Here are your documentation screenshots:
 
 ```typescript
 import Anthropic from '@anthropic-ai/sdk';
-import Pictify from '@pictify/sdk';
+import { Pictify } from '@pictify/sdk';
 
 const anthropic = new Anthropic();
-const pictify = new Pictify(process.env.PICTIFY_API_KEY);
+const pictify = new Pictify({ apiKey: process.env.PICTIFY_API_KEY! });
 
 const tools = [
   {
@@ -242,7 +239,7 @@ const tools = [
 
 async function handleToolCall(name: string, input: any) {
   if (name === 'create_image') {
-    const image = await pictify.images.create(input);
+    const image = await pictify.renderHtml(input);
     return { url: image.url };
   }
 }
@@ -276,8 +273,8 @@ pictify = Pictify(api_key='pk_live_...')
 
 def create_image(html: str, width: int = 1200, height: int = 630) -> str:
     """Generate an image from HTML content."""
-    result = pictify.images.create(html=html, width=width, height=height)
-    return result['url']
+    result = pictify.render_html(html=html, width=width, height=height)
+    return result.url
 
 tools = [
     Tool(
@@ -337,14 +334,14 @@ For repeated requests, cache the results:
 ```typescript
 const cache = new Map();
 
-async function createImage(options: ImageOptions) {
+async function createImage(options: RenderHtmlOptions) {
   const cacheKey = JSON.stringify(options);
 
   if (cache.has(cacheKey)) {
     return cache.get(cacheKey);
   }
 
-  const result = await pictify.images.create(options);
+  const result = await pictify.renderHtml(options);
   cache.set(cacheKey, result);
   return result;
 }
