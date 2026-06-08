@@ -21,12 +21,29 @@ Webhooks let you build real-time integrations that respond to Pictify events. In
 
 Build a webhook receiver:
 
+Pictify signs every delivery; verify the signature with a small HMAC helper (the SDKs do not ship a webhook helper — roll your own as shown in [Webhook Verification](/security/webhook-verification)).
+
 ```typescript
 // Express.js
 import express from 'express';
-import { verifyWebhookSignature } from '@pictify/sdk';
+import crypto from 'crypto';
 
 const app = express();
+
+function verifyWebhookSignature(payload: string, signatureHeader: string, secret: string): boolean {
+  const parts: Record<string, string> = {};
+  for (const pair of signatureHeader.split(',')) {
+    const [key, value] = pair.split('=');
+    parts[key] = value;
+  }
+  const timestamp = parseInt(parts.t, 10);
+  if (Math.abs(Date.now() / 1000 - timestamp) > 300) return false; // replay protection
+  const expected = crypto
+    .createHmac('sha256', secret)
+    .update(`${timestamp}.${payload}`)
+    .digest('hex');
+  return crypto.timingSafeEqual(Buffer.from(parts.v1), Buffer.from(expected));
+}
 
 app.post(
   '/webhooks/pictify',
@@ -72,16 +89,31 @@ async function handleEvent(event: WebhookEvent) {
 
 ### 2. Subscribe to Events
 
-```typescript
-const pictify = new Pictify(process.env.PICTIFY_API_KEY);
+Webhook subscriptions are managed in the dashboard (**Settings** > **Webhooks**) or via the REST API. The SDKs do not expose webhook methods. Create a subscription with cURL:
 
-const subscription = await pictify.webhooks.create({
-  event: 'render.completed',
-  targetUrl: 'https://yoursite.com/webhooks/pictify'
-});
+```bash
+curl -X POST https://api.pictify.io/webhook-subscriptions \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event": "render.completed",
+    "targetUrl": "https://yoursite.com/webhooks/pictify",
+    "platform": "custom"
+  }'
+```
 
-// Save the secret for verification
-await saveSecret(subscription.secret);
+The response includes the signing `secret` (shown only once) — store it for signature verification:
+
+```json
+{
+  "subscription": {
+    "uid": "wh_abc123",
+    "event": "render.completed",
+    "targetUrl": "https://yoursite.com/webhooks/pictify",
+    "status": "active",
+    "secret": "whsec_xyz789..."
+  }
+}
 ```
 
 ### 3. Test Your Endpoint
@@ -223,26 +255,28 @@ Subscribe only to events you care about:
 
 ### Filter by Template
 
-```typescript
-await pictify.webhooks.create({
-  event: 'render.completed',
-  targetUrl: 'https://yoursite.com/webhooks/blog-cards',
-  filters: {
-    templateId: 'tmpl_blog_card'
-  }
-});
+```bash
+curl -X POST https://api.pictify.io/webhook-subscriptions \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event": "render.completed",
+    "targetUrl": "https://yoursite.com/webhooks/blog-cards",
+    "filters": { "templateId": "tmpl_blog_card" }
+  }'
 ```
 
 ### Filter by Type
 
-```typescript
-await pictify.webhooks.create({
-  event: 'render.completed',
-  targetUrl: 'https://yoursite.com/webhooks/images-only',
-  filters: {
-    type: 'image'
-  }
-});
+```bash
+curl -X POST https://api.pictify.io/webhook-subscriptions \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event": "render.completed",
+    "targetUrl": "https://yoursite.com/webhooks/images-only",
+    "filters": { "type": "image" }
+  }'
 ```
 
 ## Handler Patterns
@@ -453,17 +487,12 @@ Each log shows:
 
 ### Test Mode
 
-Send test webhooks without triggering real events:
+Send a test webhook without triggering a real event from the dashboard:
 
-```typescript
-await pictify.webhooks.test(subscriptionId, {
-  event: 'render.completed',
-  data: {
-    imageId: 'test_123',
-    url: 'https://cdn.pictify.io/test.png'
-  }
-});
-```
+1. Go to **Settings** > **Webhooks**
+2. Select your subscription
+3. Click **Send Test**
+4. Confirm your endpoint received and verified the delivery
 
 ### Local Development
 

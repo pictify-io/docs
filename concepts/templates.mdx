@@ -69,9 +69,9 @@ Retrieve variable definitions before rendering:
 
 <CodeGroup>
 ```typescript Node.js
-const template = await pictify.templates.get('template-id');
+const template = await pictify.getTemplate('template-id');
 
-console.log(template.variables);
+console.log(template.variableDefinitions);
 // [
 //   { name: 'title', type: 'text', required: true },
 //   { name: 'backgroundColor', type: 'color', defaultValue: '#ffffff' }
@@ -79,9 +79,9 @@ console.log(template.variables);
 ```
 
 ```python Python
-template = client.templates.get("template-id")
+template = client.get_template("template-id")
 
-for var in template.variables:
+for var in (template.variable_definitions or []):
     print(f"{var.name}: {var.type} (default: {var.default_value})")
 ```
 </CodeGroup>
@@ -92,7 +92,8 @@ Render a template by providing values for its variables:
 
 <CodeGroup>
 ```typescript Node.js
-const result = await pictify.templates.render('og-template', {
+const result = await pictify.render({
+  templateId: 'og-template',
   variables: {
     title: 'How to Build Great Products',
     description: 'A guide to product development',
@@ -100,6 +101,8 @@ const result = await pictify.templates.render('og-template', {
     authorImage: 'https://example.com/jane.jpg'
   }
 });
+
+console.log(result.url);
 ```
 
 ```bash cURL
@@ -166,7 +169,8 @@ Templates support multiple output formats:
 Set the output format when rendering:
 
 ```typescript
-const result = await pictify.templates.render('template-id', {
+const result = await pictify.render({
+  templateId: 'template-id',
   variables: { title: 'Hello' },
   format: 'pdf'
 });
@@ -174,30 +178,36 @@ const result = await pictify.templates.render('template-id', {
 
 ## Multi-Page Templates
 
-PDF templates can have multiple pages:
+PDF templates can have multiple pages — one page per variable set. This is served by the `POST /pdf/multi-page` REST endpoint, which the SDKs don't wrap directly:
 
-```typescript
-const result = await pictify.templates.render('invoice-template', {
-  variableSets: [
-    { pageTitle: 'Page 1', items: [...] },
-    { pageTitle: 'Page 2', items: [...] }
-  ],
-  format: 'pdf'
-});
+```bash
+curl -X POST https://api.pictify.io/pdf/multi-page \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "templateUid": "invoice-template",
+    "variableSets": [
+      { "pageTitle": "Page 1" },
+      { "pageTitle": "Page 2" }
+    ]
+  }'
 ```
 
-## Template Categories
+See the [PDF Generation](/api-reference/generation/pdfs) reference for paper sizes, margins, and orientation options.
 
-Organize templates with categories and tags:
+## Listing Templates
 
-- **Categories**: `og-image`, `social-media`, `email`, `document`, `marketing`
-- **Tags**: Custom labels for filtering
+List your templates with pagination. `listTemplates` returns `{ templates, pagination }`:
 
 ```typescript
-const templates = await pictify.templates.list({
-  category: 'og-image',
-  tags: ['blog', 'featured']
+const { templates, pagination } = await pictify.listTemplates({
+  page: 1,        // optional (default: 1)
+  limit: 20,      // optional, max 100 (default: 12)
+  sort: 'newest', // optional: 'newest' | 'oldest' | 'name'
 });
+
+console.log(pagination.total, 'templates');
+for (const t of templates) console.log(t.uid, t.name);
 ```
 
 ## Best Practices

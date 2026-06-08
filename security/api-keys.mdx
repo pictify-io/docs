@@ -45,7 +45,7 @@ PICTIFY_API_KEY=pk_live_your_api_key
 
 ```typescript
 // Load from environment
-const pictify = new Pictify(process.env.PICTIFY_API_KEY);
+const pictify = new Pictify({ apiKey: process.env.PICTIFY_API_KEY });
 ```
 
 <Warning>
@@ -65,7 +65,7 @@ const client = new SecretsManager();
 const response = await client.getSecretValue({ SecretId: 'pictify/api-key' });
 const apiKey = response.SecretString;
 
-const pictify = new Pictify(apiKey);
+const pictify = new Pictify({ apiKey });
 ```
 
 #### Google Secret Manager
@@ -138,8 +138,8 @@ const keys = [
 async function makeRequest(options) {
   for (const key of keys) {
     try {
-      const pictify = new Pictify(key);
-      return await pictify.images.create(options);
+      const pictify = new Pictify({ apiKey: key });
+      return await pictify.renderHtml(options);
     } catch (error) {
       if (error.status === 401 && keys.indexOf(key) < keys.length - 1) {
         continue; // Try next key
@@ -241,10 +241,10 @@ If you suspect a key has been compromised:
 
 ```typescript
 // ❌ Never do this
-const pictify = new Pictify('pk_live_abc123xyz');
+const pictify = new Pictify({ apiKey: 'pk_live_abc123xyz' });
 
 // ✅ Use environment variables
-const pictify = new Pictify(process.env.PICTIFY_API_KEY);
+const pictify = new Pictify({ apiKey: process.env.PICTIFY_API_KEY });
 ```
 
 ### Committing Keys

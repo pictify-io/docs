@@ -5,7 +5,7 @@ description: Official Pictify SDK for Node.js
 
 # Node.js SDK
 
-The official Pictify SDK for Node.js provides a type-safe, promise-based interface for the Pictify API.
+The official Pictify SDK for Node.js provides a type-safe, promise-based interface for the Pictify API — generate images, PDFs, and GIFs from raw HTML, live URLs, and reusable templates.
 
 ## Installation
 
@@ -26,326 +26,303 @@ pnpm add @pictify/sdk
 ## Quick Start
 
 ```typescript
-import Pictify from '@pictify/sdk';
+import { Pictify } from '@pictify/sdk';
 
-const pictify = new Pictify('pk_live_your_api_key');
-
-// Generate an image from HTML
-const image = await pictify.images.create({
-  html: '<h1 style="color: #667eea;">Hello World</h1>',
-  width: 1200,
-  height: 630
+const pictify = new Pictify({
+  apiKey: process.env.PICTIFY_API_KEY!,
 });
 
-console.log(image.url);
+// Render raw HTML to a PNG
+const image = await pictify.renderHtml({
+  html: '<div style="font-size:48px;padding:40px">Hello World</div>',
+  width: 1200,
+  height: 630,
+});
+
+console.log('Image URL:', image.url);
+
+// Render a reusable template
+const result = await pictify.render({
+  templateId: 'XL13XACH2V',
+  variables: { name: 'Ada', company: 'Pictify' },
+});
+
+console.log('Image URL:', result.url);
 ```
 
 ## Configuration
 
-### Basic Configuration
+The client is constructed with a config object. `apiKey` is required; every request is sent with an `Authorization: Bearer <API_KEY>` header.
 
 ```typescript
-const pictify = new Pictify('pk_live_your_api_key');
-```
-
-### Advanced Configuration
-
-```typescript
-const pictify = new Pictify('pk_live_your_api_key', {
-  baseUrl: 'https://api.pictify.io/v1',  // Custom base URL
-  timeout: 30000,                         // Request timeout in ms
-  retries: 3,                             // Number of retries
-  retryDelay: 1000                        // Initial retry delay in ms
+const pictify = new Pictify({
+  apiKey: process.env.PICTIFY_API_KEY!, // Required: your Pictify API key
+  baseUrl: 'https://api.pictify.io',    // Optional: API base URL (default: https://api.pictify.io)
+  timeout: 30000,                       // Optional: request timeout in ms (default: 30000)
+  retries: 3,                           // Optional: retries on 5xx / network errors (default: 3)
 });
 ```
 
-### Environment Variables
+<Warning>
+Keep your API key secret. Read it from an environment variable (`PICTIFY_API_KEY`) and never expose it in client-side code or public repositories.
+</Warning>
+
+## Render an Image from HTML
+
+`renderHtml(options)` — `POST /image`. Returns `{ url, id, createdAt }`.
 
 ```typescript
-// Reads PICTIFY_API_KEY from environment
-const pictify = new Pictify();
-```
-
-```bash .env
-PICTIFY_API_KEY=pk_live_your_api_key
-```
-
-## Images
-
-### Generate from HTML
-
-```typescript
-const image = await pictify.images.create({
-  html: `
-    <div style="width: 1200px; height: 630px; background: #667eea; display: flex; align-items: center; justify-content: center;">
-      <h1 style="color: white; font-size: 48px;">Hello World</h1>
-    </div>
-  `,
-  width: 1200,
-  height: 630,
-  format: 'png'
+const image = await pictify.renderHtml({
+  html: '<div style="padding:40px">Hello</div>',
+  css: 'div { color: blue; }', // optional — inlined into a <style> tag before the HTML
+  width: 1200,                 // optional (default: 1280)
+  height: 630,                 // optional (default: 720)
+  selector: '#card',           // optional — crop to a specific element
+  format: 'png',               // optional: 'png' | 'jpg' | 'jpeg' | 'webp' | 'pdf' (default: png)
 });
 
-console.log(image.url);    // https://cdn.pictify.io/renders/...
-console.log(image.id);     // img_abc123
-console.log(image.width);  // 1200
-console.log(image.height); // 630
+console.log(image.url);       // https://cdn.pictify.io/...
+console.log(image.id);
+console.log(image.createdAt);
 ```
 
-### Generate from URL
+The `/image` endpoint accepts a single `html` field, so any `css` you pass is injected into a `<style>` tag prepended to the HTML. `format` is mapped to the endpoint's `fileExtension`.
+
+## Screenshot a Live URL
+
+`renderUrl(options)` — `POST /image` with `url`. Returns `{ url, id, createdAt }`.
 
 ```typescript
-const screenshot = await pictify.images.create({
+const screenshot = await pictify.renderUrl({
   url: 'https://example.com',
-  width: 1200,
-  height: 630,
-  fullPage: false
+  width: 1280,         // optional (default: 1280)
+  height: 720,         // optional (default: 720)
+  selector: '.hero',   // optional — crop to a specific element
+  format: 'png',       // optional
+});
+
+console.log(screenshot.url);
+```
+
+## Render a Template
+
+`render(options)` — `POST /templates/:uid/render`. Returns a `results[]` envelope with a convenience `url` getter (`results[0]?.url`).
+
+```typescript
+const result = await pictify.render({
+  templateId: 'XL13XACH2V',
+  variables: { name: 'Ada', company: 'Pictify' },
+  format: 'png',  // optional: 'png' | 'jpg' | 'jpeg' | 'webp' | 'pdf' (default: png)
+  quality: 0.9,   // optional render quality, 0.1–1.0 (default: 0.9)
+  width: 1200,    // optional
+  height: 630,    // optional
+});
+
+// `result.url` is a convenience accessor for result.results[0]?.url
+console.log(result.url);
+console.log(result.results[0]); // { layout, url, width, height, format, name, id, createdAt }
+```
+
+The response shape:
+
+```typescript
+{
+  results: RenderResultItem[];   // one entry per rendered layout
+  errors: RenderErrorEntry[];    // { layout, error } for any failed layout
+  totalLayouts: number;
+  totalRendered: number;
+  totalErrors: number;
+  templateUid: string;
+  url: string | undefined;       // convenience getter == results[0]?.url
+}
+```
+
+### Render a Specific Layout
+
+Pass a single `layout` to render one named variant.
+
+```typescript
+const result = await pictify.render({
+  templateId: 'XL13XACH2V',
+  variables: { name: 'Ada' },
+  layout: 'square',
 });
 ```
 
-### Canvas Rendering
+### Render Multiple Layouts
+
+`renderLayouts(options)` — `POST /templates/:uid/render` with `layouts` (max 20).
+
+Templates can have layout variants (e.g. `square`, `story`) created via AI Resize in the Pictify editor. Use `default` for the base layout. Missing or invalid layouts come back in `errors[]` rather than throwing.
 
 ```typescript
-const canvas = await pictify.images.canvas({
-  fabricJSData: {
-    version: '5.3.0',
-    objects: [
-      { type: 'rect', fill: '#667eea', width: 1200, height: 630 },
-      { type: 'textbox', text: '{{title}}', fill: 'white', fontSize: 48 }
-    ]
-  },
-  variables: { title: 'Dynamic Content' },
-  width: 1200,
-  height: 630
+const result = await pictify.renderLayouts({
+  templateId: 'XL13XACH2V',
+  variables: { name: 'Ada' },
+  layouts: ['default', 'square', 'story'], // max 20
 });
+
+for (const item of result.results) {
+  console.log(`${item.layout}: ${item.url} (${item.width}x${item.height})`);
+}
+for (const err of result.errors) {
+  console.log(`${err.layout} failed: ${err.error}`);
+}
 ```
 
-### Agent Screenshot
+## Render an Animated GIF
+
+`renderGif(options)` — `POST /gif`. Provide exactly one source: `html`, `url`, or `templateId`. The API's nested `{ gif: {...} }` envelope is flattened to `{ url, uid, width, height, animationLength }`.
 
 ```typescript
-const screenshot = await pictify.images.agentScreenshot({
-  prompt: 'Take a screenshot of the pricing section on stripe.com'
+const gif = await pictify.renderGif({
+  html: '<style>@keyframes p{0%{opacity:.2}50%{opacity:1}100%{opacity:.2}}div{font-size:40px;padding:30px;animation:p 2s infinite}</style><div>Hi</div>',
+  // or: url: 'https://example.com'
+  // or: templateId: 'XL13XACH2V', variables: { name: 'Ada' }
+  width: 400,         // optional (default: 800)
+  height: 200,        // optional (default: 600)
+  quality: 'medium',  // optional: 'low' | 'medium' | 'high' (default: medium)
 });
+
+console.log(gif.url, gif.uid, gif.animationLength);
 ```
 
-## GIFs
+<Note>
+The source HTML/URL must contain motion (e.g. a CSS animation). Static content produces no frames and returns a render error (HTTP 422).
+</Note>
 
-### Create from HTML
+## Batch Rendering (async)
 
-```typescript
-const gif = await pictify.gifs.create({
-  html: `
-    <div class="container">
-      <style>
-        @keyframes pulse {
-          0% { transform: scale(1); }
-          50% { transform: scale(1.1); }
-          100% { transform: scale(1); }
-        }
-        .pulse { animation: pulse 1s infinite; }
-      </style>
-      <div class="pulse">Animated!</div>
-    </div>
-  `,
-  width: 400,
-  height: 400
-});
-```
-
-### Capture from URL
+`renderBatch(options)` — `POST /templates/:uid/batch-render`. Returns immediately (HTTP 202) with a `batchId`; poll `getBatchResults(batchId)` (`GET /templates/batch/:batchId/results`) to track progress.
 
 ```typescript
-const gif = await pictify.gifs.capture({
-  url: 'https://example.com/animated',
-  width: 800,
-  height: 600,
-  quality: 'high',
-  frameDurationSeconds: 5
-});
-```
-
-## PDFs
-
-### Single Page
-
-```typescript
-const pdf = await pictify.pdfs.render({
-  templateUid: 'tmpl_invoice',
-  variables: {
-    invoiceNumber: 'INV-001',
-    items: [
-      { name: 'Service', price: 99.00 }
-    ],
-    total: 99.00
-  },
-  options: {
-    preset: 'A4',
-    margins: { top: 40, bottom: 40, left: 30, right: 30 }
-  }
-});
-```
-
-### Multi-Page
-
-```typescript
-const pdf = await pictify.pdfs.multiPage({
-  templateUid: 'tmpl_report',
+const job = await pictify.renderBatch({
+  templateId: 'XL13XACH2V',
   variableSets: [
-    { pageTitle: 'Introduction', content: '...' },
-    { pageTitle: 'Analysis', content: '...' },
-    { pageTitle: 'Conclusion', content: '...' }
-  ],
-  options: { preset: 'A4' }
+    { name: 'Ada', company: 'Pictify' },
+    { name: 'Grace', company: 'Pictify' },
+  ], // max 100 per batch
+  format: 'png',     // optional
+  quality: 0.9,      // optional, 0.1–1.0
+  concurrency: 5,    // optional, 1–10 (default: 5)
+  // layout: 'square' or layouts: ['default', 'square'] — optional
 });
+
+// { batchId, status, totalItems }
+console.log(job.batchId);
+
+// Poll for progress.
+const status = await pictify.getBatchResults(job.batchId);
+console.log(status.status);          // 'pending' | 'processing' | 'completed' | 'partial' | 'failed' | 'cancelled'
+console.log(status.completedItems, 'of', status.totalItems);
+for (const item of status.results) {
+  console.log(`item ${item.index}: success=${item.success}`);
+}
 ```
+
+<Warning>
+**Rendered URLs are not returned by the poll endpoint.** `getBatchResults` reports per-item `{ index, success, variables }` (and `error` on failures). Final image URLs are delivered via the `render.completed` webhook — subscribe to webhooks to collect batch output.
+</Warning>
 
 ## Templates
 
+### Get a Template
+
+`getTemplate(templateId)` — `GET /templates/:uid`. Unwraps the `{ template }` envelope.
+
+```typescript
+const template = await pictify.getTemplate('XL13XACH2V');
+
+// { uid, name, html, width, height, engine, outputFormat,
+//   variables: string[], variableDefinitions: [...], createdAt, ... }
+console.log(template.uid, template.name);
+```
+
 ### List Templates
 
-```typescript
-const { templates, pagination } = await pictify.templates.list({
-  page: 1,
-  limit: 20
-});
-```
-
-### Create Template
+`listTemplates(options)` — `GET /templates`. Returns `{ templates, pagination }`.
 
 ```typescript
-const template = await pictify.templates.create({
-  name: 'Social Card',
-  html: '<h1>{{title}}</h1><p>{{description}}</p>',
-  width: 1200,
-  height: 630
-});
-```
-
-### Render Template
-
-```typescript
-const image = await pictify.templates.render('tmpl_abc123', {
-  variables: {
-    title: 'My Post',
-    description: 'An interesting article'
-  },
-  format: 'png'
-});
-```
-
-### Get Variables
-
-```typescript
-const { variables } = await pictify.templates.getVariables('tmpl_abc123');
-// [{ name: 'title', type: 'string', required: true }, ...]
-```
-
-### Batch Render
-
-```typescript
-const batch = await pictify.templates.batchRender('tmpl_abc123', {
-  variableSets: [
-    { title: 'Post 1' },
-    { title: 'Post 2' },
-    { title: 'Post 3' }
-  ],
-  webhookUrl: 'https://your-server.com/webhooks/batch'
+const { templates, pagination } = await pictify.listTemplates({
+  page: 1,        // optional (default: 1)
+  limit: 20,      // optional, max 100 (default: 12)
+  sort: 'newest', // optional: 'newest' | 'oldest' | 'name'
 });
 
-// Later, get results
-const results = await pictify.templates.getBatchResults(batch.id);
+console.log(pagination.total, 'templates');
+for (const t of templates) console.log(t.uid, t.name);
 ```
 
-## Webhooks
+### Create a Template
 
-### Create Subscription
+`createTemplate(options)` — `POST /templates`. Variables are auto-discovered from `{{variableName}}` tokens in the HTML body.
 
 ```typescript
-const subscription = await pictify.webhooks.create({
-  event: 'render.completed',
-  targetUrl: 'https://your-server.com/webhooks/pictify'
+const template = await pictify.createTemplate({
+  html: '<div>Hi {{firstName}}</div>',
+  name: 'Welcome Card',     // optional
+  width: 600,               // optional
+  height: 200,              // optional
+  variableDefinitions: [],  // optional — auto-extracted from the HTML when omitted
+  outputFormat: 'image',    // optional: 'image' | 'pdf'
 });
 
-// Store this secret securely!
-console.log(subscription.secret);
-```
-
-### Verify Signature
-
-```typescript
-import { verifyWebhookSignature } from '@pictify/sdk';
-
-app.post('/webhooks/pictify', express.raw({ type: 'application/json' }), (req, res) => {
-  const signature = req.headers['x-pictify-signature'] as string;
-  const payload = req.body.toString();
-
-  try {
-    const isValid = verifyWebhookSignature(payload, signature, process.env.WEBHOOK_SECRET!);
-
-    if (!isValid) {
-      return res.status(401).send('Invalid signature');
-    }
-
-    const event = JSON.parse(payload);
-    console.log('Received:', event.event);
-
-    res.status(200).send('OK');
-  } catch (error) {
-    res.status(400).send(error.message);
-  }
-});
-```
-
-## Bindings
-
-### Create Binding
-
-```typescript
-const binding = await pictify.bindings.create({
-  name: 'GitHub Stats',
-  templateUid: 'tmpl_github',
-  dataUrl: 'https://api.github.com/repos/your/repo',
-  dataMapping: {
-    stars: 'stargazers_count',
-    forks: 'forks_count'
-  },
-  schedule: '0 * * * *'  // Hourly
-});
-
-// Permanent image URL that auto-updates
-console.log(binding.imageUrl);
-```
-
-### Trigger Refresh
-
-```typescript
-await pictify.bindings.refresh('bind_abc123');
+console.log(template.uid);
 ```
 
 ## Error Handling
 
+All API errors throw a typed subclass of `PictifyError`.
+
 ```typescript
-import Pictify, { PictifyError, RateLimitError, ValidationError } from '@pictify/sdk';
+import {
+  Pictify,
+  PictifyError,
+  AuthenticationError,
+  TemplateNotFoundError,
+  RateLimitError,
+  QuotaExceededError,
+  RenderError,
+} from '@pictify/sdk';
 
 try {
-  const image = await pictify.images.create({ ... });
+  const result = await pictify.render({ templateId: 'XL13XACH2V' });
 } catch (error) {
   if (error instanceof RateLimitError) {
-    // Wait and retry
-    console.log(`Rate limited. Retry after ${error.retryAfter}s`);
-    await sleep(error.retryAfter * 1000);
-  } else if (error instanceof ValidationError) {
-    // Fix validation issues
-    console.log('Validation errors:', error.errors);
+    console.log('Rate limited — slow down');
+  } else if (error instanceof QuotaExceededError) {
+    console.log('Quota exceeded — upgrade your plan');
+  } else if (error instanceof RenderError) {
+    console.error('Render/validation failed:', error.message, error.errors);
   } else if (error instanceof PictifyError) {
-    // General API error
-    console.log(`API Error: ${error.message}`);
-    console.log(`Status: ${error.status}`);
-    console.log(`Type: ${error.type}`);
+    console.error('Pictify error:', error.code, error.message);
   } else {
     throw error;
   }
 }
+```
+
+### Error Types
+
+| Error Class | Code | HTTP | Description |
+|------------|------|------|-------------|
+| `AuthenticationError` | `INVALID_API_KEY` | 401 | Invalid or missing API key |
+| `QuotaExceededError` | `QUOTA_EXCEEDED` | 402 / 429 | Render quota exceeded |
+| `TemplateNotFoundError` | `TEMPLATE_NOT_FOUND` | 404 | Template (or batch job) not found |
+| `RenderError` | `RENDER_FAILED` | 422 (and other 4xx) | Render or input validation failed (`error.errors` holds field-level details) |
+| `RateLimitError` | `RATE_LIMIT_EXCEEDED` | 429 | Too many requests |
+| `ServerError` | `SERVER_ERROR` | 5xx | Server-side failure |
+| `NetworkError` | `NETWORK_ERROR` | — | Network request failed |
+| `TimeoutError` | `TIMEOUT` | — | Request timed out |
+
+Only 5xx and network failures are retried (with exponential backoff); 4xx responses are never retried.
+
+## CommonJS Support
+
+```javascript
+const { Pictify } = require('@pictify/sdk');
+
+const pictify = new Pictify({ apiKey: process.env.PICTIFY_API_KEY });
 ```
 
 ## TypeScript Support
@@ -353,75 +330,63 @@ try {
 The SDK is written in TypeScript and exports all types:
 
 ```typescript
-import Pictify, {
-  ImageCreateOptions,
+import {
+  Pictify,
   ImageResult,
+  RenderResult,
+  RenderResultItem,
+  GifRenderResult,
+  BatchRenderResult,
+  BatchResults,
   Template,
-  TemplateRenderOptions,
-  Webhook,
-  Binding
+  ListTemplatesResult,
+  ImageFormat,
+  GifQuality,
 } from '@pictify/sdk';
-
-const options: ImageCreateOptions = {
-  html: '<h1>Hello</h1>',
-  width: 1200,
-  height: 630,
-  format: 'png'
-};
-
-const image: ImageResult = await pictify.images.create(options);
 ```
 
 ## Next.js Integration
 
-### Server Component
+### Route Handler (OG image)
 
 ```typescript
-// app/og/[slug]/route.ts
-import { NextRequest } from 'next/server';
-import Pictify from '@pictify/sdk';
+// app/api/og/route.ts
+import { Pictify } from '@pictify/sdk';
+import { NextRequest, NextResponse } from 'next/server';
 
-const pictify = new Pictify(process.env.PICTIFY_API_KEY!);
+const pictify = new Pictify({ apiKey: process.env.PICTIFY_API_KEY! });
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { slug: string } }
-) {
-  const post = await getPost(params.slug);
+export async function GET(req: NextRequest) {
+  const title = req.nextUrl.searchParams.get('title') ?? '';
 
-  const image = await pictify.templates.render('tmpl_og', {
-    variables: {
-      title: post.title,
-      description: post.excerpt,
-      author: post.author.name
-    }
+  const result = await pictify.render({
+    templateId: 'og-image-template',
+    variables: { title },
   });
 
-  // Redirect to image
-  return Response.redirect(image.url);
+  return NextResponse.redirect(result.url!);
 }
 ```
 
-### Webhook Handler
+### Express.js OG-image route
 
 ```typescript
-// app/api/webhooks/pictify/route.ts
-import { NextRequest } from 'next/server';
-import { verifyWebhookSignature } from '@pictify/sdk';
+import express from 'express';
+import { Pictify } from '@pictify/sdk';
 
-export async function POST(request: NextRequest) {
-  const payload = await request.text();
-  const signature = request.headers.get('x-pictify-signature')!;
+const app = express();
+const pictify = new Pictify({ apiKey: process.env.PICTIFY_API_KEY! });
 
-  if (!verifyWebhookSignature(payload, signature, process.env.WEBHOOK_SECRET!)) {
-    return new Response('Invalid signature', { status: 401 });
-  }
+app.get('/og-image', async (req, res) => {
+  const { title, description } = req.query as Record<string, string>;
 
-  const event = JSON.parse(payload);
-  // Handle event...
+  const result = await pictify.render({
+    templateId: 'og-image-template',
+    variables: { title, description },
+  });
 
-  return new Response('OK');
-}
+  res.redirect(result.url!);
+});
 ```
 
 ## API Reference

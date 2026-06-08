@@ -131,6 +131,65 @@ components:
           format: date-time
           description: Timestamp when image was created
 
+    RenderResponse:
+      type: object
+      description: Render response. Always returns a `results` array, even for single-layout renders.
+      properties:
+        results:
+          type: array
+          description: Array of rendered images, one per layout
+          items:
+            type: object
+            properties:
+              layout:
+                type: string
+                description: Layout key ('default' for base layout)
+                example: twitter-post
+              name:
+                type: string
+                description: Display name of the layout
+                example: Twitter/X Post
+              url:
+                type: string
+                format: uri
+                description: URL of the rendered image
+                example: https://cdn.pictify.io/renders/abc123.png
+              width:
+                type: integer
+                description: Image width in pixels
+              height:
+                type: integer
+                description: Image height in pixels
+              format:
+                type: string
+                description: Image format
+                example: png
+              id:
+                type: string
+                description: Unique render identifier
+        errors:
+          type: array
+          description: Layout keys that failed to render
+          items:
+            type: object
+            properties:
+              layout:
+                type: string
+              error:
+                type: string
+        totalLayouts:
+          type: integer
+          description: Total number of layouts requested
+        totalRendered:
+          type: integer
+          description: Number of successfully rendered layouts
+        totalErrors:
+          type: integer
+          description: Number of failed layouts
+        templateUid:
+          type: string
+          description: Template ID that was rendered
+
     GifRequest:
       type: object
       properties:
@@ -366,6 +425,16 @@ components:
           minimum: 0.1
           maximum: 1
           default: 0.9
+        layout:
+          type: string
+          pattern: '^[a-z0-9-]{1,64}$'
+          description: Layout variant to use for all batch items. Omit for default layout.
+        layouts:
+          type: array
+          items:
+            type: string
+            pattern: '^[a-z0-9-]{1,64}$'
+          description: Array of layout variant names to render for all batch items. Use instead of `layout` to render multiple layouts per item.
         concurrency:
           type: integer
           minimum: 1
@@ -410,17 +479,56 @@ components:
             properties:
               index:
                 type: integer
+                description: Zero-based index of this item in the batch
               success:
                 type: boolean
-              url:
-                type: string
-                format: uri
-              width:
-                type: integer
-              height:
-                type: integer
-              error:
-                type: string
+                description: Whether this batch item rendered successfully
+              variables:
+                type: array
+                items:
+                  type: string
+                description: Variable names used for this item
+              results:
+                type: array
+                description: Rendered images, one per requested layout
+                items:
+                  type: object
+                  properties:
+                    layout:
+                      type: string
+                      description: Layout key ('default' for base layout)
+                      example: twitter-post
+                    name:
+                      type: string
+                      description: Display name of the layout
+                      example: Twitter/X Post
+                    url:
+                      type: string
+                      format: uri
+                      description: URL of the rendered image
+                    width:
+                      type: integer
+                      description: Image width in pixels
+                    height:
+                      type: integer
+                      description: Image height in pixels
+                    format:
+                      type: string
+                      description: Image format
+                      example: png
+                    id:
+                      type: string
+                      description: Unique render identifier
+              errors:
+                type: array
+                description: Layout keys that failed to render for this item
+                items:
+                  type: object
+                  properties:
+                    layout:
+                      type: string
+                    error:
+                      type: string
         createdAt:
           type: string
           format: date-time
@@ -1326,22 +1434,36 @@ paths:
                 variables:
                   type: object
                   additionalProperties: true
+                  description: Key-value pairs of template variable values
                 format:
                   type: string
                   enum: [png, jpeg, webp, pdf]
                   default: png
+                  description: Output image format
                 quality:
                   type: number
                   minimum: 0.1
                   maximum: 1
                   default: 0.9
+                  description: Image quality (0.1-1.0)
+                layout:
+                  type: string
+                  pattern: '^[a-z0-9-]{1,64}$'
+                  description: Render a specific layout variant (e.g. 'twitter-post', 'facebook-post'). Omit for default layout.
+                layouts:
+                  type: array
+                  items:
+                    type: string
+                  maxItems: 20
+                  description: Render multiple layout variants in one request. Use 'default' for the base layout. Returns an array of results.
+                  example: ["default", "twitter-post", "facebook-post"]
       responses:
         '200':
-          description: Template rendered
+          description: Rendered image(s). Always returns a `results` array.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ImageResponse'
+                $ref: '#/components/schemas/RenderResponse'
 
   /templates/{uid}/variables:
     get:

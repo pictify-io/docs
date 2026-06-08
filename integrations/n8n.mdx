@@ -1,0 +1,78 @@
+---
+title: "n8n"
+description: "Generate images, GIFs, and PDFs inside n8n workflows using the official Pictify community node."
+---
+
+The **`n8n-nodes-pictify`** community node lets you call Pictify from any n8n workflow — no code required. Render Open Graph cards, social media images, animated GIFs, certificates, invoices, and more, then chain into email, Slack, S3, Notion, Airtable, or anything else n8n supports.
+
+<Note>
+  Community nodes work on self-hosted n8n and on n8n Cloud (Pro plan and above). See [n8n's community-node docs](https://docs.n8n.io/integrations/community-nodes/) for details.
+</Note>
+
+## Install
+
+In your n8n instance:
+
+1. Open **Settings → Community Nodes**.
+2. Click **Install**.
+3. Enter the package name: `n8n-nodes-pictify`
+4. Accept the prompt and wait for install to complete.
+
+The **Pictify** node now appears in the node picker.
+
+## Connect credentials
+
+1. Get an API key at [pictify.io](https://pictify.io) → Settings → API Keys.
+2. In n8n: **Credentials → New → Pictify API**.
+3. Paste your API key. Leave **Base URL** at the default unless you self-host.
+4. Click **Test** — n8n calls `GET /templates` to verify the key.
+
+## Available operations
+
+| Resource     | Operation              | What it does                                                  |
+| ------------ | ---------------------- | ------------------------------------------------------------- |
+| **Image**    | Render From Template   | Render a saved template with variables                        |
+| **Image**    | Render From HTML       | Render raw HTML + CSS into an image                           |
+| **Image**    | Render Batch           | Render up to 500 images from one template in a single call    |
+| **GIF**      | Render GIF             | Render an animated GIF from a template or HTML with frames    |
+| **PDF**      | Render PDF             | Render a PDF (page format, margins, landscape orientation)    |
+| **Template** | Get                    | Fetch a single template and its variables                     |
+| **Template** | List                   | List all templates on your account                            |
+
+Every render operation supports:
+
+- **Return Binary** — download the rendered file as a binary item, ready to email or upload.
+- **Continue On Fail** — let the workflow keep running even if a single item fails.
+- **Layout / Layouts** — render one or many layout variants from a multi-layout template.
+
+## Example workflows
+
+**Open Graph card per blog post**
+
+```
+Postgres (rows) → Pictify (Render From Template) → Set (image_url) → Postgres (update)
+```
+
+**Personalised certificate via email**
+
+```
+Webhook → Pictify (Render PDF, Return Binary = true) → Gmail (attachment)
+```
+
+**Slack ship-it GIF on every release**
+
+```
+GitHub Trigger (release) → Pictify (Render GIF) → Slack (post message)
+```
+
+**Bulk social card generation**
+
+```
+Google Sheets (rows) → Pictify (Render Batch) → Google Drive (upload URLs)
+```
+
+## Source & support
+
+- **npm**: [`n8n-nodes-pictify`](https://www.npmjs.com/package/n8n-nodes-pictify)
+- **GitHub**: [`pictify-io/n8n-nodes-pictify`](https://github.com/pictify-io/n8n-nodes-pictify)
+- **Issues**: open one on GitHub or email [support@pictify.io](mailto:support@pictify.io)

@@ -5,12 +5,12 @@ description: Official Pictify SDK for Go
 
 # Go SDK
 
-The official Pictify SDK for Go provides an idiomatic Go interface for the Pictify API.
+The official Pictify SDK for Go provides an idiomatic Go interface for the Pictify API — generate images, PDFs, and GIFs from raw HTML, live URLs, and reusable templates.
 
 ## Installation
 
 ```bash
-go get github.com/pictify/pictify-go
+go get github.com/pictify-io/pictify-go
 ```
 
 ## Quick Start
@@ -19,407 +19,305 @@ go get github.com/pictify/pictify-go
 package main
 
 import (
+    "context"
     "fmt"
     "log"
 
-    "github.com/pictify/pictify-go"
+    "github.com/pictify-io/pictify-go"
 )
 
 func main() {
-    client := pictify.NewClient("pk_live_your_api_key")
+    client := pictify.NewClient("your-api-key")
 
-    image, err := client.Images.Create(&pictify.ImageCreateParams{
-        HTML:   "<h1 style=\"color: #667eea;\">Hello World</h1>",
+    // Render raw HTML to a PNG.
+    img, err := client.RenderHTML(context.Background(), &pictify.RenderHTMLOptions{
+        HTML:   `<div style="font-size:48px;padding:40px">Hello World</div>`,
         Width:  1200,
         Height: 630,
     })
     if err != nil {
         log.Fatal(err)
     }
-
-    fmt.Println(image.URL)
+    fmt.Println(img.URL)
 }
 ```
 
+## API
+
+The SDK talks to the Pictify API at `https://api.pictify.io`. Every call sends `Authorization: Bearer <api-key>`.
+
+| Method | Endpoint | Returns |
+|---|---|---|
+| `RenderHTML` | `POST /image` | `*ImageResult` `{URL, ID, CreatedAt}` |
+| `RenderURL` | `POST /image` | `*ImageResult` |
+| `Render` | `POST /templates/{uid}/render` | `*RenderResult` (results[] envelope) |
+| `RenderLayouts` | `POST /templates/{uid}/render` | `*RenderResult` |
+| `RenderGIF` | `POST /gif` | `*GIFResult` (flattened) |
+| `RenderBatch` | `POST /templates/{uid}/batch-render` | `*BatchJob` (async, HTTP 202) |
+| `GetBatchResults` | `GET /templates/batch/{id}/results` | `*BatchResults` |
+| `GetTemplate` | `GET /templates/{uid}` | `*Template` (unwrapped) |
+| `ListTemplates` | `GET /templates` | `*TemplateList` `{Templates, Pagination}` |
+| `CreateTemplate` | `POST /templates` | `*Template` (unwrapped) |
+
 ## Configuration
 
-### Basic Configuration
-
-```go
-client := pictify.NewClient("pk_live_your_api_key")
-```
-
-### Advanced Configuration
+`NewClient` takes the API key plus functional options.
 
 ```go
 client := pictify.NewClient(
-    "pk_live_your_api_key",
-    pictify.WithBaseURL("https://api.pictify.io/v1"),
-    pictify.WithTimeout(30 * time.Second),
-    pictify.WithRetries(3),
+    "your-api-key",
+    pictify.WithBaseURL("https://api.pictify.io"), // default
+    pictify.WithTimeout(30*time.Second),
+    pictify.WithMaxRetries(3),
+    pictify.WithHTTPClient(&http.Client{
+        Transport: &http.Transport{
+            MaxIdleConns:    10,
+            IdleConnTimeout: 30 * time.Second,
+        },
+    }),
 )
 ```
 
-### Environment Variables
+<Warning>
+Keep your API key secret. Read it from an environment variable (e.g. `os.Getenv("PICTIFY_API_KEY")`) and never expose it in client-side code or public repositories.
+</Warning>
+
+## Render an Image from HTML
+
+`POST /image` — returns `{URL, ID, CreatedAt}`.
 
 ```go
-import "os"
-
-client := pictify.NewClient(os.Getenv("PICTIFY_API_KEY"))
-```
-
-## Images
-
-### Generate from HTML
-
-```go
-image, err := client.Images.Create(&pictify.ImageCreateParams{
-    HTML: `
-        <div style="width: 1200px; height: 630px; background: #667eea;
-                    display: flex; align-items: center; justify-content: center;">
-            <h1 style="color: white; font-size: 48px;">Hello World</h1>
-        </div>
-    `,
-    Width:  1200,
-    Height: 630,
-    Format: pictify.FormatPNG,
+img, err := client.RenderHTML(ctx, &pictify.RenderHTMLOptions{
+    HTML:     `<div class="card">Hello</div>`,
+    CSS:      ".card { padding: 40px; color: #0ea5e9; }", // injected as <style> before the HTML
+    Width:    1200,                                       // default 1280
+    Height:   630,                                        // default 720
+    Selector: ".card",                                    // optional: crop to an element
+    Format:   pictify.FormatPNG,                          // png (default), jpg, jpeg, webp, pdf
 })
 if err != nil {
     log.Fatal(err)
 }
-
-fmt.Println(image.URL)    // https://cdn.pictify.io/renders/...
-fmt.Println(image.ID)     // img_abc123
-fmt.Println(image.Width)  // 1200
-fmt.Println(image.Height) // 630
+fmt.Println(img.URL)
 ```
 
-### Generate from URL
+The `/image` endpoint accepts a single `html` field, so any `CSS` you pass is injected into a `<style>` tag prepended to the HTML. `Format` maps to the endpoint's `fileExtension`.
+
+## Screenshot a Live URL
+
+`POST /image` with a `url`.
 
 ```go
-image, err := client.Images.Create(&pictify.ImageCreateParams{
-    URL:      "https://example.com",
-    Width:    1200,
-    Height:   630,
-    FullPage: false,
+img, err := client.RenderURL(ctx, &pictify.RenderURLOptions{
+    URL:    "https://example.com",
+    Width:  1280,
+    Height: 720,
 })
+if err != nil {
+    log.Fatal(err)
+}
+fmt.Println(img.URL)
 ```
 
-### Canvas Rendering
+## Render a Template
+
+`POST /templates/{uid}/render` — returns a `results[]` envelope. Use `result.URL()` for the first result's URL.
 
 ```go
-image, err := client.Images.Canvas(&pictify.CanvasParams{
-    FabricJSData: map[string]interface{}{
-        "version": "5.3.0",
-        "objects": []map[string]interface{}{
-            {"type": "rect", "fill": "#667eea", "width": 1200, "height": 630},
-            {"type": "textbox", "text": "{{title}}", "fill": "white", "fontSize": 48},
-        },
-    },
-    Variables: map[string]interface{}{
-        "title": "Dynamic Content",
-    },
-    Width:  1200,
-    Height: 630,
+result, err := client.Render(ctx, &pictify.RenderOptions{
+    TemplateID: "XL13XACH2V",
+    Variables:  map[string]interface{}{"name": "Ada", "company": "Pictify"},
+    Format:     pictify.FormatPNG, // template renders also support pdf
+    Quality:    0.9,               // 0.1–1.0 for raster output
 })
+if err != nil {
+    log.Fatal(err)
+}
+fmt.Println(result.URL())          // results[0].url
+for _, item := range result.Results {
+    fmt.Printf("%s: %s (%dx%d)\n", item.Layout, item.URL, item.Width, item.Height)
+}
 ```
 
-### Agent Screenshot
+### Layout Variants
+
+Templates can have multiple layout variants (e.g. landscape, square, story) created via AI Resize in the Pictify editor. Render several at once with `RenderLayouts` (max 20). Use `"default"` for the base layout. Layouts that can't be rendered are returned in `result.Errors` rather than failing the whole call.
 
 ```go
-image, err := client.Images.AgentScreenshot(&pictify.AgentScreenshotParams{
-    Prompt: "Take a screenshot of the pricing section on stripe.com",
+result, err := client.RenderLayouts(ctx, &pictify.RenderOptions{
+    TemplateID: "XL13XACH2V",
+    Variables:  map[string]interface{}{"name": "Ada", "company": "Pictify"},
+}, []string{"default", "twitter-post", "instagram-story"})
+if err != nil {
+    log.Fatal(err)
+}
+for _, item := range result.Results {
+    fmt.Printf("%s: %s\n", item.Layout, item.URL)
+}
+for _, e := range result.Errors {
+    fmt.Printf("layout %s failed: %s\n", e.Layout, e.Error)
+}
+```
+
+## Render an Animated GIF
+
+`POST /gif` — provide exactly one source (`HTML`, `URL`, or `TemplateID`). The API's nested `{gif: {...}}` envelope is flattened into `*GIFResult`.
+
+```go
+gif, err := client.RenderGIF(ctx, &pictify.GIFOptions{
+    HTML: `<style>@keyframes p{0%{opacity:.2}50%{opacity:1}100%{opacity:.2}}` +
+        `div{font-size:40px;padding:30px;animation:p 2s infinite}</style>` +
+        `<div>Hi</div>`,
+    Width:   400,                     // default 800
+    Height:  200,                     // default 600
+    Quality: pictify.GIFQualityLow,   // low | medium (default) | high
 })
+if err != nil {
+    log.Fatal(err)
+}
+fmt.Println(gif.URL, gif.UID, gif.AnimationLength)
 ```
 
-## GIFs
+To render a GIF from a template, set `TemplateID` (and optionally `Variables`). The source must be animated; a static source returns a render error (HTTP 422).
 
-### Create from HTML
+## Batch Rendering (async)
 
-```go
-gif, err := client.GIFs.Create(&pictify.GIFCreateParams{
-    HTML: `
-        <div class="container">
-            <style>
-                @keyframes pulse {
-                    0% { transform: scale(1); }
-                    50% { transform: scale(1.1); }
-                    100% { transform: scale(1); }
-                }
-                .pulse { animation: pulse 1s infinite; }
-            </style>
-            <div class="pulse">Animated!</div>
-        </div>
-    `,
-    Width:  400,
-    Height: 400,
-})
-```
-
-### Capture from URL
+`POST /templates/{uid}/batch-render` returns immediately (HTTP 202) with a `BatchID`. The job runs asynchronously — poll `GetBatchResults` to track progress.
 
 ```go
-gif, err := client.GIFs.Capture(&pictify.GIFCaptureParams{
-    URL:                  "https://example.com/animated",
-    Width:                800,
-    Height:               600,
-    Quality:              pictify.QualityHigh,
-    FrameDurationSeconds: 5,
-})
-```
-
-## PDFs
-
-### Single Page
-
-```go
-pdf, err := client.PDFs.Render(&pictify.PDFRenderParams{
-    TemplateUID: "tmpl_invoice",
-    Variables: map[string]interface{}{
-        "invoiceNumber": "INV-001",
-        "items": []map[string]interface{}{
-            {"name": "Service", "price": 99.00},
-        },
-        "total": 99.00,
-    },
-    Options: &pictify.PDFOptions{
-        Preset: pictify.PresetA4,
-        Margins: &pictify.Margins{
-            Top: 40, Bottom: 40, Left: 30, Right: 30,
-        },
-    },
-})
-```
-
-### Multi-Page
-
-```go
-pdf, err := client.PDFs.MultiPage(&pictify.PDFMultiPageParams{
-    TemplateUID: "tmpl_report",
+job, err := client.RenderBatch(ctx, &pictify.BatchOptions{
+    TemplateID: "XL13XACH2V",
     VariableSets: []map[string]interface{}{
-        {"pageTitle": "Introduction", "content": "..."},
-        {"pageTitle": "Analysis", "content": "..."},
-        {"pageTitle": "Conclusion", "content": "..."},
+        {"name": "Ada", "company": "Pictify"},
+        {"name": "Grace", "company": "Pictify"},
     },
-    Options: &pictify.PDFOptions{
-        Preset: pictify.PresetA4,
-    },
+    Format:      pictify.FormatPNG,
+    Concurrency: 5, // 1–10, default 5
 })
+if err != nil {
+    log.Fatal(err)
+}
+fmt.Printf("batch %s: %s (%d items)\n", job.BatchID, job.Status, job.TotalItems)
+
+results, err := client.GetBatchResults(ctx, job.BatchID)
+if err != nil {
+    log.Fatal(err)
+}
+fmt.Printf("status=%s completed=%d/%d failed=%d\n",
+    results.Status, results.CompletedItems, results.TotalItems, results.FailedItems)
 ```
 
-## Templates
+<Warning>
+Rendered URLs are **not** returned by the poll endpoint; they are delivered via the `render.completed` webhook. The poll response reports each item's `Index`, `Success`, and variable names (plus an `Error` on failures).
+</Warning>
 
-### List Templates
+## Template Management
 
 ```go
-result, err := client.Templates.List(&pictify.ListParams{
+// Create a template from HTML. Variables are auto-discovered from {{name}} tokens.
+tmpl, err := client.CreateTemplate(ctx, &pictify.CreateTemplateOptions{
+    HTML:   `<div style="padding:20px">Hi {{firstName}}</div>`,
+    Name:   "Welcome Card",
+    Width:  600,
+    Height: 200,
+})
+if err != nil {
+    log.Fatal(err)
+}
+fmt.Println(tmpl.UID)
+for _, v := range tmpl.VariableDefinitions {
+    fmt.Printf("  - %s (%s)\n", v.Name, v.Type)
+}
+
+// Fetch a single template by UID.
+tmpl, err = client.GetTemplate(ctx, "XL13XACH2V")
+if err != nil {
+    log.Fatal(err)
+}
+fmt.Printf("%s: %s (%dx%d)\n", tmpl.UID, tmpl.Name, tmpl.Width, tmpl.Height)
+
+// List templates with pagination.
+list, err := client.ListTemplates(ctx, &pictify.ListTemplatesOptions{
     Page:  1,
-    Limit: 20,
+    Limit: 20,           // max 100, default 12
+    Sort:  "newest",     // newest | oldest | name
 })
-
-for _, tmpl := range result.Templates {
-    fmt.Printf("%s: %s\n", tmpl.UID, tmpl.Name)
+if err != nil {
+    log.Fatal(err)
 }
-```
-
-### Create Template
-
-```go
-template, err := client.Templates.Create(&pictify.TemplateCreateParams{
-    Name:   "Social Card",
-    HTML:   "<h1>{{title}}</h1><p>{{description}}</p>",
-    Width:  1200,
-    Height: 630,
-})
-```
-
-### Render Template
-
-```go
-image, err := client.Templates.Render("tmpl_abc123", &pictify.RenderParams{
-    Variables: map[string]interface{}{
-        "title":       "My Post",
-        "description": "An interesting article",
-    },
-    Format: pictify.FormatPNG,
-})
-```
-
-### Batch Render
-
-```go
-batch, err := client.Templates.BatchRender("tmpl_abc123", &pictify.BatchRenderParams{
-    VariableSets: []map[string]interface{}{
-        {"title": "Post 1"},
-        {"title": "Post 2"},
-        {"title": "Post 3"},
-    },
-    WebhookURL: "https://your-server.com/webhooks/batch",
-})
-
-// Later, get results
-results, err := client.Templates.GetBatchResults(batch.ID, nil)
-```
-
-## Webhooks
-
-### Create Subscription
-
-```go
-subscription, err := client.Webhooks.Create(&pictify.WebhookCreateParams{
-    Event:     pictify.EventRenderCompleted,
-    TargetURL: "https://your-server.com/webhooks/pictify",
-})
-
-// Store this secret securely!
-fmt.Println(subscription.Secret)
-```
-
-### Verify Signature
-
-```go
-package main
-
-import (
-    "crypto/hmac"
-    "crypto/sha256"
-    "encoding/hex"
-    "fmt"
-    "math"
-    "strconv"
-    "strings"
-    "time"
-)
-
-func VerifyWebhookSignature(payload, signatureHeader, secret string) error {
-    parts := make(map[string]string)
-    for _, pair := range strings.Split(signatureHeader, ",") {
-        kv := strings.SplitN(pair, "=", 2)
-        if len(kv) == 2 {
-            parts[kv[0]] = kv[1]
-        }
-    }
-
-    timestamp, _ := strconv.ParseInt(parts["t"], 10, 64)
-    providedSignature := parts["v1"]
-
-    // Reject if timestamp is older than 5 minutes
-    if math.Abs(float64(time.Now().Unix()-timestamp)) > 300 {
-        return fmt.Errorf("webhook timestamp too old")
-    }
-
-    signedPayload := fmt.Sprintf("%d.%s", timestamp, payload)
-    mac := hmac.New(sha256.New, []byte(secret))
-    mac.Write([]byte(signedPayload))
-    expectedSignature := hex.EncodeToString(mac.Sum(nil))
-
-    if !hmac.Equal([]byte(providedSignature), []byte(expectedSignature)) {
-        return fmt.Errorf("invalid signature")
-    }
-
-    return nil
+for _, t := range list.Templates {
+    fmt.Printf("%s: %s\n", t.UID, t.Name)
 }
+fmt.Printf("page %d of %d (%d total)\n",
+    list.Pagination.Page, list.Pagination.TotalPages, list.Pagination.Total)
 ```
 
-### HTTP Handler
-
-```go
-package main
-
-import (
-    "encoding/json"
-    "io"
-    "net/http"
-)
-
-func webhookHandler(w http.ResponseWriter, r *http.Request) {
-    signature := r.Header.Get("X-Pictify-Signature")
-
-    body, err := io.ReadAll(r.Body)
-    if err != nil {
-        http.Error(w, "Failed to read body", http.StatusBadRequest)
-        return
-    }
-
-    if err := VerifyWebhookSignature(string(body), signature, webhookSecret); err != nil {
-        http.Error(w, err.Error(), http.StatusUnauthorized)
-        return
-    }
-
-    var event pictify.WebhookEvent
-    if err := json.Unmarshal(body, &event); err != nil {
-        http.Error(w, "Invalid JSON", http.StatusBadRequest)
-        return
-    }
-
-    fmt.Printf("Received event: %s\n", event.Event)
-
-    w.WriteHeader(http.StatusOK)
-    w.Write([]byte("OK"))
-}
-```
-
-## Bindings
-
-### Create Binding
-
-```go
-binding, err := client.Bindings.Create(&pictify.BindingCreateParams{
-    Name:        "GitHub Stats",
-    TemplateUID: "tmpl_github",
-    DataURL:     "https://api.github.com/repos/your/repo",
-    DataMapping: map[string]string{
-        "stars": "stargazers_count",
-        "forks": "forks_count",
-    },
-    Schedule: "0 * * * *", // Hourly
-})
-
-// Permanent image URL that auto-updates
-fmt.Println(binding.ImageURL)
-```
-
-### Trigger Refresh
-
-```go
-err := client.Bindings.Refresh("bind_abc123")
-```
+`Template` keys by `UID` (not `id`) and declares variables in `VariableDefinitions`. Any unknown engine-specific fields are preserved in `Template.Extra` (a `map[string]json.RawMessage`).
 
 ## Error Handling
 
+HTTP errors are mapped to typed errors. Each one embeds `*PictifyError`, so you can match either the concrete type or the base with `errors.As`. The error message resolves as `body.error` → `body.message` → HTTP status text.
+
+| Status | Error type |
+|---|---|
+| 401 | `*AuthenticationError` |
+| 402 | `*QuotaExceededError` |
+| 404 | `*TemplateNotFoundError` |
+| 422 / other 4xx | `*RenderError` (422 carries field-level `Errors`) |
+| 429 | `*QuotaExceededError` (when `code == "quota_exceeded"`) or `*RateLimitError` |
+| 5xx | `*ServerError` |
+| transport failure | `*NetworkError` |
+| timeout / context deadline | `*TimeoutError` |
+
 ```go
-image, err := client.Images.Create(&pictify.ImageCreateParams{...})
+import (
+    "errors"
+
+    "github.com/pictify-io/pictify-go"
+)
+
+result, err := client.Render(ctx, opts)
 if err != nil {
-    switch e := err.(type) {
-    case *pictify.RateLimitError:
-        // Wait and retry
-        fmt.Printf("Rate limited. Retry after %d seconds\n", e.RetryAfter)
-        time.Sleep(time.Duration(e.RetryAfter) * time.Second)
-    case *pictify.ValidationError:
-        // Fix validation issues
-        fmt.Printf("Validation errors: %v\n", e.Errors)
-    case *pictify.AuthenticationError:
-        // Check API key
-        fmt.Println("Invalid API key")
-    case *pictify.APIError:
-        // General API error
-        fmt.Printf("API Error: %s (status: %d)\n", e.Message, e.Status)
+    var authErr *pictify.AuthenticationError
+    var notFoundErr *pictify.TemplateNotFoundError
+    var rateLimitErr *pictify.RateLimitError
+    var quotaErr *pictify.QuotaExceededError
+    var renderErr *pictify.RenderError
+    var serverErr *pictify.ServerError
+    var networkErr *pictify.NetworkError
+
+    switch {
+    case errors.As(err, &authErr):
+        log.Println("invalid API key")
+    case errors.As(err, &notFoundErr):
+        log.Println("template not found")
+    case errors.As(err, &rateLimitErr):
+        log.Printf("rate limited; retry after %ds", rateLimitErr.RetryAfter)
+    case errors.As(err, &quotaErr):
+        log.Println("render quota exceeded")
+    case errors.As(err, &renderErr):
+        log.Printf("render failed: %s (%v)", renderErr.Message, renderErr.Errors)
+    case errors.As(err, &serverErr):
+        log.Printf("server error: %s", serverErr.Message)
+    case errors.As(err, &networkErr):
+        log.Printf("network error: %v", networkErr.Err)
     default:
-        // Network or other error
-        log.Fatal(err)
+        log.Printf("error: %v", err)
     }
 }
 ```
 
+Only 5xx and network failures are retried (with exponential backoff); 4xx responses are never retried.
+
 ## Context Support
 
-All methods support context for cancellation and timeouts:
+All methods take a `context.Context` for cancellation and timeouts:
 
 ```go
 ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 defer cancel()
 
-image, err := client.Images.CreateWithContext(ctx, &pictify.ImageCreateParams{
+img, err := client.RenderHTML(ctx, &pictify.RenderHTMLOptions{
     HTML:   "<h1>Hello</h1>",
     Width:  1200,
     Height: 630,
@@ -432,19 +330,19 @@ The client is safe for concurrent use:
 
 ```go
 var wg sync.WaitGroup
-results := make(chan *pictify.Image, 10)
+results := make(chan *pictify.ImageResult, 10)
 
 for i := 0; i < 10; i++ {
     wg.Add(1)
     go func(i int) {
         defer wg.Done()
-        image, err := client.Images.Create(&pictify.ImageCreateParams{
+        img, err := client.RenderHTML(ctx, &pictify.RenderHTMLOptions{
             HTML:   fmt.Sprintf("<h1>Image %d</h1>", i),
             Width:  1200,
             Height: 630,
         })
         if err == nil {
-            results <- image
+            results <- img
         }
     }(i)
 }

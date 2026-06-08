@@ -72,10 +72,12 @@ curl https://api.pictify.io/image \
 2. **Ensure content is within viewport**
    - Content outside the width/height won't be captured
 
-3. **Check for transparent backgrounds**
-   ```typescript
-   // If using transparent: true, background may be invisible
-   { transparent: true }  // Background won't show
+3. **Set an explicit background color**
+   ```html
+   <!-- A root element with no background can render as blank/white -->
+   <div style="width: 1200px; height: 630px; background: #111;">
+     <h1 style="color: #fff;">Hello</h1>
+   </div>
    ```
 
 ### Missing Fonts
@@ -97,11 +99,11 @@ curl https://api.pictify.io/image \
    font-family: 'Inter', Arial, sans-serif;
    ```
 
-3. **Wait for font loading**
-   ```typescript
-   {
-     waitForTimeout: 1000  // Give fonts time to load
-   }
+3. **Load fonts in the document head**
+   ```html
+   <!-- Use a <link> in the HTML so the font is requested before render -->
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
    ```
 
 ### CSS Not Applied
@@ -142,12 +144,10 @@ curl https://api.pictify.io/image \
    - Images must be publicly accessible
    - Check for CORS issues
 
-3. **Use waitForSelector**
-   ```typescript
-   {
-     waitForSelector: 'img[src*="logo"]',
-     waitForTimeout: 2000
-   }
+3. **Inline critical images as data URIs**
+   ```html
+   <!-- Embedding avoids any external fetch during render -->
+   <img src="data:image/png;base64,iVBORw0KGgo..." />
    ```
 
 ### Timeout Errors
@@ -186,7 +186,8 @@ curl https://api.pictify.io/image \
 2. **Verify variable is provided**
    ```typescript
    // Make sure all variables are passed
-   await pictify.templates.render('tmpl_id', {
+   await pictify.render({
+     templateId: 'tmpl_id',
      variables: {
        title: 'Hello'  // Must match {{title}}
      }

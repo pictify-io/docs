@@ -59,6 +59,27 @@ Templates support different variable types in `{{variable}}` placeholders:
 
 See [Expressions](/concepts/expressions) for the full expression syntax.
 
+## Layout Variants
+
+Templates support multiple layout variants for different platforms. Each layout stores a separate canvas design optimized for a specific size (e.g., Twitter 1200x675, Instagram 1080x1080).
+
+- Layouts are created via the **AI Resize** feature in the editor
+- Variables are shared across all layouts
+- Render a specific layout with the `layout` parameter, or multiple with `layouts`
+- The `default` layout key refers to the base template
+
+```bash
+# Render specific layout
+curl -X POST /templates/{uid}/render \
+  -d '{"variables": {"title": "Hello"}, "layout": "twitter-post"}'
+
+# Render multiple layouts
+curl -X POST /templates/{uid}/render \
+  -d '{"variables": {"title": "Hello"}, "layouts": ["default", "twitter-post", "facebook-post"]}'
+```
+
+See [Rendering - Layout Variants](/concepts/rendering#layout-variants) for details.
+
 ## Template Content
 
 A template requires either `html` or `fabricJSData` (FabricJS canvas JSON), but not both.
