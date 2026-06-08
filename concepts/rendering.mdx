@@ -34,10 +34,10 @@ Pictify renders HTML/CSS templates to various output formats. This page covers r
 ### Dimensions
 
 ```typescript
-const result = await pictify.images.create({
+const image = await pictify.renderHtml({
   html: '<h1>Hello</h1>',
-  width: 1200,    // Output width in pixels
-  height: 630,    // Output height in pixels
+  width: 1200,    // Output width in pixels (default: 1280)
+  height: 630,    // Output height in pixels (default: 720)
 });
 ```
 
@@ -45,49 +45,27 @@ const result = await pictify.images.create({
 Maximum dimensions: 4000x4000 pixels for authenticated users, 2000x2000 for public/trial.
 </Note>
 
-### Quality
+### Format
 
-For JPEG and WebP formats, set compression quality (1-100):
+`renderHtml` writes a PNG by default. Set `format` to choose the output type — it maps to the `/image` endpoint's `fileExtension`:
 
 ```typescript
-const result = await pictify.images.create({
+const image = await pictify.renderHtml({
   html: '<h1>Hello</h1>',
-  format: 'jpeg',
-  quality: 85      // 1-100, higher = better quality, larger file
+  format: 'jpeg'   // 'png' | 'jpg' | 'jpeg' | 'webp' | 'pdf' (default: png)
 });
 ```
 
-### Device Scale Factor
-
-For retina/high-DPI displays, increase the device scale factor:
-
-```typescript
-const result = await pictify.images.create({
-  html: '<h1>Hello</h1>',
-  width: 1200,
-  height: 630,
-  deviceScaleFactor: 2  // 2x resolution (2400x1260 actual pixels)
-});
-```
-
-### Transparency
-
-PNG and WebP support transparent backgrounds:
-
-```typescript
-const result = await pictify.images.create({
-  html: '<h1 style="color: white;">Hello</h1>',
-  format: 'png',
-  transparent: true
-});
-```
+<Note>
+The `/image` endpoint does not expose a `quality` knob. To control raster compression, render through a [template](/concepts/templates) (`pictify.render({ templateId, quality })`, where `quality` is `0.1`–`1.0`).
+</Note>
 
 ### Selector
 
 Capture a specific element instead of the full page:
 
 ```typescript
-const result = await pictify.images.create({
+const image = await pictify.renderHtml({
   html: '<div><header>...</header><main id="content">Target</main></div>',
   selector: '#content'  // Only capture this element
 });
@@ -98,7 +76,7 @@ const result = await pictify.images.create({
 ### From HTML
 
 ```typescript
-const result = await pictify.images.create({
+const image = await pictify.renderHtml({
   html: `
     <div style="width: 1200px; height: 630px; background: #667eea;">
       <h1 style="color: white;">Hello World</h1>
@@ -107,6 +85,8 @@ const result = await pictify.images.create({
   width: 1200,
   height: 630
 });
+
+console.log(image.url);
 ```
 
 ### From URL
@@ -114,11 +94,13 @@ const result = await pictify.images.create({
 Capture a screenshot of any URL:
 
 ```typescript
-const result = await pictify.images.create({
+const screenshot = await pictify.renderUrl({
   url: 'https://example.com/page',
   width: 1200,
   height: 630
 });
+
+console.log(screenshot.url);
 ```
 
 ### From Template
@@ -126,13 +108,15 @@ const result = await pictify.images.create({
 Render a saved template with variables:
 
 ```typescript
-const result = await pictify.templates.render('template-id', {
+const result = await pictify.render({
+  templateId: 'template-id',
   variables: {
     title: 'Dynamic Content'
   }
 });
 
-// Access the rendered image
+// Access the rendered image (result.url is a convenience accessor for results[0].url)
+console.log(result.url);
 console.log(result.results[0].url);
 ```
 
@@ -142,13 +126,15 @@ Templates can have multiple layout variants for different platforms (e.g., Twitt
 
 ```typescript
 // Render a specific layout
-const result = await pictify.templates.render('template-id', {
+const single = await pictify.render({
+  templateId: 'template-id',
   variables: { title: 'Hello' },
   layout: 'twitter-post'
 });
 
-// Render multiple layouts in one request
-const result = await pictify.templates.render('template-id', {
+// Render multiple layouts in one request (max 20)
+const result = await pictify.renderLayouts({
+  templateId: 'template-id',
   variables: { title: 'Hello' },
   layouts: ['default', 'twitter-post', 'facebook-post']
 });
@@ -165,24 +151,28 @@ The `default` layout is the base template. Use the layout key (e.g., `twitter-po
 
 ### From Canvas Data
 
-Render FabricJS canvas data directly:
+Render FabricJS canvas data directly via the `POST /image/canvas` REST endpoint. The SDKs don't wrap this endpoint, so call it with your HTTP client of choice:
 
-```typescript
-const result = await pictify.images.canvas({
-  fabricJSData: {
-    version: '5.3.0',
-    objects: [
-      { type: 'rect', fill: '#667eea', width: 1200, height: 630 },
-      { type: 'textbox', text: 'Hello', fill: 'white', top: 100, left: 100 }
-    ]
-  },
-  variables: {
-    greeting: 'Hello World'
-  },
-  width: 1200,
-  height: 630
-});
+```bash
+curl -X POST https://api.pictify.io/image/canvas \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "engine": "fabric",
+    "fabricJSData": {
+      "version": "5.3.0",
+      "objects": [
+        { "type": "rect", "fill": "#667eea", "width": 1200, "height": 630 },
+        { "type": "textbox", "text": "Hello", "fill": "white", "top": 100, "left": 100 }
+      ]
+    },
+    "variables": { "greeting": "Hello World" },
+    "width": 1200,
+    "height": 630
+  }'
 ```
+
+See the [Create Canvas Image](/api-reference/endpoints/images/canvas) reference for the full request schema.
 
 ## GIF Generation
 
@@ -191,7 +181,7 @@ const result = await pictify.images.canvas({
 Capture CSS animations:
 
 ```typescript
-const result = await pictify.gifs.create({
+const gif = await pictify.renderGif({
   html: `
     <div class="animated">
       <style>
@@ -204,19 +194,20 @@ const result = await pictify.gifs.create({
   width: 600,
   height: 400
 });
+
+console.log(gif.url, gif.animationLength);
 ```
 
-### From URL (Capture Mode)
+### From a Live URL
 
-Record interactions on a live page:
+Record motion on a live page:
 
 ```typescript
-const result = await pictify.gifs.capture({
+const gif = await pictify.renderGif({
   url: 'https://example.com/animated-page',
   width: 800,
   height: 600,
-  quality: 'high',           // 'low', 'medium', 'high'
-  frameDurationSeconds: 5    // Recording duration
+  quality: 'high'   // 'low' | 'medium' | 'high' (default: medium)
 });
 ```
 
@@ -230,39 +221,56 @@ const result = await pictify.gifs.capture({
 
 ## PDF Generation
 
-### Single Page
+### From a Template (SDK)
+
+The quickest way to produce a PDF is to render a template with `format: 'pdf'`:
 
 ```typescript
-const result = await pictify.pdfs.render({
-  templateUid: 'invoice-template',
+const result = await pictify.render({
+  templateId: 'invoice-template',
   variables: {
     invoiceNumber: 'INV-001',
-    items: [...]
   },
-  options: {
-    preset: 'A4',
-    margins: { top: 20, bottom: 20, left: 20, right: 20 }
-  }
+  format: 'pdf'
 });
+
+console.log(result.url);
 ```
 
-### Multi-Page
+### Paper Sizes & Multi-Page (REST)
 
-Generate a PDF with multiple pages:
+The dedicated PDF endpoints (`POST /pdf/render` and `POST /pdf/multi-page`) accept paper-size presets, margins, and per-page content. The SDKs don't wrap these directly, so call them with your HTTP client:
 
-```typescript
-const result = await pictify.pdfs.multiPage({
-  templateUid: 'report-template',
-  variableSets: [
-    { pageTitle: 'Introduction', content: '...' },
-    { pageTitle: 'Chapter 1', content: '...' },
-    { pageTitle: 'Conclusion', content: '...' }
-  ],
-  options: {
-    preset: 'A4'
-  }
-});
+```bash
+# Single page with a paper-size preset and margins
+curl -X POST https://api.pictify.io/pdf/render \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "templateUid": "invoice-template",
+    "variables": { "invoiceNumber": "INV-001" },
+    "preset": "A4",
+    "margins": { "top": 20, "bottom": 20, "left": 20, "right": 20 }
+  }'
 ```
+
+```bash
+# Multi-page: one page per variable set
+curl -X POST https://api.pictify.io/pdf/multi-page \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "templateUid": "report-template",
+    "variableSets": [
+      { "pageTitle": "Introduction", "content": "..." },
+      { "pageTitle": "Chapter 1", "content": "..." },
+      { "pageTitle": "Conclusion", "content": "..." }
+    ],
+    "preset": "A4"
+  }'
+```
+
+See the [PDF Generation](/api-reference/generation/pdfs) reference for all options.
 
 ### PDF Presets
 
@@ -275,28 +283,36 @@ const result = await pictify.pdfs.multiPage({
 | `A5` | 148 × 210 mm | Booklets |
 | `custom` | User-defined | Custom sizes |
 
-```typescript
-// Custom PDF size
-const result = await pictify.pdfs.render({
-  templateUid: 'template-id',
-  options: {
-    preset: 'custom',
-    customSize: { width: 800, height: 600 }  // In pixels
-  }
-});
+```bash
+# Custom PDF size
+curl -X POST https://api.pictify.io/pdf/render \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "templateUid": "template-id",
+    "preset": "custom",
+    "customSize": { "width": 800, "height": 600 }
+  }'
 ```
 
-## Agent Screenshot
+## Screenshot a Section of a Page
 
-AI-powered screenshot generation using natural language:
+To capture a specific region of a live page, screenshot the URL and crop to an element with `selector`:
 
 ```typescript
-const result = await pictify.images.agentScreenshot({
-  prompt: 'Take a screenshot of the pricing section on stripe.com'
+const screenshot = await pictify.renderUrl({
+  url: 'https://stripe.com/pricing',
+  selector: '#pricing',   // crop to this element
+  width: 1200,
+  height: 630
 });
+
+console.log(screenshot.url);
 ```
 
-The AI agent navigates to the page, finds the relevant section, and captures it.
+<Note>
+Prefer natural language? The [Pictify MCP server](/agent-integration/mcp-server) lets AI agents request screenshots conversationally — the SDKs themselves expose the direct `renderUrl` call shown above.
+</Note>
 
 ## Response Format
 
@@ -378,109 +394,62 @@ If you've configured user storage (S3, R2, etc.), renders are also uploaded to y
 
 ## Batch Rendering
 
-Render multiple variable sets from a single template in one API call. Each batch item can produce multiple layout variants.
+Render many variable sets from a single template. Batch rendering is **asynchronous**: submitting returns immediately with a `batchId`, and the job runs in the background.
 
 ### Request
 
 ```typescript
-const result = await pictify.renderBatch({
+const job = await pictify.renderBatch({
   templateId: 'product-card',
-  items: [
-    { variables: { title: 'Card 1' } },
-    { variables: { title: 'Card 2' } },
-  ],
-  layouts: ['default', 'twitter-post']
+  variableSets: [
+    { title: 'Card 1' },
+    { title: 'Card 2' },
+  ], // max 100 per batch
+  layouts: ['default', 'twitter-post'], // optional; or `layout: 'square'`
 });
+
+// { batchId, status, totalItems }
+console.log(job.batchId);
 ```
 
 Pass `layout` (string) for a single variant, or `layouts` (array) for multiple variants per item.
 
-### Batch Response Format
+### Tracking Progress
 
-Each item in the batch results contains a nested `results` array (one entry per layout) and an `errors` array:
+Poll `getBatchResults(batchId)` to track status. The poll response reports per-item `index`, `success`, and `variables` — but **not** rendered URLs:
 
 ```json
 {
   "batchId": "batch_abc123",
   "status": "completed",
+  "progress": 100,
   "totalItems": 2,
   "completedItems": 2,
   "failedItems": 0,
   "results": [
-    {
-      "index": 0,
-      "success": true,
-      "variables": ["title"],
-      "results": [
-        {
-          "layout": "default",
-          "name": "Default",
-          "url": "https://cdn.pictify.io/renders/img_1.png",
-          "width": 1080,
-          "height": 1080,
-          "format": "png",
-          "id": "img_1"
-        },
-        {
-          "layout": "twitter-post",
-          "name": "Twitter/X Post",
-          "url": "https://cdn.pictify.io/renders/img_2.png",
-          "width": 1200,
-          "height": 675,
-          "format": "png",
-          "id": "img_2"
-        }
-      ],
-      "errors": []
-    },
-    {
-      "index": 1,
-      "success": true,
-      "variables": ["title"],
-      "results": [
-        {
-          "layout": "default",
-          "name": "Default",
-          "url": "https://cdn.pictify.io/renders/img_3.png",
-          "width": 1080,
-          "height": 1080,
-          "format": "png",
-          "id": "img_3"
-        },
-        {
-          "layout": "twitter-post",
-          "name": "Twitter/X Post",
-          "url": "https://cdn.pictify.io/renders/img_4.png",
-          "width": 1200,
-          "height": 675,
-          "format": "png",
-          "id": "img_4"
-        }
-      ],
-      "errors": []
-    }
-  ]
+    { "index": 0, "success": true, "variables": ["title"] },
+    { "index": 1, "success": true, "variables": ["title"] }
+  ],
+  "errors": []
 }
 ```
-
-### Accessing Batch Results
 
 ```typescript
-for (const item of result.results) {
-  console.log(`Item ${item.index}: success=${item.success}`);
-  for (const r of item.results) {
-    console.log(`  ${r.layout} (${r.width}x${r.height}): ${r.url}`);
-  }
-  for (const e of item.errors) {
-    console.log(`  Error in ${e.layout}: ${e.error}`);
-  }
+const status = await pictify.getBatchResults(job.batchId);
+console.log(status.status, status.completedItems, 'of', status.totalItems);
+for (const item of status.results) {
+  console.log(`item ${item.index}: success=${item.success}`);
 }
 ```
+
+<Warning>
+**Rendered URLs are not returned by the poll endpoint.** Final image URLs are delivered via the `render.completed` webhook — subscribe to [webhooks](/concepts/webhooks) to collect batch output. See the [Batch Processing guide](/guides/batch-processing) for the full workflow.
+</Warning>
 
 ## Performance Tips
 
 1. **Use appropriate dimensions** - Don't render larger than needed
 2. **Choose the right format** - JPEG for photos, PNG for graphics, WebP for best compression
-3. **Set quality wisely** - 85% is usually indistinguishable from 100%
-4. **Batch similar renders** - Use batch endpoints for multiple images
+3. **Tune template quality** - for template renders, `quality` 0.9 is usually indistinguishable from 1.0
+4. **Batch similar renders** - Use batch rendering for many images from one template
 5. **Cache rendered images** - Store URLs and reuse instead of re-rendering

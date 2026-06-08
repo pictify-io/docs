@@ -317,12 +317,12 @@ if (!response.ok) {
 
 ```typescript
 async function renderWithRetry(
-  options: RenderOptions,
+  options: RenderHtmlOptions,
   maxRetries = 3
-): Promise<RenderResult> {
+): Promise<ImageResult> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      return await pictify.images.create(options);
+      return await pictify.renderHtml(options);
     } catch (error) {
       if (error.status === 429) {
         const delay = error.retryAfter * 1000 || Math.pow(2, attempt) * 1000;
@@ -345,7 +345,7 @@ async function renderWithRetry(
 
 ```typescript
 try {
-  const result = await pictify.templates.render(templateId, { variables });
+  const result = await pictify.render({ templateId, variables });
 } catch (error) {
   console.error('Pictify API Error:', {
     type: error.type,

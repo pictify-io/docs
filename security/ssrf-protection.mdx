@@ -87,14 +87,14 @@ When rendering screenshots from URLs, Pictify validates the target:
 
 ```typescript
 // ✅ Safe - public URL
-const image = await pictify.images.create({
+const image = await pictify.renderUrl({
   url: 'https://example.com',
   width: 1200,
   height: 630
 });
 
 // ❌ Blocked - private IP
-const image = await pictify.images.create({
+const blocked = await pictify.renderUrl({
   url: 'http://192.168.1.1/admin',  // Will fail
   width: 1200,
   height: 630
@@ -103,22 +103,30 @@ const image = await pictify.images.create({
 
 ### Bindings with External Data
 
-When creating bindings that fetch external data:
+Bindings are created via the `POST /bindings` REST endpoint (the SDKs don't wrap bindings). The same SSRF rules apply to the binding's data URL:
 
-```typescript
-// ✅ Safe - public API
-const binding = await pictify.bindings.create({
-  templateUid: 'tmpl_abc123',
-  dataUrl: 'https://api.github.com/repos/your/repo',
-  schedule: '0 * * * *'
-});
+```bash
+# ✅ Safe - public API
+curl -X POST https://api.pictify.io/bindings \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "templateUid": "tmpl_abc123",
+    "url": "https://api.github.com/repos/your/repo",
+    "refreshPolicy": { "type": "ttl", "ttl": 3600 }
+  }'
+```
 
-// ❌ Blocked - internal service
-const binding = await pictify.bindings.create({
-  templateUid: 'tmpl_abc123',
-  dataUrl: 'http://internal-api.local/metrics',  // Will fail
-  schedule: '0 * * * *'
-});
+```bash
+# ❌ Blocked - internal service (request will fail)
+curl -X POST https://api.pictify.io/bindings \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "templateUid": "tmpl_abc123",
+    "url": "http://internal-api.local/metrics",
+    "refreshPolicy": { "type": "ttl", "ttl": 3600 }
+  }'
 ```
 
 ### HTML with External Resources
@@ -188,7 +196,7 @@ function isValidPublicUrl(urlString: string): boolean {
 
 // Use before passing to Pictify
 if (isValidPublicUrl(userProvidedUrl)) {
-  const image = await pictify.images.create({
+  const image = await pictify.renderUrl({
     url: userProvidedUrl,
     width: 1200,
     height: 630
@@ -231,7 +239,7 @@ app.post('/api/screenshot', async (req, res) => {
   logger.info('Screenshot requested', { url, userId: req.user.id });
 
   try {
-    const image = await pictify.images.create({ url, width: 1200, height: 630 });
+    const image = await pictify.renderUrl({ url, width: 1200, height: 630 });
     res.json({ url: image.url });
   } catch (error) {
     if (error.type === 'https://docs.pictify.io/errors/blocked-url') {
