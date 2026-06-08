@@ -57,7 +57,7 @@ const pictify = new Pictify({
   apiKey: 'your-api-key'
 });
 
-const result = await pictify.images.create({
+const image = await pictify.renderHtml({
   html: `
     <div style="width: 1200px; height: 630px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center;">
       <h1 style="color: white; font-size: 64px; font-family: sans-serif;">Hello, Pictify!</h1>
@@ -67,7 +67,7 @@ const result = await pictify.images.create({
   height: 630
 });
 
-console.log('Image URL:', result.url);
+console.log('Image URL:', image.url);
 ```
 
 ```python Python
@@ -75,7 +75,7 @@ from pictify import Pictify
 
 client = Pictify(api_key="your-api-key")
 
-result = client.images.create(
+image = client.render_html(
     html="""
     <div style="width: 1200px; height: 630px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center;">
       <h1 style="color: white; font-size: 64px; font-family: sans-serif;">Hello, Pictify!</h1>
@@ -85,7 +85,7 @@ result = client.images.create(
     height=630
 )
 
-print("Image URL:", result.url)
+print("Image URL:", image.url)
 ```
 
 ```go Go
@@ -100,7 +100,7 @@ import (
 func main() {
     client := pictify.NewClient("your-api-key")
 
-    result, err := client.Images.Create(context.Background(), &pictify.ImageRequest{
+    image, err := client.RenderHTML(context.Background(), &pictify.RenderHTMLOptions{
         HTML: `<div style="width: 1200px; height: 630px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center;">
           <h1 style="color: white; font-size: 64px; font-family: sans-serif;">Hello, Pictify!</h1>
         </div>`,
@@ -112,7 +112,7 @@ func main() {
         panic(err)
     }
 
-    fmt.Println("Image URL:", result.URL)
+    fmt.Println("Image URL:", image.URL)
 }
 ```
 
@@ -121,8 +121,8 @@ require 'pictify'
 
 client = Pictify::Client.new(api_key: 'your-api-key')
 
-result = client.images.create(
-  html: <<~HTML
+image = client.render_html(
+  html: <<~HTML,
     <div style="width: 1200px; height: 630px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center;">
       <h1 style="color: white; font-size: 64px; font-family: sans-serif;">Hello, Pictify!</h1>
     </div>
@@ -131,7 +131,7 @@ result = client.images.create(
   height: 630
 )
 
-puts "Image URL: #{result.url}"
+puts "Image URL: #{image.url}"
 ```
 </CodeGroup>
 
@@ -154,24 +154,29 @@ Templates let you create reusable designs with variables. Create a template in t
 
 <CodeGroup>
 ```typescript Node.js
-const result = await pictify.templates.render('your-template-id', {
+const result = await pictify.render({
+  templateId: 'your-template-uid',
   variables: {
     title: 'My Blog Post',
     author: 'Jane Doe',
     publishedAt: '2026-01-29'
   }
 });
+
+console.log(result.url); // results[0].url
 ```
 
 ```python Python
-result = client.templates.render(
-    template_id="your-template-id",
+result = client.render(
+    "your-template-uid",
     variables={
         "title": "My Blog Post",
         "author": "Jane Doe",
         "publishedAt": "2026-01-29"
     }
 )
+
+print(result.url)  # results[0].url
 ```
 </CodeGroup>
 
