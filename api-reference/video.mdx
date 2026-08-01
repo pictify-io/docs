@@ -22,7 +22,7 @@ curl https://api.pictify.io/video/templates \
 
 Returns `{ "templates": [...] }` with each template's `uid`, `kind`, dimensions, fps, duration and variable definitions — everything you need to render it.
 
-## Render a template to MP4
+## Render a template — MP4 or GIF
 
 ```bash
 curl -X POST https://api.pictify.io/video/templates/TEMPLATE_UID/render \
@@ -32,16 +32,20 @@ curl -X POST https://api.pictify.io/video/templates/TEMPLATE_UID/render \
     "variables": {
       "title": "Welcome, Maya!",
       "accentColor": "#ff5533"
-    }
+    },
+    "format": "mp4"
   }'
 ```
+
+`format` is `"mp4"` (default) or `"gif"`. GIF output is palette-optimised and capped at 15fps and 720px wide, so files stay shareable — a GIF is the same template and the same render, encoded for places an MP4 cannot autoplay.
 
 Response:
 
 ```json
 {
   "url": "https://media.pictify.io/videos/....mp4",
-  "durationInFrames": 240
+  "durationInFrames": 240,
+  "format": "mp4"
 }
 ```
 
