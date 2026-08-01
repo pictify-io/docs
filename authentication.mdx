@@ -28,7 +28,7 @@ Include your API key in the `Authorization` header as a Bearer token:
 
 ```bash
 curl -X POST https://api.pictify.io/image \
-  -H "Authorization: Bearer pk_live_abc123..." \
+  -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"html": "<h1>Hello</h1>"}'
 ```
@@ -59,14 +59,11 @@ client = Pictify::Client.new(api_key: ENV['PICTIFY_API_KEY'])
 ```
 </CodeGroup>
 
-## API Key Types
+## Key Format
 
-| Prefix | Type | Environment |
-|--------|------|-------------|
-| `pk_live_` | Production | Live API access |
-| `pk_test_` | Test | Sandbox environment |
+An API key is a single 64-character hex string — there are no key prefixes, key types, or sandbox keys. Every key is a live key: requests made with it render real assets and count against your plan's monthly credits.
 
-Test keys work identically to production keys but are rate-limited and do not count against your quota.
+To test without spending credits, use the free tier's included credits or the [API Playground](https://pictify.io/dashboard/api-playground), which shows the exact request and response for every endpoint.
 
 ## Security Best Practices
 
@@ -76,7 +73,7 @@ Never hardcode API keys. Use environment variables:
 
 ```bash
 # .env
-PICTIFY_API_KEY=pk_live_abc123...
+PICTIFY_API_KEY=your-64-character-api-key
 ```
 
 ### Server-Side Only
@@ -102,36 +99,22 @@ Create separate API keys for different environments and services:
 - CI/CD pipeline
 - Local development
 
-## Rate Limits
+## Rate Limits and Quotas
 
-API requests are rate limited by API key:
+Two separate limits apply:
 
-| Plan | Requests per Minute | Requests per Day |
-|------|--------------------:|----------------:|
-| Free | 60 | 1,000 |
-| Pro | 300 | 10,000 |
-| Business | 1,000 | 100,000 |
-| Enterprise | Custom | Custom |
+- **Monthly credits** — every render (image, GIF, PDF page, video) consumes credits from your plan. When they run out, generation endpoints return `402` with a message asking you to upgrade or wait for the monthly reset.
+- **Per-endpoint rate limits** — a small number of endpoints carry fixed per-minute limits (for example, unauthenticated public rendering and template previews). Authenticated generation endpoints are governed by your credit quota rather than a request-per-minute table.
 
-Rate limit headers are included in every response:
-
-```http
-X-RateLimit-Limit: 300
-X-RateLimit-Remaining: 299
-X-RateLimit-Reset: 1706515260
-```
-
-When rate limited, you'll receive a `429 Too Many Requests` response with a `Retry-After` header:
+The API does not send `X-RateLimit-*` headers. When a request is rejected for quota or rate reasons, the response body carries a plain message:
 
 ```json
 {
-  "type": "https://docs.pictify.io/errors/rate-limit",
-  "title": "Rate Limit Exceeded",
-  "status": 429,
-  "detail": "You have exceeded the rate limit. Please retry after 60 seconds.",
-  "instance": "/image"
+  "message": "You've used all your renders for this month. Upgrade your plan to unlock more, or hang tight until next month!"
 }
 ```
+
+Handle `402` (quota) and `429` (rate) by backing off and surfacing the `message` to your logs — there is no machine-readable retry hint.
 
 ## Team API Keys
 

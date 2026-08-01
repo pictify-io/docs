@@ -45,7 +45,11 @@
         "groups": [
           {
             "group": "Getting Started",
-            "pages": ["introduction", "quickstart", "authentication"]
+            "pages": [
+              "introduction",
+              "quickstart",
+              "authentication"
+            ]
           },
           {
             "group": "Concepts",
@@ -80,7 +84,10 @@
         "groups": [
           {
             "group": "Overview",
-            "pages": ["api-reference/overview", "api-reference/errors"]
+            "pages": [
+              "api-reference/overview",
+              "api-reference/errors"
+            ]
           },
           {
             "group": "Images",
@@ -131,6 +138,18 @@
               "api-reference/endpoints/batch/render",
               "api-reference/endpoints/batch/results",
               "api-reference/endpoints/batch/cancel"
+            ]
+          },
+          {
+            "group": "Video",
+            "pages": [
+              "api-reference/video"
+            ]
+          },
+          {
+            "group": "Workflows",
+            "pages": [
+              "api-reference/workflows"
             ]
           },
           {
@@ -248,7 +267,13 @@
       "display": "interactive"
     },
     "examples": {
-      "languages": ["curl", "javascript", "python", "go", "ruby"]
+      "languages": [
+        "curl",
+        "javascript",
+        "python",
+        "go",
+        "ruby"
+      ]
     },
     "mdx": {
       "auth": {
@@ -256,7 +281,9 @@
       }
     }
   },
-  "openapi": ["openapi/v1.yaml"],
+  "openapi": [
+    "openapi/v1.yaml"
+  ],
   "feedback": {
     "thumbsRating": true,
     "suggestEdit": true

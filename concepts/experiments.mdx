@@ -232,7 +232,7 @@ curl https://api.pictify.io/experiments/api/quota \
 ## Security Considerations
 
 <Warning>
-**Write Key vs API Token**: Your API token (`pk_live_...`) is a secret and must never be exposed client-side. The write key is designed for client-side event tracking and is safe to include in browser code.
+**Write Key vs API Token**: Your API token is a secret and must never be exposed client-side. The write key is designed for client-side event tracking and is safe to include in browser code.
 </Warning>
 
 - **Experiment slugs are public identifiers** visible in URLs. Do not embed sensitive information in slug names.

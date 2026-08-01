@@ -7,12 +7,9 @@ description: Best practices for managing and securing API keys
 
 API keys authenticate your requests to the Pictify API. Proper key management is essential for security.
 
-## Key Types
+## Key Format
 
-| Type | Prefix | Environment | Capabilities |
-|------|--------|-------------|--------------|
-| Live | `pk_live_` | Production | Full API access |
-| Test | `pk_test_` | Development | Limited renders, test data |
+An API key is a single 64-character hex string with full access to your team's resources. There are no key types, prefixes, or sandbox keys — every key is live, and every render it makes consumes your plan's monthly credits.
 
 ## Creating API Keys
 
@@ -26,8 +23,7 @@ API keys authenticate your requests to the Pictify API. Proper key management is
 ### Key Properties
 
 Each key includes:
-- **Key ID** - Public identifier (e.g., `key_abc123`)
-- **Secret** - The actual key value (e.g., `pk_live_xyz...`)
+- **Secret** - The key value itself (a 64-character hex string)
 - **Name** - Your description
 - **Created** - Creation timestamp
 - **Last Used** - Last API call timestamp
@@ -40,7 +36,7 @@ The recommended approach for most applications:
 
 ```bash
 # .env (never commit this file)
-PICTIFY_API_KEY=pk_live_your_api_key
+PICTIFY_API_KEY=your-64-character-api-key
 ```
 
 ```typescript
@@ -100,7 +96,7 @@ metadata:
   name: pictify-credentials
 type: Opaque
 stringData:
-  api-key: pk_live_your_api_key
+  api-key: your-64-character-api-key
 ```
 
 ```yaml
@@ -241,7 +237,7 @@ If you suspect a key has been compromised:
 
 ```typescript
 // ❌ Never do this
-const pictify = new Pictify({ apiKey: 'pk_live_abc123xyz' });
+const pictify = new Pictify({ apiKey: 'a3f8c2...' }); // never hardcode
 
 // ✅ Use environment variables
 const pictify = new Pictify({ apiKey: process.env.PICTIFY_API_KEY });
@@ -260,7 +256,7 @@ echo ".env" >> .gitignore
 ### Sharing Keys in Chat
 
 ```
-❌ "Here's the API key: pk_live_abc123xyz"
+❌ "Here's the API key: a3f8c2d914..."
 ✅ "I've added the key to the team secrets manager"
 ```
 
@@ -268,8 +264,8 @@ echo ".env" >> .gitignore
 
 ```bash
 # ❌ Development with production key
-PICTIFY_API_KEY=pk_live_production_key npm run dev
+PICTIFY_API_KEY=YOUR_PRODUCTION_KEY npm run dev
 
 # ✅ Use test key for development
-PICTIFY_API_KEY=pk_test_development_key npm run dev
+PICTIFY_API_KEY=YOUR_DEVELOPMENT_KEY npm run dev
 ```

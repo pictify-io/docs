@@ -1,0 +1,101 @@
+---
+title: Video Templates
+description: Programmatic MP4 video from templates — render, generate with AI, and manage over the same API token
+---
+
+# Video Templates API
+
+Render MP4 video the same way you render images: build a **video template** once, then render it with different variables per request. Templates come in two kinds — **timeline** templates built in the visual studio, and **code** templates written as single-file Remotion (React) scenes — and both render through the same endpoint.
+
+All endpoints live under `/video` and accept your normal API key as a Bearer token.
+
+<Note>
+Video renders are long requests: expect up to a few minutes for a full render. The request waits and returns the finished MP4 URL. Each render consumes credits like any other generation.
+</Note>
+
+## List your video templates
+
+```bash
+curl https://api.pictify.io/video/templates \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+Returns `{ "templates": [...] }` with each template's `uid`, `kind`, dimensions, fps, duration and variable definitions — everything you need to render it.
+
+## Render a template to MP4
+
+```bash
+curl -X POST https://api.pictify.io/video/templates/TEMPLATE_UID/render \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  --data-raw '{
+    "variables": {
+      "title": "Welcome, Maya!",
+      "accentColor": "#ff5533"
+    }
+  }'
+```
+
+Response:
+
+```json
+{
+  "url": "https://media.pictify.io/videos/....mp4",
+  "durationInFrames": 240
+}
+```
+
+Variables are validated against the template's declared definitions — an undeclared or malformed variable returns `422` with `code: "invalid_variable"` rather than rendering something wrong.
+
+## Get a template's variables
+
+```bash
+curl https://api.pictify.io/video/templates/TEMPLATE_UID/variables \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+Use this to build forms or map spreadsheet columns before rendering.
+
+## Generate a template with AI
+
+Describe the video; the API designs a motion brief, writes the scene code, compiles it, renders preview frames and reviews them visually — then returns a draft template ready to render or refine in the studio.
+
+```bash
+curl -X POST https://api.pictify.io/video/templates/generate \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  --data-raw '{
+    "prompt": "An 8 second product launch teaser for a developer tool called ShipFast — dark, electric, type-driven",
+    "width": 1080,
+    "height": 1080,
+    "durationSeconds": 8,
+    "brandColor": "#00ff41"
+  }'
+```
+
+Response: `{ "template": {...}, "previewUrl": "https://..." }` — the template's schema fields (texts, colours, optional image) are derived from the generated scene, so the result is immediately parameterisable.
+
+Generation takes 30–60 seconds and is metered as one render.
+
+## Preview a single frame
+
+```bash
+curl -X POST https://api.pictify.io/video/templates/TEMPLATE_UID/preview \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  --data-raw '{ "variables": {}, "frame": 45 }'
+```
+
+Renders one frame to PNG — a cheap way to check a variable set before committing to a full video render. Metered as one image.
+
+## Template management
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `POST` | `/video/templates` | Create a template (timeline `projectJson` or code `tsx`) |
+| `GET` | `/video/templates/:uid` | Fetch one template |
+| `PUT` | `/video/templates/:uid` | Update — code templates are recompiled and re-validated |
+| `DELETE` | `/video/templates/:uid` | Delete |
+| `POST` | `/video/templates/:uid/duplicate` | Copy — the natural way to make a variant |
+
+Code (`tsx`) templates pass a compile gate on every create and update: imports are restricted to `remotion`, `react` and `zod`, and a template that does not build is rejected with `422` and the compiler errors, so a template that saves is a template that renders.

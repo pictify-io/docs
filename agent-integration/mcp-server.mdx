@@ -32,7 +32,7 @@ Add Pictify to your Claude Desktop configuration:
       "command": "npx",
       "args": ["-y", "@pictify/mcp-server"],
       "env": {
-        "PICTIFY_API_KEY": "pk_live_your_api_key"
+        "PICTIFY_API_KEY": "YOUR_API_KEY"
       }
     }
   }
@@ -50,7 +50,7 @@ claude mcp add pictify -- npx -y @pictify/mcp-server
 Set your API key:
 
 ```bash
-export PICTIFY_API_KEY=pk_live_your_api_key
+export PICTIFY_API_KEY=YOUR_API_KEY
 ```
 
 ### Other MCP Clients
@@ -202,7 +202,7 @@ Here are your documentation screenshots:
       "command": "npx",
       "args": ["-y", "@pictify/mcp-server"],
       "env": {
-        "PICTIFY_API_KEY": "pk_live_...",
+        "PICTIFY_API_KEY": "your-api-key",
         "PICTIFY_BASE_URL": "https://api.pictify.io"
       }
     }
@@ -269,7 +269,7 @@ from langchain.tools import Tool
 from langchain.agents import initialize_agent
 from pictify import Pictify
 
-pictify = Pictify(api_key='pk_live_...')
+pictify = Pictify(api_key='your-api-key')
 
 def create_image(html: str, width: int = 1200, height: int = 630) -> str:
     """Generate an image from HTML content."""
