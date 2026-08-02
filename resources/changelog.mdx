@@ -7,6 +7,25 @@ description: Recent updates and improvements to Pictify
 
 Stay up to date with the latest features, improvements, and fixes.
 
+## August 2026
+
+**Video Templates**
+- Video template API: build a template once (visual timeline studio or a single-file Remotion scene), render it with variables per request — `POST /video/templates/:uid/render`
+- GIF output from the video engine: the same render call takes `format: "gif"` — palette-optimised, capped at 15fps / 720px for shareable file sizes
+- AI template generation: `POST /video/templates/generate` designs a motion brief, writes the scene code, compiles it, renders frames and reviews them visually before returning a draft template
+- AI copilot in the studio: describe a change — or a whole video — and it is designed, built with validated edits, and reviewed, with one-click undo per run
+- Captions from speech, stock media search, effects, keyframes, transitions and a font library in the timeline studio
+- Server-rendered posters: every code template gets a thumbnail automatically
+
+**Workflows**
+- Inbound hooks: a public URL per workflow that accepts rows from any system, with optional HMAC signature verification (`X-Pictify-Signature`)
+- Run stats and per-row progress (`total / rendered / delivered / failed`)
+- Saved-template plan limits enforced server-side, shared across image and video templates
+
+**Improvements**
+- API Playground reorganised by product — HTML Rendering, Image Templates, Batch, PDF, Video — with PDF and video endpoints included for the first time
+- Documentation corrected against the live API: real key format, real error shapes, real rate-limit behaviour
+
 ## January 2026
 
 ### January 29, 2026

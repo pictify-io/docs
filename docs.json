@@ -141,6 +141,12 @@
             ]
           },
           {
+            "group": "URL Rendering",
+            "pages": [
+              "api-reference/url-rendering"
+            ]
+          },
+          {
             "group": "Video",
             "pages": [
               "api-reference/video"

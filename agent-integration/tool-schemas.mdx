@@ -58,48 +58,22 @@ Use these JSON schemas to integrate Pictify with AI agents, function calling, an
 }
 ```
 
-### Screenshot URL
+### Screenshot a URL
+
+There is no separate screenshot tool — screenshots go through `pictify_create_image` with `url` instead of `html` (the two are mutually exclusive, along with `template`):
 
 ```json
 {
-  "name": "pictify_screenshot",
-  "description": "Capture a screenshot of a web page. Use for documentation, comparisons, or archiving web content.",
-  "input_schema": {
-    "type": "object",
-    "properties": {
-      "url": {
-        "type": "string",
-        "format": "uri",
-        "description": "URL to screenshot (must be publicly accessible)"
-      },
-      "width": {
-        "type": "integer",
-        "default": 1200,
-        "description": "Viewport width in pixels"
-      },
-      "height": {
-        "type": "integer",
-        "default": 630,
-        "description": "Viewport height in pixels"
-      },
-      "fullPage": {
-        "type": "boolean",
-        "default": false,
-        "description": "Capture the full scrollable page"
-      },
-      "selector": {
-        "type": "string",
-        "description": "CSS selector to capture specific element"
-      },
-      "waitForSelector": {
-        "type": "string",
-        "description": "Wait for element before capturing"
-      }
-    },
-    "required": ["url"]
+  "name": "pictify_create_image",
+  "arguments": {
+    "url": "https://example.com/pricing",
+    "width": 1280,
+    "height": 800
   }
 }
 ```
+
+The page must be publicly accessible over http(s).
 
 ## Template Operations
 
