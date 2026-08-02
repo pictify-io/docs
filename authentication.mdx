@@ -28,7 +28,7 @@ Include your API key in the `Authorization` header as a Bearer token:
 
 ```bash
 curl -X POST https://api.pictify.io/image \
-  -H "Authorization: Bearer pk_live_abc123..." \
+  -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"html": "<h1>Hello</h1>"}'
 ```
@@ -59,14 +59,11 @@ client = Pictify::Client.new(api_key: ENV['PICTIFY_API_KEY'])
 ```
 </CodeGroup>
 
-## API Key Types
+## Key Format
 
-| Prefix | Type | Environment |
-|--------|------|-------------|
-| `pk_live_` | Production | Live API access |
-| `pk_test_` | Test | Sandbox environment |
+An API key is a single 64-character hex string — there are no key prefixes, key types, or sandbox keys. Every key is a live key: requests made with it render real assets and count against your plan's monthly credits.
 
-Test keys work identically to production keys but are rate-limited and do not count against your quota.
+To test without spending credits, use the free tier's included credits or the [API Playground](https://pictify.io/dashboard/api-playground), which shows the exact request and response for every endpoint.
 
 ## Security Best Practices
 
@@ -76,7 +73,7 @@ Never hardcode API keys. Use environment variables:
 
 ```bash
 # .env
-PICTIFY_API_KEY=pk_live_abc123...
+PICTIFY_API_KEY=your-64-character-api-key
 ```
 
 ### Server-Side Only
@@ -102,36 +99,73 @@ Create separate API keys for different environments and services:
 - CI/CD pipeline
 - Local development
 
-## Rate Limits
+## Rate Limits and Quotas
 
-API requests are rate limited by API key:
+Two separate limits apply, and — for historical reasons — they surface under different status codes per endpoint family:
 
-| Plan | Requests per Minute | Requests per Day |
-|------|--------------------:|----------------:|
-| Free | 60 | 1,000 |
-| Pro | 300 | 10,000 |
-| Business | 1,000 | 100,000 |
-| Enterprise | Custom | Custom |
+- **Monthly credits** — every render (image, GIF, PDF, video) consumes render credits; see [Credits](#credits) below for what each operation costs. When they run out, the **image, GIF, HTML-template and batch endpoints return `429`** with `code: "quota_exceeded"`, while the **video and workflow endpoints return `402`** with the same code. Treat `quota_exceeded` as "wait for the monthly reset or upgrade" — never as "retry with backoff": no amount of retrying refills a monthly quota.
+- **Per-endpoint rate limits** — a few endpoints (unauthenticated public rendering, template previews) carry fixed per-minute limits. These return `429` *without* a `quota_exceeded` code and DO send standard `x-ratelimit-*` headers and `retry-after` — those are genuinely retryable after backing off.
 
-Rate limit headers are included in every response:
+So the rule for `429` is: **check the `code` field first.** `quota_exceeded` means credits, not rate.
 
-```http
-X-RateLimit-Limit: 300
-X-RateLimit-Remaining: 299
-X-RateLimit-Reset: 1706515260
-```
-
-When rate limited, you'll receive a `429 Too Many Requests` response with a `Retry-After` header:
+A quota rejection carries a plain message:
 
 ```json
 {
-  "type": "https://docs.pictify.io/errors/rate-limit",
-  "title": "Rate Limit Exceeded",
-  "status": 429,
-  "detail": "You have exceeded the rate limit. Please retry after 60 seconds.",
-  "instance": "/image"
+  "message": "You've used all your renders for this month. Upgrade your plan to unlock more, or hang tight until next month!"
 }
 ```
+
+Handle `402` (quota) and `429` (rate) by backing off and surfacing the `message` to your logs — there is no machine-readable retry hint.
+
+## Credits
+
+Your plan carries **two separate monthly pools**. They never mix: renders spend our own rendering compute, while AI operations spend metered third-party AI services, so each is budgeted in its own currency.
+
+### Render credits
+
+Every render costs **1 render credit** — one image, one GIF, one PDF, one video render, one workflow (CSV row or webhook) render, one item in a batch. The single exception is GIF capture from a live URL (`POST /gif/capture`), which costs **1.5 render credits** because it records a headless browser session.
+
+Monthly render allowances per plan are listed on the [pricing page](https://pictify.io/pricing). Paid plans can enable overage billing to keep rendering past the allowance.
+
+### AI credits
+
+All AI operations draw from **one** AI credit pool — there are no separate per-feature AI allowances:
+
+| Operation | Cost |
+| --- | --- |
+| Copilot instruction — template editor or video studio (design, execute and review rounds all included) | 1 AI credit |
+| AI code edit of a template | 1 AI credit |
+| AI video generation (brief, scene code, compile, visual review, poster) | 5 AI credits |
+| Transcription / captions | 1 AI credit per started minute of audio |
+
+Monthly AI credit allowances per plan:
+
+| Plan | AI credits / month |
+| --- | --- |
+| Free | 25 |
+| Basic | 300 |
+| Pro | 1,000 |
+| Business | 4,000 |
+| Business Plus | 6,000 |
+
+Billing rules, in your favor:
+
+- **Charged per user intention, not per internal step.** One copilot instruction is 1 credit even if it runs many model rounds internally.
+- **Failures are never billed.** Credits are checked before an operation starts and spent only after it succeeds.
+- **Silence is never billed.** Transcribing a clip in which no speech is found costs nothing (the request returns `422` with `code: "no_speech"`). When speech is found, minutes are counted up to the last spoken word, not the full clip length.
+- **Renders inside AI operations are included.** Review frames and posters generated during an AI operation are part of its AI price — they do not also consume render credits.
+
+AI credits reset on the first of each calendar month. There is no overage billing for AI credits: when the pool is exhausted, AI endpoints return **`402`** with `code: "ai_quota_exceeded"`:
+
+```json
+{
+  "message": "You've used this month's AI credits. Upgrade your plan for more, or they reset next month.",
+  "code": "ai_quota_exceeded"
+}
+```
+
+Your current balance for both pools is shown on the dashboard's usage meter, and the AI balance is included in the `aiCredits: { used, limit }` field of the plan details endpoint.
 
 ## Team API Keys
 

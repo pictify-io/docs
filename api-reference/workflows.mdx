@@ -1,0 +1,75 @@
+---
+title: Workflows
+description: CSV or webhook in, branded documents out — batch runs with per-recipient delivery
+---
+
+# Workflows API
+
+A workflow turns rows of data into rendered, delivered documents: point it at a spreadsheet or push rows to its inbound hook, and every row becomes a branded certificate, badge or report — rendered from your template and optionally emailed to its recipient.
+
+Workflows are built in the [dashboard](https://pictify.io/dashboard/workflows/new); the API surface below is how external systems feed and observe them.
+
+## Inbound hooks
+
+Every workflow can expose an **inbound hook** — a public URL that accepts rows from any system that can send JSON (Zapier, n8n, your backend, a form provider):
+
+```bash
+curl -X POST https://api.pictify.io/workflow/hooks/HOOK_UID/HOOK_SECRET \
+  -H "Content-Type: application/json" \
+  --data-raw '{
+    "recipientName": "Maya Chen",
+    "recipientEmail": "maya@example.com",
+    "courseName": "Advanced TypeScript"
+  }'
+```
+
+The random secret in the URL authenticates the caller. Each accepted row is rendered with the workflow's template and delivered per the workflow's settings.
+
+### Optional HMAC signing
+
+A URL travels through proxy logs, browser history and referrers — so for higher assurance, enable **require signature** on the hook. The sender must then also sign the exact raw request body:
+
+```
+X-Pictify-Signature: t=<unix-seconds>,v1=<hex hmac-sha256>
+```
+
+where `v1 = HMAC_SHA256(signingSecret, t + "." + rawBody)`. With signing on, a leaked URL alone is no longer enough to inject rows; the signature also rules out payload tampering and replay (timestamps outside the tolerance window are rejected).
+
+```javascript
+import crypto from 'node:crypto';
+
+const t = Math.floor(Date.now() / 1000);
+const body = JSON.stringify(row);
+const v1 = crypto.createHmac('sha256', SIGNING_SECRET).update(`${t}.${body}`).digest('hex');
+
+await fetch(hookUrl, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', 'X-Pictify-Signature': `t=${t},v1=${v1}` },
+  body, // send EXACTLY the bytes you signed
+});
+```
+
+<Warning>
+Sign the exact bytes you send. Re-serialising JSON after signing changes key order or whitespace and invalidates the signature.
+</Warning>
+
+## Runs and stats
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `GET` | `/workflow` | List recent RUNS (newest 20) |
+| `GET` | `/workflow/:uid` | One run, with its per-row items |
+| `GET` | `/workflow/stats` | Totals: runs, documents rendered, documents delivered |
+| `POST` | `/workflow/preview` | Preview a template render with a sample row before committing a run |
+
+A run reports per-row progress — `counts: { total, rendered, delivered, failed }` — so a caller can poll a run until `rendered === total` or surface partial failures precisely.
+
+## Hook management
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `POST` | `/workflow/hooks` | Create a hook for a workflow (returns the URL with its secret) |
+| `GET` | `/workflow/hooks` | List hooks |
+| `DELETE` | `/workflow/hooks/:uid` | Revoke — the URL stops accepting rows immediately |
+
+All management endpoints authenticate with your normal API key as a Bearer token; only the inbound hook URL itself is public.

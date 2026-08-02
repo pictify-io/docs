@@ -1,0 +1,38 @@
+---
+title: URL Rendering
+description: A template as an image URL — variables in the query string, rendered on request
+---
+
+# URL Rendering
+
+The most embeddable way to use a template: a plain `GET` URL that returns the rendered image. Put it in an `<img>` tag, an email, a Notion page, a README — anywhere a URL can go, with the variables riding in the query string.
+
+```
+GET https://api.pictify.io/r/{templateUid}.{format}?token=YOUR_API_KEY&name=Maya&score=98
+```
+
+```html
+<img src="https://api.pictify.io/r/tpl_abc123.png?token=YOUR_API_KEY&name=Maya" />
+```
+
+Every query parameter except the reserved ones below is passed to the template as a variable — `?name=Maya` fills `{{name}}`.
+
+## Formats and parameters
+
+| Part | Values |
+|------|--------|
+| `.{format}` | `png`, `jpeg`, `jpg`, `webp` |
+| `token` | Your API key. Query auth exists because an `<img>` tag cannot send headers; the `Authorization: Bearer` header also works and is preferred anywhere you control the request |
+| `quality` | `0`–`1`, default `0.9` (jpeg/webp) |
+| `layout` | A layout key, when the template declares alternate layouts |
+| everything else | Template variables |
+
+## Behaviour worth knowing
+
+- **Failures return a transparent 1x1 PNG**, not an error page — a broken variable never renders a broken image into your email or README. Check the dashboard if a URL renders blank.
+- Responses are cached privately for 5 minutes (`Cache-Control: private, max-age=300`), so a URL hit repeatedly by the same client re-renders at most every 5 minutes.
+- Each **unique render** is metered as one image credit.
+
+<Warning>
+A URL containing `token=` is a credential. Use it where the URL stays private (emails to known recipients, internal tools). For public pages, render ahead of time with `POST /templates/:uid/render` and embed the CDN URL it returns — that URL is not a credential and never re-renders.
+</Warning>

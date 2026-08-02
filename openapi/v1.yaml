@@ -36,11 +36,6 @@ components:
       type: http
       scheme: bearer
       description: API key obtained from the Pictify dashboard
-    writeKeyAuth:
-      type: apiKey
-      in: header
-      name: X-Write-Key
-      description: Write key for client-side experiment event tracking. Safe to expose in browser code.
 
   schemas:
     Error:
@@ -282,7 +277,7 @@ components:
           properties:
             preset:
               type: string
-              enum: [A4, Letter, Legal, A3, A5, custom]
+              enum: [A4, Letter, Legal, A3, A5, A3_LANDSCAPE, CUSTOM]
               default: A4
             customSize:
               type: object
@@ -353,6 +348,34 @@ components:
           type: string
         name:
           type: string
+        engine:
+          type: string
+          enum: [fabric, html]
+          description: |
+            Which renderer owns this template.
+            - `fabric` — legacy canvas templates (fabricJSData)
+            - `html` — Handlebars + HTML templates (html field, supports `{{var}}`, `{{#each}}`, `{{#if}}`, and the built-in helper library)
+        html:
+          type: string
+          description: Handlebars source for `engine=html` templates.
+        fabricJSData:
+          type: object
+          description: FabricJS canvas JSON for `engine=fabric` templates.
+          additionalProperties: true
+        jsEnabled:
+          type: boolean
+          description: |
+            Only meaningful for `engine=html`. When true, scripts inside the template
+            execute during render (Chart.js, KaTeX, animated SVG). Off by default
+            to prevent runaway loops; a 30s hard timeout still applies.
+          default: false
+        strictVariables:
+          type: boolean
+          description: |
+            Only meaningful for `engine=html`. When true, rendering fails with HTTP 422
+            if a root-level variable referenced in the template was not supplied.
+            Leave off if you rely on `{{#if optional}}` guards.
+          default: false
         type:
           type: string
         category:
@@ -371,10 +394,38 @@ components:
         outputFormat:
           type: string
           enum: [image, pdf]
+          default: image
+        pdfPreset:
+          type: string
+          description: Page preset used when `outputFormat=pdf`.
+          enum: [A4, A4_LANDSCAPE, LETTER, LETTER_LANDSCAPE, LEGAL, A3, TABLOID]
+          default: A4
         variableDefinitions:
           type: array
           items:
             $ref: '#/components/schemas/VariableDefinition'
+        pages:
+          type: array
+          description: Multi-page canvas pages (fabric engine).
+          items:
+            type: object
+            properties:
+              pageNumber:
+                type: integer
+              name:
+                type: string
+              fabricJSData:
+                type: object
+                additionalProperties: true
+        layouts:
+          type: object
+          description: |
+            Named layout variants. Keys are short identifiers matching
+            `^[a-z0-9-]{1,64}$` (e.g. `twitter-post`, `og-image`). Each value
+            overrides `width`, `height`, and renderer-specific data for that
+            variant. Limit: 20 layouts per template.
+          additionalProperties:
+            type: object
         createdAt:
           type: string
           format: date-time
@@ -384,16 +435,29 @@ components:
 
     VariableDefinition:
       type: object
+      required:
+        - name
       properties:
         name:
           type: string
+          description: Variable identifier. Must match the name used in `{{name}}` tokens.
         type:
           type: string
-          enum: [text, image, color, number, boolean]
+          enum: [text, image, color, chart, table, array, object]
+          default: text
         defaultValue:
-          type: string
+          description: |
+            Fallback value when the variable is not supplied at render time.
+            Typed according to `type` — string for text/image/color/url, number for number,
+            boolean for boolean, ISO date string for date, JSON array/object for array/object.
         description:
           type: string
+        allowRawHtml:
+          type: boolean
+          description: |
+            Only meaningful for `type=text` on `engine=html` templates. When true the value
+            is NOT HTML-escaped at render time. Use with care — treat as trusted input.
+          default: false
         validation:
           type: object
           properties:
@@ -641,310 +705,6 @@ components:
           type: boolean
         hasPrev:
           type: boolean
-
-    Experiment:
-      type: object
-      required:
-        - uid
-        - slug
-        - type
-        - name
-        - status
-        - variants
-        - createdAt
-        - updatedAt
-      properties:
-        uid:
-          type: string
-          example: exp_abc123
-        slug:
-          type: string
-          description: URL-friendly identifier (3-60 chars, lowercase alphanumeric + hyphens)
-          example: homepage-hero-test
-        type:
-          type: string
-          enum: [ab_test, smart_link, scheduled]
-          description: Experiment type
-        name:
-          type: string
-          description: Experiment name
-          example: Homepage Hero A/B Test
-        status:
-          type: string
-          enum: [draft, running, paused, completed, archived]
-          description: Current experiment status
-        templateUid:
-          type: string
-          description: Default template UID for variants
-          example: tmpl_xyz789
-        variants:
-          type: array
-          items:
-            $ref: '#/components/schemas/ExperimentVariant'
-        goalConfig:
-          $ref: '#/components/schemas/GoalConfig'
-        banditConfig:
-          $ref: '#/components/schemas/BanditConfig'
-        hypothesis:
-          type: string
-          maxLength: 500
-          description: Test hypothesis
-        minimumSampleSize:
-          type: integer
-          default: 1000
-        confidenceThreshold:
-          type: number
-          default: 0.95
-        minimumRunDays:
-          type: integer
-          default: 7
-        winnerVariantId:
-          type: string
-          nullable: true
-          description: Winning variant ID (set when experiment is completed)
-        winnerDeclaredAt:
-          type: string
-          format: date-time
-          nullable: true
-        fallbackImageUrl:
-          type: string
-          format: uri
-          description: Image URL to serve after experiment ends
-        outputConfig:
-          type: object
-          properties:
-            format:
-              type: string
-              enum: [png, jpeg, webp]
-              default: png
-            quality:
-              type: number
-              default: 90
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-
-    ExperimentVariant:
-      type: object
-      required:
-        - id
-        - weight
-      properties:
-        id:
-          type: string
-          description: Unique variant identifier
-          pattern: "^[a-zA-Z0-9_-]+$"
-          example: variant-a
-        name:
-          type: string
-          example: New Design
-        templateUid:
-          type: string
-          description: Override template for this variant
-        variables:
-          type: object
-          additionalProperties: true
-          description: Template variables for this variant
-        weight:
-          type: integer
-          minimum: 0
-          maximum: 10000
-          description: Traffic weight in basis points. All variant weights must sum to exactly 10000.
-          example: 5000
-        isDefault:
-          type: boolean
-          default: false
-        conditions:
-          $ref: '#/components/schemas/ConditionTree'
-        schedule:
-          $ref: '#/components/schemas/VariantSchedule'
-        impressions:
-          type: integer
-          readOnly: true
-          description: Total impressions for this variant
-        clicks:
-          type: integer
-          readOnly: true
-          description: Total clicks for this variant
-
-    GoalConfig:
-      type: object
-      properties:
-        type:
-          type: string
-          enum: [impressions_only, click_through]
-          default: impressions_only
-        destinationUrl:
-          type: string
-          format: uri
-          description: Redirect URL for click-through goals
-
-    BanditConfig:
-      type: object
-      description: Auto-optimization settings (A/B tests only)
-      properties:
-        enabled:
-          type: boolean
-          default: false
-        algorithm:
-          type: string
-          enum: [thompson_sampling]
-          default: thompson_sampling
-        warmupImpressions:
-          type: integer
-          default: 50
-          description: Minimum impressions before optimization begins
-        recomputeIntervalMinutes:
-          type: integer
-          default: 15
-
-    ConditionTree:
-      type: object
-      description: Nested AND/OR condition tree for smart link routing (max depth 3)
-      properties:
-        type:
-          type: string
-          enum: [group, rule]
-        operator:
-          type: string
-          enum: [AND, OR]
-          description: Logic operator for group nodes
-        children:
-          type: array
-          items:
-            $ref: '#/components/schemas/ConditionTree'
-        property:
-          type: string
-          description: Context property to evaluate (for rule nodes)
-        ruleOperator:
-          type: string
-          enum: [equals, not_equals, contains, not_contains, starts_with, ends_with, gt, lt, gte, lte]
-          description: Comparison operator for rule nodes
-        value:
-          description: Value to compare against
-
-    VariantSchedule:
-      type: object
-      description: Time-based activation schedule for scheduled variants
-      properties:
-        startAt:
-          type: string
-          format: date-time
-        endAt:
-          type: string
-          format: date-time
-        recurrence:
-          type: object
-          properties:
-            type:
-              type: string
-              enum: [none, daily, weekly, cron]
-              default: none
-            cronExpression:
-              type: string
-              description: Cron expression (when type is cron)
-            timezone:
-              type: string
-              default: UTC
-              example: America/New_York
-
-    ExperimentQuota:
-      type: object
-      properties:
-        plan:
-          type: string
-          example: standard
-        quota:
-          type: object
-          properties:
-            ab_test:
-              $ref: '#/components/schemas/QuotaUsage'
-            smart_link:
-              $ref: '#/components/schemas/QuotaUsage'
-            scheduled:
-              $ref: '#/components/schemas/QuotaUsage'
-        maxVariants:
-          type: integer
-          example: 5
-        analyticsRetentionDays:
-          type: integer
-          example: 90
-
-    QuotaUsage:
-      type: object
-      properties:
-        used:
-          type: integer
-          example: 2
-        limit:
-          type: integer
-          nullable: true
-          description: "null means unlimited"
-          example: 5
-
-    ExperimentEvent:
-      type: object
-      required:
-        - event
-        - experiment
-      properties:
-        event:
-          type: string
-          enum: [impression, view, click, conversion]
-          description: Event type
-        experiment:
-          type: string
-          maxLength: 60
-          description: Experiment slug
-          example: homepage-hero-test
-        variantId:
-          type: string
-          description: Variant that triggered the event
-          example: variant-a
-        channel:
-          type: string
-          enum: [web, email, ad, in-app, social, other]
-          description: Traffic channel
-        device:
-          type: string
-          enum: [mobile, desktop, tablet]
-        referrer:
-          type: string
-        metadata:
-          type: object
-          description: Custom metadata (max 10KB, max depth 3)
-        source:
-          type: string
-          enum: [sdk, api]
-          default: api
-        writeKey:
-          type: string
-          description: Alternative to X-Write-Key header
-
-    ExperimentEventResponse:
-      type: object
-      properties:
-        ok:
-          type: boolean
-          example: true
-        processed:
-          type: integer
-          example: 1
-        errors:
-          type: array
-          items:
-            type: object
-            properties:
-              index:
-                type: integer
-              error:
-                type: string
-        warning:
-          type: string
-          description: "Returns 'write_key_recommended' if no write key was provided"
 
 paths:
   /image:
@@ -1276,6 +1036,18 @@ paths:
     post:
       operationId: createTemplate
       summary: Create a template
+      description: |
+        Create a new template. Pictify supports two template engines:
+
+        - `engine: "html"` — Handlebars + HTML. Author a template with `{{variable}}` tokens,
+          `{{#each}}` / `{{#if}}` blocks, and the built-in helper library. Supplied `html`
+          is compile-validated on save; any identifier referenced in the template body
+          but missing from `variableDefinitions` is auto-added as a text variable and
+          returned in `addedVariables` on the response.
+        - `engine: "fabric"` (default) — FabricJS canvas. Provide `fabricJSData`.
+
+        If `engine` is omitted the server defaults to `fabric` for backwards compatibility.
+        New HTML templates should set `engine: "html"` explicitly.
       tags:
         - Templates
       requestBody:
@@ -1289,16 +1061,31 @@ paths:
               properties:
                 name:
                   type: string
+                  description: Human-readable template name. Shown in the dashboard.
+                engine:
+                  type: string
+                  enum: [fabric, html]
+                  default: fabric
+                  description: |
+                    Template engine. Set `html` to author with Handlebars + HTML.
                 html:
                   type: string
+                  description: |
+                    Required for `engine=html`. Handlebars source. Must compile.
+                    Undeclared `{{identifier}}` references are auto-added as text variables.
                 fabricJSData:
                   type: object
+                  description: Required for `engine=fabric`. FabricJS canvas JSON.
+                  additionalProperties: true
                 width:
                   type: integer
+                  description: Render width in px.
                 height:
                   type: integer
+                  description: Render height in px.
                 type:
                   type: string
+                  description: Template type tag (e.g. `og-image`, `twitter-card`). Free-form.
                 category:
                   type: string
                 tags:
@@ -1307,11 +1094,83 @@ paths:
                     type: string
                 variableDefinitions:
                   type: array
+                  description: |
+                    Variable schema. For `engine=html`, identifiers referenced in the template
+                    body but not declared here are auto-added as text variables and returned
+                    under `addedVariables` in the response.
                   items:
                     $ref: '#/components/schemas/VariableDefinition'
+                jsEnabled:
+                  type: boolean
+                  default: false
+                  description: |
+                    `engine=html` only. When true, scripts inside the template execute at
+                    render time. Enables Chart.js, KaTeX, and animated SVG. Disables
+                    infinite-loop protection; the 30s hard timeout still applies.
+                strictVariables:
+                  type: boolean
+                  default: false
+                  description: |
+                    `engine=html` only. When true, missing root-level variables throw
+                    HTTP 422 at render time. Leave off if you rely on `{{#if optional}}` guards.
                 outputFormat:
                   type: string
                   enum: [image, pdf]
+                  default: image
+                pdfPreset:
+                  type: string
+                  enum: [A4, A4_LANDSCAPE, LETTER, LETTER_LANDSCAPE, LEGAL, A3, TABLOID]
+                  default: A4
+                  description: Page preset when `outputFormat=pdf`.
+                pages:
+                  type: array
+                  description: Multi-page canvas pages (`engine=fabric` only).
+                  items:
+                    type: object
+                    properties:
+                      pageNumber:
+                        type: integer
+                      name:
+                        type: string
+                      fabricJSData:
+                        type: object
+                        additionalProperties: true
+            examples:
+              handlebars:
+                summary: Handlebars HTML template
+                value:
+                  name: OG Image
+                  engine: html
+                  width: 1200
+                  height: 630
+                  html: |
+                    <div style="width:1200px;height:630px;padding:64px;font-family:Inter">
+                      <h1 style="font-size:72px">{{title}}</h1>
+                      <p style="font-size:32px;color:#6b7280">{{subtitle}}</p>
+                      {{#if showCta}}<button>{{ctaText}}</button>{{/if}}
+                    </div>
+                  variableDefinitions:
+                    - name: title
+                      type: text
+                      defaultValue: Hello world
+                    - name: subtitle
+                      type: text
+                    - name: showCta
+                      type: boolean
+                      defaultValue: false
+                    - name: ctaText
+                      type: text
+                      defaultValue: Learn more
+                  strictVariables: false
+                  jsEnabled: false
+              fabric:
+                summary: FabricJS canvas template
+                value:
+                  name: Quote card
+                  engine: fabric
+                  width: 1080
+                  height: 1080
+                  fabricJSData: { version: "5.3.0", objects: [] }
       responses:
         '200':
           description: Template created
@@ -1322,6 +1181,31 @@ paths:
                 properties:
                   template:
                     $ref: '#/components/schemas/Template'
+                  addedVariables:
+                    type: array
+                    description: |
+                      `engine=html` only. Names of identifiers referenced in the template
+                      body that were auto-added to `variableDefinitions` during save. Omitted
+                      when the array would be empty.
+                    items:
+                      type: string
+        '422':
+          description: |
+            Validation failed. Typical causes for `engine=html`: unclosed Handlebars block,
+            unknown helper, or (when `strictVariables=true`) a referenced variable without
+            a definition.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  code:
+                    type: string
+                  context:
+                    type: object
+                    additionalProperties: true
 
   /templates/{uid}:
     get:
@@ -1949,570 +1833,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /experiments/api:
-    get:
-      operationId: listExperiments
-      summary: List experiments
-      description: Retrieve all experiments for the authenticated team.
-      tags:
-        - Experiments
-      parameters:
-        - name: type
-          in: query
-          schema:
-            type: string
-            enum: [ab_test, smart_link, scheduled]
-          description: Filter by experiment type
-        - name: status
-          in: query
-          schema:
-            type: string
-            enum: [draft, running, paused, completed]
-          description: Filter by status
-        - name: page
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            default: 1
-          description: Page number
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 20
-          description: Number of results per page
-      responses:
-        '200':
-          description: List of experiments
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  experiments:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Experiment'
-                  total:
-                    type: integer
-                    description: Total number of experiments matching filters
-                  page:
-                    type: integer
-                  limit:
-                    type: integer
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-    post:
-      operationId: createExperiment
-      summary: Create experiment
-      description: |
-        Create a new experiment. Requires at least 2 variants with weights summing to exactly 10000.
-
-        Slug must be unique among active experiments, 3-60 characters, lowercase alphanumeric and hyphens.
-        Reserved slugs: events, api, admin, health, status, pixel, track, sdk.
-      tags:
-        - Experiments
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - name
-                - type
-                - slug
-                - variants
-              properties:
-                name:
-                  type: string
-                  maxLength: 255
-                  description: Experiment name
-                  example: Homepage Hero A/B Test
-                type:
-                  type: string
-                  enum: [ab_test, smart_link, scheduled]
-                  description: Experiment type
-                slug:
-                  type: string
-                  pattern: "^[a-z0-9][a-z0-9-]{1,58}[a-z0-9]$"
-                  description: URL-friendly identifier (3-60 chars)
-                  example: homepage-hero-test
-                templateUid:
-                  type: string
-                  description: Default template UID (optional if each variant has its own)
-                  example: tmpl_xyz789
-                variants:
-                  type: array
-                  minItems: 2
-                  items:
-                    $ref: '#/components/schemas/ExperimentVariant'
-                  description: "Variants with weights summing to 10000"
-                goalConfig:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                      enum: [impressions_only, click_through]
-                      default: impressions_only
-                    destinationUrl:
-                      type: string
-                      format: uri
-                banditConfig:
-                  type: object
-                  properties:
-                    enabled:
-                      type: boolean
-                      default: false
-                    algorithm:
-                      type: string
-                      enum: [thompson_sampling, epsilon_greedy]
-                      default: thompson_sampling
-                    warmupImpressions:
-                      type: integer
-                      default: 50
-                    recomputeIntervalMinutes:
-                      type: integer
-                      default: 15
-                hypothesis:
-                  type: string
-                  maxLength: 500
-                minimumSampleSize:
-                  type: integer
-                  default: 1000
-                confidenceThreshold:
-                  type: number
-                  default: 0.95
-                minimumRunDays:
-                  type: integer
-                  default: 7
-                outputConfig:
-                  type: object
-                  properties:
-                    format:
-                      type: string
-                      enum: [png, jpeg, webp]
-                      default: png
-                    quality:
-                      type: number
-                      default: 90
-                fallbackImageUrl:
-                  type: string
-                  format: uri
-                fallbackTemplateUid:
-                  type: string
-      responses:
-        '201':
-          description: Experiment created
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  experiment:
-                    $ref: '#/components/schemas/Experiment'
-        '400':
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '409':
-          description: Slug already in use
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '429':
-          description: Experiment quota exceeded
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /experiments/api/quota:
-    get:
-      operationId: getExperimentQuota
-      summary: Get experiment quota
-      description: Check experiment usage and limits for your current plan.
-      tags:
-        - Experiments
-      responses:
-        '200':
-          description: Quota information
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExperimentQuota'
-
-  /experiments/api/{uid}:
-    get:
-      operationId: getExperiment
-      summary: Get experiment
-      description: Retrieve a specific experiment by UID.
-      tags:
-        - Experiments
-      parameters:
-        - name: uid
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Experiment details
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  experiment:
-                    $ref: '#/components/schemas/Experiment'
-        '404':
-          description: Experiment not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-    put:
-      operationId: updateExperiment
-      summary: Update experiment
-      description: |
-        Update an experiment. Available fields depend on the current status:
-        - **draft/paused**: All fields can be updated
-        - **running**: Only name, confidenceThreshold, minimumRunDays, goalConfig.destinationUrl
-        - **completed**: Only name
-      tags:
-        - Experiments
-      parameters:
-        - name: uid
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                  maxLength: 255
-                slug:
-                  type: string
-                variants:
-                  type: array
-                  items:
-                    $ref: '#/components/schemas/ExperimentVariant'
-                goalConfig:
-                  type: object
-                banditConfig:
-                  type: object
-                hypothesis:
-                  type: string
-                confidenceThreshold:
-                  type: number
-                minimumRunDays:
-                  type: integer
-                outputConfig:
-                  type: object
-                fallbackImageUrl:
-                  type: string
-                  format: uri
-      responses:
-        '200':
-          description: Experiment updated
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  experiment:
-                    $ref: '#/components/schemas/Experiment'
-        '400':
-          description: Validation error or field not editable in current status
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '404':
-          description: Experiment not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-    delete:
-      operationId: deleteExperiment
-      summary: Delete experiment
-      description: Soft-delete an experiment. Running experiments must be paused or completed first.
-      tags:
-        - Experiments
-      parameters:
-        - name: uid
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Experiment deleted
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  deleted:
-                    type: boolean
-                    example: true
-        '404':
-          description: Experiment not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /experiments/api/{uid}/start:
-    post:
-      operationId: startExperiment
-      summary: Start experiment
-      description: |
-        Start a draft or paused experiment. Begins serving variant images and tracking events.
-
-        Valid transitions: `draft` → `running`, `paused` → `running`
-      tags:
-        - Experiments
-      parameters:
-        - name: uid
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Experiment started
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  experiment:
-                    $ref: '#/components/schemas/Experiment'
-        '409':
-          description: Invalid state transition
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /experiments/api/{uid}/pause:
-    post:
-      operationId: pauseExperiment
-      summary: Pause experiment
-      description: |
-        Pause a running experiment. Stops serving variant images and tracking.
-
-        Valid transition: `running` → `paused`
-      tags:
-        - Experiments
-      parameters:
-        - name: uid
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Experiment paused
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  experiment:
-                    $ref: '#/components/schemas/Experiment'
-        '409':
-          description: Invalid state transition
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /experiments/api/{uid}/complete:
-    post:
-      operationId: completeExperiment
-      summary: Complete experiment
-      description: |
-        Complete an experiment and declare a winner. Requires `winnerVariantId`.
-
-        Valid transitions: `running` → `completed`, `paused` → `completed`
-      tags:
-        - Experiments
-      parameters:
-        - name: uid
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - winnerVariantId
-              properties:
-                winnerVariantId:
-                  type: string
-                  description: ID of the winning variant
-                  example: variant-a
-      responses:
-        '200':
-          description: Experiment completed
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  experiment:
-                    $ref: '#/components/schemas/Experiment'
-        '400':
-          description: Missing or invalid winnerVariantId
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '409':
-          description: Invalid state transition
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /s/events:
-    post:
-      operationId: trackExperimentEvents
-      summary: Track experiment events
-      description: |
-        Track impressions, views, clicks, and conversions for experiments.
-        Accepts a single event object or an array of up to 100 events.
-
-        **Authentication**: Use the `X-Write-Key` header or `writeKey` field in the request body.
-        Events are accepted without a write key, but this is strongly discouraged as it
-        allows anyone to inject events and corrupt experiment data.
-
-        **Rate limit**: 1000 requests/minute per IP. Max batch size: 100 events.
-      tags:
-        - Experiments
-      security:
-        - writeKeyAuth: []
-        - {}
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              oneOf:
-                - $ref: '#/components/schemas/ExperimentEvent'
-                - type: array
-                  items:
-                    $ref: '#/components/schemas/ExperimentEvent'
-                  maxItems: 100
-          text/plain:
-            schema:
-              type: string
-              description: JSON string (for sendBeacon compatibility)
-      responses:
-        '200':
-          description: Events processed
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExperimentEventResponse'
-        '400':
-          description: Invalid event data
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '429':
-          description: Rate limit exceeded
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /s/{slug}/click:
-    get:
-      operationId: trackExperimentClick
-      summary: Click tracking redirect
-      description: |
-        Redirect users through a tracked click. Records a click event and redirects
-        to the experiment's `goalConfig.destinationUrl`.
-
-        Use this in `<a>` tags wrapping experiment images for click-through tracking.
-      tags:
-        - Experiments
-      security: []
-      parameters:
-        - name: slug
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Experiment slug
-      responses:
-        '302':
-          description: Redirect to destination URL
-        '404':
-          description: Experiment not found
-
-  /s/{slug}/pixel.gif:
-    get:
-      operationId: trackExperimentPixel
-      summary: Tracking pixel
-      description: |
-        Returns a 1x1 transparent GIF and records an impression event.
-        Use this for email open tracking or invisible impression tracking.
-
-        ```html
-        <img src="https://api.pictify.io/s/homepage-hero/pixel.gif" width="1" height="1" />
-        ```
-
-        Always returns a valid pixel, even for invalid slugs (to prevent broken images).
-      tags:
-        - Experiments
-      security: []
-      parameters:
-        - name: slug
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Experiment slug
-      responses:
-        '200':
-          description: 1x1 transparent GIF
-          headers:
-            Cache-Control:
-              schema:
-                type: string
-                example: no-cache, no-store, must-revalidate
-          content:
-            image/gif:
-              schema:
-                type: string
-                format: binary
-
 tags:
   - name: Images
     description: Image generation endpoints
@@ -2524,8 +1844,6 @@ tags:
     description: Template management
   - name: Batch
     description: Batch rendering operations
-  - name: Experiments
-    description: A/B testing, smart links, and scheduled variant experiments
   - name: Webhooks
     description: Webhook subscription management
   - name: Bindings

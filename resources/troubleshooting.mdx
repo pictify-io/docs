@@ -16,16 +16,15 @@ This guide covers common issues and their solutions when using the Pictify API.
 **Solutions:**
 
 1. **Verify the key format**
-   - Live keys start with `pk_live_`
-   - Test keys start with `pk_test_`
+   - A valid key is a 64-character hex string with no prefix
 
 2. **Check for extra characters**
    ```bash
    # Wrong - has quotes
-   PICTIFY_API_KEY="pk_live_..."
+   PICTIFY_API_KEY="your-api-key"
 
    # Correct - no quotes in shell
-   PICTIFY_API_KEY=pk_live_...
+   PICTIFY_API_KEY=your-api-key
    ```
 
 3. **Verify the key isn't revoked**
@@ -43,11 +42,11 @@ This guide covers common issues and their solutions when using the Pictify API.
 ```bash
 # Make sure header is correct
 curl https://api.pictify.io/image \
-  -H "Authorization: Bearer pk_live_your_key"  # ✅ Correct
+  -H "Authorization: Bearer YOUR_API_KEY"  # ✅ Correct
 
 # Common mistakes:
--H "Authorization: pk_live_your_key"           # ❌ Missing "Bearer"
--H "Api-Key: pk_live_your_key"                 # ❌ Wrong header name
+-H "Authorization: YOUR_API_KEY"           # ❌ Missing "Bearer"
+-H "Api-Key: YOUR_API_KEY"                 # ❌ Wrong header name
 ```
 
 ## Rendering Issues

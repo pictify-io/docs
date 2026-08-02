@@ -389,6 +389,37 @@ app.get('/og-image', async (req, res) => {
 });
 ```
 
+## Video Templates
+
+Render MP4 video — or animated GIF — from video templates, generate new templates with AI, or upload a Remotion scene you wrote. Video renders wait for the finished file (up to a few minutes); the SDK raises the per-call timeout automatically.
+
+```typescript
+// Discover
+const videos = await pictify.listVideoTemplates();
+const vars = await pictify.getVideoTemplateVariables(videos[0].uid);
+
+// Render — MP4 by default, or an animated GIF of the same template
+const video = await pictify.renderVideo({
+  templateId: videos[0].uid,
+  variables: { title: 'Welcome, Maya!' },
+  format: 'gif',
+});
+console.log(video.url);
+
+// Generate a template from a prompt (AI designs, writes and reviews the scene)
+const generated = await pictify.generateVideoTemplate({
+  prompt: 'An 8 second product launch teaser — dark, electric, type-driven',
+});
+
+// Or upload a Remotion scene you wrote. The compile gate runs BEFORE saving:
+// invalid tsx rejects with the compiler errors and creates nothing.
+const template = await pictify.createVideoTemplate({
+  name: 'My scene',
+  tsx: sceneSource,
+  durationSeconds: 8,
+});
+```
+
 ## API Reference
 
 See the [API Reference](/api-reference/overview) for full endpoint documentation.

@@ -23,16 +23,14 @@ Store your API key securely. You won't be able to see it again after leaving thi
 
 ### Live Keys
 
-- Prefix: `pk_live_`
+- Full access; every render consumes plan credits
 - Full API access
 - Usage counts against your plan
 - Use in production
 
 ### Test Keys
 
-- Prefix: `pk_test_`
-- Limited to 100 renders/day
-- Renders are watermarked
+- (There is no separate test key type — use free-tier credits to experiment)
 - Use for development and testing
 
 ## Viewing Keys
@@ -143,10 +141,10 @@ Never use live keys in development:
 
 ```bash
 # Development
-PICTIFY_API_KEY=pk_test_...
+PICTIFY_API_KEY=your-api-key
 
 # Production
-PICTIFY_API_KEY=pk_live_...
+PICTIFY_API_KEY=your-api-key
 ```
 
 ### Monitor for Misuse
@@ -176,7 +174,7 @@ Use test keys with a local `.env`:
 
 ```bash
 # .env.local
-PICTIFY_API_KEY=pk_test_development_key
+PICTIFY_API_KEY=YOUR_DEVELOPMENT_KEY
 ```
 
 ### Staging
@@ -185,7 +183,7 @@ Use test keys for staging environments:
 
 ```bash
 # staging.env
-PICTIFY_API_KEY=pk_test_staging_key
+PICTIFY_API_KEY=YOUR_STAGING_KEY
 ```
 
 ### Production
@@ -194,7 +192,7 @@ Use live keys, stored securely:
 
 ```bash
 # Set via secrets manager, not in files
-PICTIFY_API_KEY=pk_live_production_key
+PICTIFY_API_KEY=YOUR_PRODUCTION_KEY
 ```
 
 ## Troubleshooting
@@ -217,7 +215,7 @@ Usage statistics may have up to 5 minutes delay. Real-time usage is available in
 
 ## API Key API
 
-Manage keys programmatically with the [API Keys API](/api-reference/keys):
+Manage keys programmatically with the [API Keys API](/authentication):
 
 ```bash
 # List keys

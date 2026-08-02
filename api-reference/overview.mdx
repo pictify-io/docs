@@ -19,7 +19,7 @@ All requests require a Bearer token:
 
 ```bash
 curl https://api.pictify.io/image \
-  -H "Authorization: Bearer pk_live_your_api_key"
+  -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 See [Authentication](/authentication) for details.
@@ -55,37 +55,22 @@ Successful responses return JSON with relevant data:
 }
 ```
 
-Error responses follow [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457.html) Problem Details format:
+Error responses are plain JSON with a human-readable message under `message` or `error` (see [Error Handling](/api-reference/errors) for every shape):
 
 ```json
 {
-  "type": "https://docs.pictify.io/errors/rate-limit",
-  "title": "Rate Limit Exceeded",
-  "status": 429,
-  "detail": "You have exceeded the rate limit. Please retry after 60 seconds.",
-  "instance": "/image"
+  "message": "Template not found"
 }
 ```
 
-## Rate Limits
+## Rate Limits and Credits
 
-Rate limits vary by plan:
+Two separate limits apply, and — for historical reasons — they surface under different status codes per endpoint family:
 
-| Plan | Requests/Minute | Requests/Day |
-|------|----------------:|-------------:|
-| Free | 60 | 1,000 |
-| Pro | 300 | 10,000 |
-| Business | 1,000 | 100,000 |
-| Enterprise | Custom | Custom |
+- **Monthly credits** — every render (image, GIF, PDF page, video) consumes credits. When they run out, the **image, GIF, HTML-template and batch endpoints return `429`** with `code: "quota_exceeded"`, while the **video and workflow endpoints return `402`** with the same code. Treat `quota_exceeded` as "wait for the monthly reset or upgrade" — never as "retry with backoff": no amount of retrying refills a monthly quota.
+- **Per-endpoint rate limits** — a few endpoints (unauthenticated public rendering, template previews) carry fixed per-minute limits. These return `429` *without* a `quota_exceeded` code and DO send standard `x-ratelimit-*` headers and `retry-after` — those are genuinely retryable after backing off.
 
-Rate limit headers are included in every response:
-
-| Header | Description |
-|--------|-------------|
-| `X-RateLimit-Limit` | Maximum requests per window |
-| `X-RateLimit-Remaining` | Requests remaining in window |
-| `X-RateLimit-Reset` | Unix timestamp when window resets |
-| `Retry-After` | Seconds to wait (on 429 responses) |
+So the rule for `429` is: **check the `code` field first.** `quota_exceeded` means credits, not rate.
 
 ## Pagination
 

@@ -16,6 +16,37 @@ Generate multiple images from a single template with different variables. Ideal 
 | `GET` | `/templates/batch/{batchId}/results` | [Get results](/api-reference/endpoints/batch/results) |
 | `POST` | `/templates/batch/{batchId}/cancel` | [Cancel batch](/api-reference/endpoints/batch/cancel) |
 
+## Two input modes
+
+The same endpoint accepts rows either inline or from a spreadsheet:
+
+**Rows mode** — send `variableSets`, an array of variable objects, one per render:
+
+```json
+{
+  "variableSets": [
+    { "name": "Maya Chen", "course": "Advanced TypeScript" },
+    { "name": "Sam Ortiz", "course": "Advanced TypeScript" }
+  ],
+  "format": "png"
+}
+```
+
+**CSV mode** — point at a hosted CSV and map its columns onto template variables. Every row becomes a render, so a spreadsheet of recipients becomes a batch without writing the rows out:
+
+```json
+{
+  "csvUrl": "https://example.com/recipients.csv",
+  "mappings": {
+    "name": "attendee_name",
+    "course": "session"
+  },
+  "format": "png"
+}
+```
+
+`mappings` is `{ "templateVariable": "CSV Column" }` — the key is the template variable, the value is the CSV column that fills it. The CSV must be publicly fetchable — the server downloads it once when the batch starts.
+
 ## Batch Status
 
 | Status | Description |

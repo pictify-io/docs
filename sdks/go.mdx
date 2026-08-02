@@ -355,6 +355,31 @@ for img := range results {
 }
 ```
 
+## Video Templates
+
+Render MP4 video — or animated GIF — from video templates, generate new templates with AI, or upload a Remotion scene you wrote. Video calls use a longer per-call timeout internally (render 5m, authoring 3m); context deadlines still cancel earlier.
+
+```go
+videos, _ := client.ListVideoTemplates(ctx)
+
+video, err := client.RenderVideo(ctx, &pictify.RenderVideoOptions{
+    TemplateID: videos[0].UID,
+    Variables:  map[string]any{"title": "Welcome, Maya!"},
+    Format:     pictify.VideoFormatGIF, // or VideoFormatMP4 (default)
+})
+fmt.Println(video.URL)
+
+generated, err := client.GenerateVideoTemplate(ctx, &pictify.GenerateVideoTemplateOptions{
+    Prompt: "An 8 second product launch teaser — dark, electric, type-driven",
+})
+
+// The compile gate runs BEFORE saving: invalid tsx returns a *RenderError
+// with the compiler errors in .Errors, and nothing is created.
+template, err := client.CreateVideoTemplate(ctx, &pictify.CreateVideoTemplateOptions{
+    Name: "My scene", TSX: sceneSource, DurationSeconds: 8,
+})
+```
+
 ## API Reference
 
 See the [API Reference](/api-reference/overview) for full endpoint documentation.

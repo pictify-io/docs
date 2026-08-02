@@ -1,4 +1,136 @@
 ---
 title: Create Template
+description: Create a template with either the Handlebars HTML engine or the FabricJS canvas engine.
 openapi: post /templates
 ---
+
+Pictify templates come in two flavours. Pick one with the `engine` field.
+
+| Engine | Authoring surface | Use it when |
+|--------|-------------------|-------------|
+| `html` | Raw HTML + Handlebars (`{{var}}`, `{{#each}}`, `{{#if}}`, helpers) | You want full control over markup, CSS, and copy-paste-able source. |
+| `fabric` *(default)* | FabricJS canvas JSON | You're exporting from the dashboard editor or automating canvas layouts. |
+
+<Note>
+If you omit `engine`, the API defaults to `fabric` for backwards compatibility. New
+HTML templates should set `engine: "html"` explicitly.
+</Note>
+
+## Handlebars HTML templates
+
+Set `engine: "html"` and pass your template source in `html`. Pictify compile-validates
+it on save and fails with HTTP 422 if a block is unclosed or a helper is unknown.
+
+```bash cURL
+curl -X POST https://api.pictify.io/templates \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "OG Image",
+    "engine": "html",
+    "width": 1200,
+    "height": 630,
+    "html": "<div style=\"width:1200px;height:630px;padding:64px;font-family:Inter\"><h1 style=\"font-size:72px\">{{title}}</h1><p style=\"font-size:32px;color:#6b7280\">{{subtitle}}</p>{{#if showCta}}<button>{{ctaText}}</button>{{/if}}</div>",
+    "variableDefinitions": [
+      { "name": "title", "type": "text", "defaultValue": "Hello world" },
+      { "name": "subtitle", "type": "text" },
+      { "name": "ctaLabel", "type": "text", "defaultValue": "Learn more" },
+      { "name": "ctaText", "type": "text", "defaultValue": "Learn more" }
+    ]
+  }'
+```
+
+### Auto-added variables
+
+Any `{{identifier}}` referenced in the template body that is **not** declared in
+`variableDefinitions` is automatically added as a text variable on save. The response
+echoes the added names under `addedVariables` so your client can surface them:
+
+```json
+{
+  "template": {
+    "uid": "tmpl_...",
+    "engine": "html",
+    "variableDefinitions": [
+      { "name": "title", "type": "text" },
+      { "name": "price", "type": "text" }
+    ]
+  },
+  "addedVariables": ["price"]
+}
+```
+
+This is what makes the `engine=html` authoring loop feel "just work" — you can type
+`{{price}}` into your template and save; the variable appears on the next read
+without a separate declaration step.
+
+### `strictVariables` and `jsEnabled`
+
+Two HTML-only toggles affect render behaviour:
+
+<CardGroup cols={2}>
+<Card title="strictVariables" icon="shield">
+When `true`, rendering fails with HTTP 422 if a root-level variable referenced in the
+template was not supplied. Leave off if you rely on `{{#if optional}}` guards.
+</Card>
+<Card title="jsEnabled" icon="code">
+When `true`, scripts inside the template execute during render (Chart.js, KaTeX,
+animated SVG). Off by default to prevent runaway loops. A 30s hard timeout always applies.
+</Card>
+</CardGroup>
+
+Both default to `false` and can be flipped with `PUT /templates/{uid}`.
+
+### Helpers and expressions
+
+HTML templates have access to the full Pictify helper library — string casing,
+number and currency formatting, date formatting, array helpers, and JSON
+inspection. See [Expressions](/concepts/expressions) for the complete reference.
+
+```html
+<p>{{titleCase title}}</p>
+<p>{{currency price 'USD'}}</p>
+<p>{{date publishedAt 'MMM D, YYYY'}}</p>
+
+{{#each items}}
+  <li>{{@index}}. {{this.name}} — {{currency this.price 'USD'}}</li>
+{{/each}}
+```
+
+## FabricJS canvas templates
+
+Set `engine: "fabric"` (or omit — it's the default) and pass a FabricJS canvas JSON
+object in `fabricJSData`. Multi-page canvases are supported via `pages`.
+
+```bash cURL
+curl -X POST https://api.pictify.io/templates \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Quote card",
+    "engine": "fabric",
+    "width": 1080,
+    "height": 1080,
+    "fabricJSData": { "version": "5.3.0", "objects": [] }
+  }'
+```
+
+<Note>
+Base64 `data:image/...` sources inside `fabricJSData` are uploaded to Pictify storage
+during save and replaced with CDN URLs. No extra step needed.
+</Note>
+
+## Rendering
+
+Once saved, render with [`POST /templates/{uid}/render`](/api-reference/endpoints/templates/render)
+and pass variable values in the `variables` object.
+
+```bash cURL
+curl -X POST https://api.pictify.io/templates/tmpl_abc123/render \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "variables": { "title": "Launch day", "subtitle": "Ship it" },
+    "format": "png"
+  }'
+```
