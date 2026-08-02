@@ -57,8 +57,8 @@ Sign the exact bytes you send. Re-serialising JSON after signing changes key ord
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `GET` | `/workflow` | List workflows |
-| `GET` | `/workflow/:uid` | One workflow with its recent runs |
+| `GET` | `/workflow` | List recent RUNS (newest 20) |
+| `GET` | `/workflow/:uid` | One run, with its per-row items |
 | `GET` | `/workflow/stats` | Totals: runs, documents rendered, documents delivered |
 | `POST` | `/workflow/preview` | Preview a template render with a sample row before committing a run |
 

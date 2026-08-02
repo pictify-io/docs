@@ -1,3 +1,3 @@
 <Warning>
-Usage is governed by your plan's monthly credits (`402` when exhausted) and, on a few public endpoints, fixed per-minute rate limits (`429`). No rate-limit headers are sent — on `429`, back off exponentially starting at a few seconds.
+Usage is governed by your plan's monthly credits — exhaustion surfaces as `429` with `code: "quota_exceeded"` on image/GIF/template/batch endpoints and `402` on video/workflow endpoints; neither is retryable. Fixed per-minute limits on a few public endpoints send standard `x-ratelimit-*` headers and are retryable after backing off.
 </Warning>

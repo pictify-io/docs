@@ -101,12 +101,14 @@ Create separate API keys for different environments and services:
 
 ## Rate Limits and Quotas
 
-Two separate limits apply:
+Two separate limits apply, and — for historical reasons — they surface under different status codes per endpoint family:
 
-- **Monthly credits** — every render (image, GIF, PDF page, video) consumes credits from your plan. When they run out, generation endpoints return `402` with a message asking you to upgrade or wait for the monthly reset.
-- **Per-endpoint rate limits** — a small number of endpoints carry fixed per-minute limits (for example, unauthenticated public rendering and template previews). Authenticated generation endpoints are governed by your credit quota rather than a request-per-minute table.
+- **Monthly credits** — every render (image, GIF, PDF page, video) consumes credits. When they run out, the **image, GIF, HTML-template and batch endpoints return `429`** with `code: "quota_exceeded"`, while the **video and workflow endpoints return `402`** with the same code. Treat `quota_exceeded` as "wait for the monthly reset or upgrade" — never as "retry with backoff": no amount of retrying refills a monthly quota.
+- **Per-endpoint rate limits** — a few endpoints (unauthenticated public rendering, template previews) carry fixed per-minute limits. These return `429` *without* a `quota_exceeded` code and DO send standard `x-ratelimit-*` headers and `retry-after` — those are genuinely retryable after backing off.
 
-The API does not send `X-RateLimit-*` headers. When a request is rejected for quota or rate reasons, the response body carries a plain message:
+So the rule for `429` is: **check the `code` field first.** `quota_exceeded` means credits, not rate.
+
+A quota rejection carries a plain message:
 
 ```json
 {

@@ -282,7 +282,7 @@ components:
           properties:
             preset:
               type: string
-              enum: [A4, Letter, Legal, A3, A5, custom]
+              enum: [A4, Letter, Legal, A3, A5, A3_LANDSCAPE, CUSTOM]
               default: A4
             customSize:
               type: object
@@ -448,7 +448,7 @@ components:
           description: Variable identifier. Must match the name used in `{{name}}` tokens.
         type:
           type: string
-          enum: [text, image, color, number, boolean, url, date, array, object]
+          enum: [text, image, color, chart, table, array, object]
           default: text
         defaultValue:
           description: |

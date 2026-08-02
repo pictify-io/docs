@@ -11,7 +11,7 @@ Stay up to date with the latest features, improvements, and fixes.
 
 **Video Templates**
 - Video template API: build a template once (visual timeline studio or a single-file Remotion scene), render it with variables per request — `POST /video/templates/:uid/render`
-- GIF output from the video engine: the same render call takes `format: "gif"` — palette-optimised, capped at 15fps / 720px for shareable file sizes
+- GIF output from the video engine: the same render call takes `format: "gif"` — palette-optimised (timeline templates: 15fps / 720px caps; code templates encode natively at half the composition frame rate)
 - AI template generation: `POST /video/templates/generate` designs a motion brief, writes the scene code, compiles it, renders frames and reviews them visually before returning a draft template
 - AI copilot in the studio: describe a change — or a whole video — and it is designed, built with validated edits, and reviewed, with one-click undo per run
 - Captions from speech, stock media search, effects, keyframes, transitions and a font library in the timeline studio

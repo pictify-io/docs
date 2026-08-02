@@ -37,7 +37,7 @@ curl -X POST https://api.pictify.io/video/templates/TEMPLATE_UID/render \
   }'
 ```
 
-`format` is `"mp4"` (default) or `"gif"`. GIF output is palette-optimised and capped at 15fps and 720px wide, so files stay shareable — a GIF is the same template and the same render, encoded for places an MP4 cannot autoplay.
+`format` is `"mp4"` (default) or `"gif"` — the same template and the same render, encoded for places an MP4 cannot autoplay. Timeline templates are palette-converted and capped at 15fps / 720px wide so files stay shareable; code (tsx) templates encode GIF natively at half the composition's frame rate with no width cap.
 
 Response:
 
@@ -49,7 +49,7 @@ Response:
 }
 ```
 
-Variables are validated against the template's declared definitions — an undeclared or malformed variable returns `422` with `code: "invalid_variable"` rather than rendering something wrong.
+For timeline templates, variable VALUES are validated against the declared definitions — a malformed value (bad colour, unsafe URL, missing required) returns `422` with `code: "invalid_variable"`, while unknown variable names are ignored by design. Code (tsx) templates receive variables directly as component props with no server-side validation — the scene's zod defaults govern what renders.
 
 ## Get a template's variables
 
@@ -90,7 +90,7 @@ curl -X POST https://api.pictify.io/video/templates/TEMPLATE_UID/preview \
   --data-raw '{ "variables": {}, "frame": 45 }'
 ```
 
-Renders one frame to PNG — a cheap way to check a variable set before committing to a full video render. Metered as one image.
+Renders one frame to PNG — a cheap way to check a variable set before committing to a full video render. Metered as one image. Code (tsx) templates only: timeline templates return `501` with `code: "preview_not_supported"` (the studio previews them live in the browser instead).
 
 ## Template management
 
@@ -102,4 +102,4 @@ Renders one frame to PNG — a cheap way to check a variable set before committi
 | `DELETE` | `/video/templates/:uid` | Delete |
 | `POST` | `/video/templates/:uid/duplicate` | Copy — the natural way to make a variant |
 
-Code (`tsx`) templates pass a compile gate on every create and update: imports are restricted to `remotion`, `react` and `zod`, and a template that does not build is rejected with `422` and the compiler errors, so a template that saves is a template that renders.
+Code (`tsx`) templates pass a compile gate on every create and update: imports are restricted to `remotion` (including `@remotion/*` subpackages), `react` and `zod`, and a template that does not build is rejected with `422` and the compiler errors, so a template that saves is a template that renders.

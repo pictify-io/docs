@@ -38,14 +38,14 @@ The same endpoint accepts rows either inline or from a spreadsheet:
 {
   "csvUrl": "https://example.com/recipients.csv",
   "mappings": {
-    "attendee_name": "name",
-    "session": "course"
+    "name": "attendee_name",
+    "course": "session"
   },
   "format": "png"
 }
 ```
 
-`mappings` is `{ "csv_column": "templateVariable" }`. The CSV must be publicly fetchable — the server downloads it once when the batch starts.
+`mappings` is `{ "templateVariable": "CSV Column" }` — the key is the template variable, the value is the CSV column that fills it. The CSV must be publicly fetchable — the server downloads it once when the batch starts.
 
 ## Batch Status
 

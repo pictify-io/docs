@@ -65,9 +65,12 @@ Error responses are plain JSON with a human-readable message under `message` or 
 
 ## Rate Limits and Credits
 
-Usage is governed by your plan's **monthly credits** — every render (image, GIF, PDF page, video) consumes credits, and generation endpoints return `402` when they run out. A small number of endpoints (unauthenticated public rendering, template previews) carry fixed per-minute rate limits and return `429`.
+Two separate limits apply, and — for historical reasons — they surface under different status codes per endpoint family:
 
-The API does not send `X-RateLimit-*` or `Retry-After` headers; on `429`, back off exponentially starting at a few seconds.
+- **Monthly credits** — every render (image, GIF, PDF page, video) consumes credits. When they run out, the **image, GIF, HTML-template and batch endpoints return `429`** with `code: "quota_exceeded"`, while the **video and workflow endpoints return `402`** with the same code. Treat `quota_exceeded` as "wait for the monthly reset or upgrade" — never as "retry with backoff": no amount of retrying refills a monthly quota.
+- **Per-endpoint rate limits** — a few endpoints (unauthenticated public rendering, template previews) carry fixed per-minute limits. These return `429` *without* a `quota_exceeded` code and DO send standard `x-ratelimit-*` headers and `retry-after` — those are genuinely retryable after backing off.
+
+So the rule for `429` is: **check the `code` field first.** `quota_exceeded` means credits, not rate.
 
 ## Pagination
 

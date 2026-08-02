@@ -58,10 +58,10 @@ const readError = (body) =>
 | `200 OK` | Request succeeded | — |
 | `400 Bad Request` | Invalid parameters | Fix the request; the message names the field |
 | `401 Unauthorized` | Missing or invalid API key | Check the `Authorization: Bearer` header |
-| `402 Payment Required` | Monthly credits exhausted, or plan limit reached | Upgrade, or wait for the monthly reset |
+| `402 Payment Required` | Credits exhausted (video/workflow endpoints), or a plan limit reached | Upgrade, or wait for the monthly reset |
 | `404 Not Found` | Resource doesn't exist or belongs to another team | Check the uid |
 | `422 Unprocessable Entity` | Semantically invalid (bad variables, compile errors) | Read `message` or `errors[]` |
-| `429 Too Many Requests` | Per-endpoint rate limit hit | Back off and retry |
+| `429 Too Many Requests` | `code: "quota_exceeded"` → monthly credits exhausted (image/GIF/template/batch endpoints); otherwise a per-minute rate limit | Quota: upgrade or wait for the reset. Rate: back off and retry |
 | `500 Internal Server Error` | Unexpected server error | Retry once, then contact support |
 | `501 Not Implemented` | Feature not configured on this server | The message explains what's missing |
 | `502 Bad Gateway` | An upstream service (AI, transcription) failed | Retry |
@@ -72,9 +72,9 @@ Authentication failures return `401` with the body `{ "message": "Invalid Reques
 
 ## Common Errors
 
-### Out of credits (402)
+### Out of credits
 
-Every render — image, GIF, PDF page, video — consumes monthly credits. When they run out:
+Every render — image, GIF, PDF page, video — consumes monthly credits. When they run out, the video and workflow endpoints return `402`; the image, GIF, HTML-template and batch endpoints return `429` — both with the same body:
 
 ```json
 {
@@ -100,4 +100,4 @@ Rendering with variables that violate the template's declared definitions:
 
 ## Retries
 
-There are no `X-RateLimit-*` or `Retry-After` headers. On `429`, use exponential backoff starting at a few seconds. On `5xx`, one immediate retry is safe — all generation endpoints are idempotent from your side (a failed request bills nothing).
+On a `429` **check `code` first**: `quota_exceeded` is a monthly limit that no retry refills. Rate-limit 429s (public rendering, previews) send standard `x-ratelimit-*` and `retry-after` headers — honour those. On `5xx`, one immediate retry is safe — all generation endpoints are idempotent from your side (a failed request bills nothing).
