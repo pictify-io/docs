@@ -292,6 +292,26 @@ class OgImagesController < ApplicationController
 end
 ```
 
+## Video Templates
+
+Render MP4 video — or animated GIF — from video templates, generate new templates with AI, or upload a Remotion scene you wrote. Renders wait for the finished file; the SDK raises the per-call timeout automatically (render 300s, authoring 180s).
+
+```ruby
+videos = client.list_video_templates
+vars = client.get_video_template_variables(videos.first.uid)
+
+# MP4 by default, or an animated GIF of the same template
+video = client.render_video(videos.first.uid, variables: { title: "Welcome, Maya!" }, format: "gif")
+puts video.url
+
+# Generate a template from a prompt (AI designs, writes and reviews the scene)
+generated = client.generate_video_template(prompt: "An 8 second product launch teaser")
+
+# Or upload a Remotion scene you wrote. The compile gate runs BEFORE saving:
+# invalid tsx raises Pictify::RenderError with the compiler errors and creates nothing.
+template = client.create_video_template(name: "My scene", tsx: scene_source, duration_seconds: 8)
+```
+
 ## API Reference
 
 See the [API Reference](/api-reference/overview) for full endpoint documentation.

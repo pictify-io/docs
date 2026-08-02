@@ -323,6 +323,26 @@ def og_image(request, slug):
     return HttpResponseRedirect(result.url)
 ```
 
+## Video Templates
+
+Render MP4 video — or animated GIF — from video templates, generate new templates with AI, or upload a Remotion scene you wrote. Available on both `Pictify` and `AsyncPictify`; renders wait for the finished file, with the per-call timeout raised automatically.
+
+```python
+videos = client.list_video_templates()
+vars = client.get_video_template_variables(videos[0].uid)
+
+# MP4 by default, or an animated GIF of the same template
+video = client.render_video(videos[0].uid, variables={"title": "Welcome, Maya!"}, format="gif")
+print(video.url)
+
+# Generate a template from a prompt (AI designs, writes and reviews the scene)
+generated = client.generate_video_template("An 8 second product launch teaser")
+
+# Or upload a Remotion scene you wrote. The compile gate runs BEFORE saving:
+# invalid tsx raises with the compiler errors and creates nothing.
+template = client.create_video_template("My scene", scene_source, duration_seconds=8)
+```
+
 ## API Reference
 
 See the [API Reference](/api-reference/overview) for full endpoint documentation.
