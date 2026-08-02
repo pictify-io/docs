@@ -57,8 +57,7 @@
               "concepts/templates",
               "concepts/expressions",
               "concepts/rendering",
-              "concepts/webhooks",
-              "concepts/experiments"
+              "concepts/webhooks"
             ]
           },
           {
@@ -159,24 +158,6 @@
             ]
           },
           {
-            "group": "Experiments",
-            "pages": [
-              "api-reference/experiments",
-              "api-reference/endpoints/experiments/list",
-              "api-reference/endpoints/experiments/create",
-              "api-reference/endpoints/experiments/get",
-              "api-reference/endpoints/experiments/update",
-              "api-reference/endpoints/experiments/delete",
-              "api-reference/endpoints/experiments/start",
-              "api-reference/endpoints/experiments/pause",
-              "api-reference/endpoints/experiments/complete",
-              "api-reference/endpoints/experiments/quota",
-              "api-reference/endpoints/experiments/events",
-              "api-reference/endpoints/experiments/click",
-              "api-reference/endpoints/experiments/pixel"
-            ]
-          },
-          {
             "group": "Webhooks",
             "pages": [
               "api-reference/webhooks",
@@ -235,8 +216,7 @@
             "group": "Tutorials",
             "pages": [
               "guides/batch-processing",
-              "guides/webhook-integration",
-              "guides/ab-testing"
+              "guides/webhook-integration"
             ]
           },
           {
