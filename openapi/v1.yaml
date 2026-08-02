@@ -353,6 +353,34 @@ components:
           type: string
         name:
           type: string
+        engine:
+          type: string
+          enum: [fabric, html]
+          description: |
+            Which renderer owns this template.
+            - `fabric` — legacy canvas templates (fabricJSData)
+            - `html` — Handlebars + HTML templates (html field, supports `{{var}}`, `{{#each}}`, `{{#if}}`, and the built-in helper library)
+        html:
+          type: string
+          description: Handlebars source for `engine=html` templates.
+        fabricJSData:
+          type: object
+          description: FabricJS canvas JSON for `engine=fabric` templates.
+          additionalProperties: true
+        jsEnabled:
+          type: boolean
+          description: |
+            Only meaningful for `engine=html`. When true, scripts inside the template
+            execute during render (Chart.js, KaTeX, animated SVG). Off by default
+            to prevent runaway loops; a 30s hard timeout still applies.
+          default: false
+        strictVariables:
+          type: boolean
+          description: |
+            Only meaningful for `engine=html`. When true, rendering fails with HTTP 422
+            if a root-level variable referenced in the template was not supplied.
+            Leave off if you rely on `{{#if optional}}` guards.
+          default: false
         type:
           type: string
         category:
@@ -371,10 +399,38 @@ components:
         outputFormat:
           type: string
           enum: [image, pdf]
+          default: image
+        pdfPreset:
+          type: string
+          description: Page preset used when `outputFormat=pdf`.
+          enum: [A4, A4_LANDSCAPE, LETTER, LETTER_LANDSCAPE, LEGAL, A3, TABLOID]
+          default: A4
         variableDefinitions:
           type: array
           items:
             $ref: '#/components/schemas/VariableDefinition'
+        pages:
+          type: array
+          description: Multi-page canvas pages (fabric engine).
+          items:
+            type: object
+            properties:
+              pageNumber:
+                type: integer
+              name:
+                type: string
+              fabricJSData:
+                type: object
+                additionalProperties: true
+        layouts:
+          type: object
+          description: |
+            Named layout variants. Keys are short identifiers matching
+            `^[a-z0-9-]{1,64}$` (e.g. `twitter-post`, `og-image`). Each value
+            overrides `width`, `height`, and renderer-specific data for that
+            variant. Limit: 20 layouts per template.
+          additionalProperties:
+            type: object
         createdAt:
           type: string
           format: date-time
@@ -384,16 +440,29 @@ components:
 
     VariableDefinition:
       type: object
+      required:
+        - name
       properties:
         name:
           type: string
+          description: Variable identifier. Must match the name used in `{{name}}` tokens.
         type:
           type: string
-          enum: [text, image, color, number, boolean]
+          enum: [text, image, color, number, boolean, url, date, array, object]
+          default: text
         defaultValue:
-          type: string
+          description: |
+            Fallback value when the variable is not supplied at render time.
+            Typed according to `type` — string for text/image/color/url, number for number,
+            boolean for boolean, ISO date string for date, JSON array/object for array/object.
         description:
           type: string
+        allowRawHtml:
+          type: boolean
+          description: |
+            Only meaningful for `type=text` on `engine=html` templates. When true the value
+            is NOT HTML-escaped at render time. Use with care — treat as trusted input.
+          default: false
         validation:
           type: object
           properties:
@@ -1276,6 +1345,18 @@ paths:
     post:
       operationId: createTemplate
       summary: Create a template
+      description: |
+        Create a new template. Pictify supports two template engines:
+
+        - `engine: "html"` — Handlebars + HTML. Author a template with `{{variable}}` tokens,
+          `{{#each}}` / `{{#if}}` blocks, and the built-in helper library. Supplied `html`
+          is compile-validated on save; any identifier referenced in the template body
+          but missing from `variableDefinitions` is auto-added as a text variable and
+          returned in `addedVariables` on the response.
+        - `engine: "fabric"` (default) — FabricJS canvas. Provide `fabricJSData`.
+
+        If `engine` is omitted the server defaults to `fabric` for backwards compatibility.
+        New HTML templates should set `engine: "html"` explicitly.
       tags:
         - Templates
       requestBody:
@@ -1289,16 +1370,31 @@ paths:
               properties:
                 name:
                   type: string
+                  description: Human-readable template name. Shown in the dashboard.
+                engine:
+                  type: string
+                  enum: [fabric, html]
+                  default: fabric
+                  description: |
+                    Template engine. Set `html` to author with Handlebars + HTML.
                 html:
                   type: string
+                  description: |
+                    Required for `engine=html`. Handlebars source. Must compile.
+                    Undeclared `{{identifier}}` references are auto-added as text variables.
                 fabricJSData:
                   type: object
+                  description: Required for `engine=fabric`. FabricJS canvas JSON.
+                  additionalProperties: true
                 width:
                   type: integer
+                  description: Render width in px.
                 height:
                   type: integer
+                  description: Render height in px.
                 type:
                   type: string
+                  description: Template type tag (e.g. `og-image`, `twitter-card`). Free-form.
                 category:
                   type: string
                 tags:
@@ -1307,11 +1403,83 @@ paths:
                     type: string
                 variableDefinitions:
                   type: array
+                  description: |
+                    Variable schema. For `engine=html`, identifiers referenced in the template
+                    body but not declared here are auto-added as text variables and returned
+                    under `addedVariables` in the response.
                   items:
                     $ref: '#/components/schemas/VariableDefinition'
+                jsEnabled:
+                  type: boolean
+                  default: false
+                  description: |
+                    `engine=html` only. When true, scripts inside the template execute at
+                    render time. Enables Chart.js, KaTeX, and animated SVG. Disables
+                    infinite-loop protection; the 30s hard timeout still applies.
+                strictVariables:
+                  type: boolean
+                  default: false
+                  description: |
+                    `engine=html` only. When true, missing root-level variables throw
+                    HTTP 422 at render time. Leave off if you rely on `{{#if optional}}` guards.
                 outputFormat:
                   type: string
                   enum: [image, pdf]
+                  default: image
+                pdfPreset:
+                  type: string
+                  enum: [A4, A4_LANDSCAPE, LETTER, LETTER_LANDSCAPE, LEGAL, A3, TABLOID]
+                  default: A4
+                  description: Page preset when `outputFormat=pdf`.
+                pages:
+                  type: array
+                  description: Multi-page canvas pages (`engine=fabric` only).
+                  items:
+                    type: object
+                    properties:
+                      pageNumber:
+                        type: integer
+                      name:
+                        type: string
+                      fabricJSData:
+                        type: object
+                        additionalProperties: true
+            examples:
+              handlebars:
+                summary: Handlebars HTML template
+                value:
+                  name: OG Image
+                  engine: html
+                  width: 1200
+                  height: 630
+                  html: |
+                    <div style="width:1200px;height:630px;padding:64px;font-family:Inter">
+                      <h1 style="font-size:72px">{{title}}</h1>
+                      <p style="font-size:32px;color:#6b7280">{{subtitle}}</p>
+                      {{#if showCta}}<button>{{ctaText}}</button>{{/if}}
+                    </div>
+                  variableDefinitions:
+                    - name: title
+                      type: text
+                      defaultValue: Hello world
+                    - name: subtitle
+                      type: text
+                    - name: showCta
+                      type: boolean
+                      defaultValue: false
+                    - name: ctaText
+                      type: text
+                      defaultValue: Learn more
+                  strictVariables: false
+                  jsEnabled: false
+              fabric:
+                summary: FabricJS canvas template
+                value:
+                  name: Quote card
+                  engine: fabric
+                  width: 1080
+                  height: 1080
+                  fabricJSData: { version: "5.3.0", objects: [] }
       responses:
         '200':
           description: Template created
@@ -1322,6 +1490,31 @@ paths:
                 properties:
                   template:
                     $ref: '#/components/schemas/Template'
+                  addedVariables:
+                    type: array
+                    description: |
+                      `engine=html` only. Names of identifiers referenced in the template
+                      body that were auto-added to `variableDefinitions` during save. Omitted
+                      when the array would be empty.
+                    items:
+                      type: string
+        '422':
+          description: |
+            Validation failed. Typical causes for `engine=html`: unclosed Handlebars block,
+            unknown helper, or (when `strictVariables=true`) a referenced variable without
+            a definition.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  code:
+                    type: string
+                  context:
+                    type: object
+                    additionalProperties: true
 
   /templates/{uid}:
     get:
