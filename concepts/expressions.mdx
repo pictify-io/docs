@@ -5,11 +5,79 @@ description: Dynamic logic with the template expression engine
 
 # Expressions
 
-The expression engine allows you to add dynamic logic to templates. Use expressions for text interpolation, conditional rendering, and data transformation.
+Pictify templates come in two engines, and each has its own syntax for dynamic logic:
 
-## Syntax
+| Engine | Syntax style | Example |
+|---|---|---|
+| `html` (Handlebars) | Handlebars blocks + positional helpers | `{{#if isPremium}}...{{/if}}`, `{{currency price 'USD'}}` |
+| `fabric` (canvas) | Expression engine — function calls, operators, ternaries | `{{currency(price, 'USD')}}`, `{{isPremium ? 'Gold' : 'Silver'}}` |
 
-Expressions use double curly braces: `{{expression}}`
+Both engines share the **same function library** (the tables below) — only the call style differs. Using expression-style `currency(price, 'USD')` in a Handlebars HTML template (or vice versa) will fail validation.
+
+## Handlebars syntax (HTML templates)
+
+HTML templates (`engine: "html"`) use standard [Handlebars](https://handlebarsjs.com): `{{variable}}` interpolation, block helpers, and positional helper calls. Templates are compile-validated on save — unclosed blocks or unknown helpers fail with HTTP 422.
+
+### Variables and escaping
+
+```handlebars
+{{title}}
+{{user.name}}
+```
+
+`{{variable}}` HTML-escapes its output. Raw HTML output with `{{{variable}}}` additionally requires `allowRawHtml: true` on that variable's definition — an XSS guard for user-supplied data.
+
+### Conditionals
+
+```handlebars
+{{#if isPremium}}
+  <span class="badge">Premium</span>
+{{else if isTrial}}
+  <span class="badge">Trial</span>
+{{else}}
+  <span class="badge">Free</span>
+{{/if}}
+
+{{#unless emailVerified}}<p>Please verify your email.</p>{{/unless}}
+```
+
+There is no `==` operator and no custom helper registration (helpers are safelisted). For comparisons, pass a precomputed boolean in your render variables — or use the boolean helpers in a subexpression:
+
+```handlebars
+{{#if (contains roles 'admin')}}Admin panel{{/if}}
+{{#if (isEmpty items)}}Nothing here yet.{{/if}}
+```
+
+`contains`, `isEmpty`, `isNotEmpty`, `isDefined`, `startsWith`, `endsWith`, and the other boolean functions all compose this way.
+
+### Loops
+
+```handlebars
+{{#each items}}
+  <li>{{@index}}. {{this.name}} — {{currency this.price 'USD'}}</li>
+{{else}}
+  <li>No items.</li>
+{{/each}}
+```
+
+`@index`, `@first`, `@last`, and `@key` (for objects) are available inside the block; `../` reaches the parent context. Each render carries a 5,000-iteration cap across all `#each` blocks — runaway loops fail loudly instead of hanging.
+
+### Calling functions from Handlebars
+
+Every function in the library below is available as a Handlebars helper using **positional arguments** (no parentheses or commas):
+
+```handlebars
+{{titleCase title}}
+{{currency price 'USD'}}
+{{date publishedAt 'MMM D, YYYY'}}
+{{truncate description 100 '...'}}
+```
+
+Partials (`{{> name}}`) are not supported — reuse happens at the template level.
+
+## Expression syntax (canvas templates)
+
+Canvas templates (`engine: "fabric"`) use the expression engine: function calls, arithmetic and comparison operators, and ternaries inside `{{expression}}`. The examples in the rest of this page use this style.
 
 ### Simple Variables
 
@@ -62,6 +130,8 @@ Access nested properties with dot notation:
 ```
 
 ## Built-in Functions
+
+The function library is shared by both engines. Examples below use expression style (canvas engine); in Handlebars HTML templates call the same functions positionally — `{{currency price 'USD'}}` instead of `{{currency(price, 'USD')}}`.
 
 ### String Functions
 
