@@ -16,7 +16,7 @@ This guide covers common issues and their solutions when using the Pictify API.
 **Solutions:**
 
 1. **Verify the key format**
-   - A valid key is a 64-character hex string with no prefix
+   - New keys look like `pic_live_` followed by 64 hex characters; keys created before September 2026 are bare 64-character hex strings and still work
 
 2. **Check for extra characters**
    ```bash
@@ -28,10 +28,10 @@ This guide covers common issues and their solutions when using the Pictify API.
    ```
 
 3. **Verify the key isn't revoked**
-   - Check in Dashboard > Settings > API Keys
+   - Check in Dashboard > Settings
 
-4. **Ensure correct environment**
-   - Test keys don't work in production mode
+4. **Copy the whole key**
+   - The `pic_live_` prefix is part of the key
 
 ### "Missing Authorization" (401)
 

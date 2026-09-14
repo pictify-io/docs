@@ -9,11 +9,12 @@ Pictify templates come in two flavours. Pick one with the `engine` field.
 | Engine | Authoring surface | Use it when |
 |--------|-------------------|-------------|
 | `html` | Raw HTML + Handlebars (`{{var}}`, `{{#each}}`, `{{#if}}`, helpers) | You want full control over markup, CSS, and copy-paste-able source. |
-| `fabric` *(default)* | FabricJS canvas JSON | You're exporting from the dashboard editor or automating canvas layouts. |
+| `fabric` | FabricJS canvas JSON | You're exporting from the dashboard editor or automating canvas layouts. |
 
 <Note>
-If you omit `engine`, the API defaults to `fabric` for backwards compatibility. New
-HTML templates should set `engine: "html"` explicitly.
+If you omit `engine`, Pictify infers it from the payload: a request with `html` and no
+`fabricJSData` becomes an `html` template; anything else is `fabric`. Set it explicitly
+anyway so the intent is clear.
 </Note>
 
 ## Handlebars HTML templates
@@ -99,7 +100,7 @@ inspection. See [Handlebars syntax in Expressions](/concepts/expressions#handleb
 
 ## FabricJS canvas templates
 
-Set `engine: "fabric"` (or omit — it's the default) and pass a FabricJS canvas JSON
+Set `engine: "fabric"` and pass a FabricJS canvas JSON
 object in `fabricJSData`. Multi-page canvases are supported via `pages`.
 
 ```bash cURL

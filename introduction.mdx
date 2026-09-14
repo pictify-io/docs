@@ -1,11 +1,11 @@
 ---
 title: Introduction
-description: "Pictify API: generate images (PNG, JPG, WebP), multi-page PDFs, GIFs, and MP4 video from HTML templates — emailed to each recipient with delivery status"
+description: "Pictify API: generate images (PNG, JPG, WebP), multi-page PDFs, GIFs, and MP4 video from HTML templates — one render per call, or thousands per batch"
 ---
 
 # Welcome to Pictify
 
-Pictify is an API for generating images (PNG, JPG, WebP), multi-page PDFs, animated GIFs, and MP4 video from HTML templates. Workflow runs connect a CSV upload or webhook to a template and email each rendered document to its recipient, with delivered/bounced status tracked per row — we call this pattern **Render-to-Recipient**. Use it for certificates, invoices, reports, social media cards, Open Graph images, and personalized video at scale.
+Pictify is an API for generating images (PNG, JPG, WebP), multi-page PDFs, animated GIFs, and MP4 video from HTML templates. Render one asset per call, or send a batch of rows and get one render per row, each with its own variables. Use it for certificates, invoices, reports, social media cards, Open Graph images, and personalized video at scale.
 
 ## What You Can Build
 
@@ -25,8 +25,8 @@ Pictify is an API for generating images (PNG, JPG, WebP), multi-page PDFs, anima
   <Card title="Personalized Video" icon="video">
     Render MP4 video from templates — per-recipient variants with one API call
   </Card>
-  <Card title="Documents, Delivered" icon="envelope">
-    Workflow runs email each render to its recipient with per-row delivery status
+  <Card title="Batch Rendering" icon="layer-group">
+    Send rows of variables in one request and get one render per row
   </Card>
 </CardGroup>
 
@@ -65,7 +65,7 @@ Create reusable templates with the visual editor or HTML/CSS. Define variables f
 Generate PNG, JPEG, WebP images, animated GIFs, and multi-page PDFs from the same templates.
 
 ### Batch Processing
-Render up to 500 images in a single API request. Process thousands of assets efficiently for data-driven campaigns.
+Render up to 1,000 rows in a single API request (the per-request limit depends on your plan). Process thousands of assets efficiently for data-driven campaigns.
 
 ### Official SDKs
 Native SDKs for Node.js, Python, Go, and Ruby with full TypeScript/type hints support.
@@ -97,4 +97,4 @@ MCP server for Claude Code, Cursor, and other AI tools. Generate images directly
 
 - **Email**: support@pictify.io
 - **Discord**: [Join our community](https://discord.gg/pictify)
-- **GitHub**: [Report issues](https://github.com/pictify-io/pictify)
+- **GitHub**: [Report issues](https://github.com/pictify-io)

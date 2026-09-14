@@ -152,12 +152,6 @@
             ]
           },
           {
-            "group": "Workflows",
-            "pages": [
-              "api-reference/workflows"
-            ]
-          },
-          {
             "group": "Webhooks",
             "pages": [
               "api-reference/webhooks",
@@ -270,12 +264,17 @@
   "openapi": [
     "openapi/v1.yaml"
   ],
+  "redirects": [
+    {
+      "source": "/api-reference/workflows",
+      "destination": "/guides/batch-processing"
+    }
+  ],
   "feedback": {
     "thumbsRating": true,
     "suggestEdit": true
   },
   "footerSocials": {
-    "twitter": "https://twitter.com/pictifyio",
     "github": "https://github.com/pictify-io"
   },
   "analytics": {
@@ -288,7 +287,6 @@
   },
   "metadata": {
     "og:site_name": "Pictify Documentation",
-    "og:image": "https://pictify.io/og-image.png",
-    "twitter:site": "@pictifyio"
+    "og:image": "https://pictify.io/og-image.png"
   }
 }

@@ -9,24 +9,22 @@ API keys authenticate your requests to the Pictify API. Proper key management is
 
 ## Key Format
 
-An API key is a single 64-character hex string with full access to your team's resources. There are no key types, prefixes, or sandbox keys — every key is live, and every render it makes consumes your plan's monthly credits.
+A key is a single secret with full access to your account's (or team's) resources. New keys start with `pic_live_` followed by 64 hex characters; keys created before September 2026 are bare 64-character hex strings and remain valid. There are no key types or sandbox keys — every key is live, and every render it makes consumes your plan's monthly credits.
 
 ## Creating API Keys
 
 ### Dashboard
 
-1. Go to **Settings** > **API Keys**
-2. Click **Create Key**
-3. Name your key (e.g., "Production Server", "CI/CD")
-4. Copy the key immediately - it's only shown once
+1. Open **Settings** in the dashboard
+2. Click **New key**
+3. Copy the key — the list shows it masked, and the **Copy** button gives you the full value
 
 ### Key Properties
 
 Each key includes:
-- **Secret** - The key value itself (a 64-character hex string)
-- **Name** - Your description
+- **Secret** - The key value itself (`pic_live_` + 64 hex characters)
 - **Created** - Creation timestamp
-- **Last Used** - Last API call timestamp
+- **Last used** - When the API was last called from this account (shared across keys, not tracked per key)
 
 ## Storing Keys Securely
 
@@ -36,7 +34,7 @@ The recommended approach for most applications:
 
 ```bash
 # .env (never commit this file)
-PICTIFY_API_KEY=your-64-character-api-key
+PICTIFY_API_KEY=pic_live_...
 ```
 
 ```typescript
@@ -96,7 +94,7 @@ metadata:
   name: pictify-credentials
 type: Opaque
 stringData:
-  api-key: your-64-character-api-key
+  api-key: pic_live_...
 ```
 
 ```yaml
@@ -152,12 +150,13 @@ async function makeRequest(options) {
 
 Create separate keys for different purposes:
 
-| Key Name | Purpose | Access Level |
-|----------|---------|--------------|
-| `prod-api-server` | Production API | Full access |
-| `staging-server` | Staging environment | Test key |
-| `ci-cd-pipeline` | Automated tests | Test key |
-| `analytics-readonly` | Metrics collection | Read-only |
+| Key | Purpose |
+|-----|---------|
+| Production key | Production API server |
+| Staging key | Staging environment |
+| CI key | Automated tests |
+
+Every key has the same full access. Separate keys limit the blast radius of a leak and let you rotate one environment without touching the others; they do not carry different permissions.
 
 ### Team Access
 
@@ -169,38 +168,11 @@ Create separate keys for different purposes:
 
 ### Track Key Usage
 
-Monitor your API usage in the dashboard:
+The dashboard shows when the API was last called (Settings) and every render the API produced (**Renders**, filtered to the API source). Review it for renders you do not recognise.
 
-- Requests per key
-- Error rates
-- Last used timestamp
-- Geographic distribution
+### Usage Emails
 
-### Set Up Alerts
-
-Configure alerts for suspicious activity:
-
-- Sudden spike in requests
-- Requests from unexpected locations
-- High error rates
-- Usage outside business hours
-
-### Audit Logs
-
-Review audit logs regularly:
-
-```json
-{
-  "timestamp": "2026-01-29T10:30:00Z",
-  "action": "api.request",
-  "keyId": "key_abc123",
-  "endpoint": "/image",
-  "method": "POST",
-  "status": 200,
-  "ip": "203.0.113.50",
-  "userAgent": "pictify-node/1.0.0"
-}
-```
+Pictify emails you when you pass 50% and 90% of your monthly renders. A spike you did not expect is the earliest sign of a leaked key.
 
 ## Handling Compromised Keys
 

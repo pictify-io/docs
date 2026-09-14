@@ -9,14 +9,13 @@ All API requests require authentication using an API key passed in the `Authoriz
 
 ## API Keys
 
-API keys are created in your [dashboard settings](https://pictify.io/dashboard/settings). Each key is associated with your team and has access to all team resources.
+API keys are created on the [Settings page](https://pictify.io/dashboard/api-token) of the dashboard. A key belongs to your account — or to your team, if you have one — and has access to everything that account owns.
 
 ### Creating an API Key
 
-1. Navigate to **Settings** > **API Keys** in the dashboard
-2. Click **Create API Key**
-3. Give your key a descriptive name (e.g., "Production Server", "Development")
-4. Copy the key immediately - it won't be shown again
+1. Open **Settings** in the dashboard rail
+2. Click **New key**
+3. Copy the key with the **Copy** button. The list shows it masked (`pic_live_…3f2a9`), but the button always copies the full value, so you can come back for it later.
 
 <Warning>
 API keys provide full access to your account. Keep them secure and never expose them in client-side code.
@@ -61,7 +60,9 @@ client = Pictify::Client.new(api_key: ENV['PICTIFY_API_KEY'])
 
 ## Key Format
 
-An API key is a single 64-character hex string — there are no key prefixes, key types, or sandbox keys. Every key is a live key: requests made with it render real assets and count against your plan's monthly credits.
+Keys created today start with `pic_live_` followed by 64 hex characters, so a key can be told apart from any other hex string in logs, support tickets and secret scanners. Keys created before September 2026 are bare 64-character hex strings; they keep working and do not need to be rotated.
+
+There are no key types or sandbox keys. Every key is a live key: requests made with it render real assets and count against your plan's monthly credits.
 
 To test without spending credits, use the free tier's included credits or the [API Playground](https://pictify.io/dashboard/api-playground), which shows the exact request and response for every endpoint.
 
@@ -73,7 +74,7 @@ Never hardcode API keys. Use environment variables:
 
 ```bash
 # .env
-PICTIFY_API_KEY=your-64-character-api-key
+PICTIFY_API_KEY=pic_live_...
 ```
 
 ### Server-Side Only
@@ -103,7 +104,7 @@ Create separate API keys for different environments and services:
 
 Two separate limits apply, and — for historical reasons — they surface under different status codes per endpoint family:
 
-- **Monthly credits** — every render (image, GIF, PDF, video) consumes render credits; see [Credits](#credits) below for what each operation costs. When they run out, the **image, GIF, HTML-template and batch endpoints return `429`** with `code: "quota_exceeded"`, while the **video and workflow endpoints return `402`** with the same code. Treat `quota_exceeded` as "wait for the monthly reset or upgrade" — never as "retry with backoff": no amount of retrying refills a monthly quota.
+- **Monthly credits** — every render (image, GIF, PDF, video) consumes render credits; see [Credits](#credits) below for what each operation costs. When they run out, the **image, GIF, HTML-template and batch endpoints return `429`** with `code: "quota_exceeded"`, while the **video endpoints return `402`** with the same code. Treat `quota_exceeded` as "wait for the monthly reset or upgrade" — never as "retry with backoff": no amount of retrying refills a monthly quota.
 - **Per-endpoint rate limits** — a few endpoints (unauthenticated public rendering, template previews) carry fixed per-minute limits. These return `429` *without* a `quota_exceeded` code and DO send standard `x-ratelimit-*` headers and `retry-after` — those are genuinely retryable after backing off.
 
 So the rule for `429` is: **check the `code` field first.** `quota_exceeded` means credits, not rate.
@@ -124,7 +125,7 @@ Your plan carries **two separate monthly pools**. They never mix: renders spend 
 
 ### Render credits
 
-Every render costs **1 render credit** — one image, one GIF, one PDF, one video render, one workflow (CSV row or webhook) render, one item in a batch. The single exception is GIF capture from a live URL (`POST /gif/capture`), which costs **1.5 render credits** because it records a headless browser session.
+Every render costs **1 render credit** — one image, one GIF, one PDF, one video render, one item in a batch. The single exception is GIF capture from a live URL (`POST /gif/capture`), which costs **1.5 render credits** because it records a headless browser session.
 
 Monthly render allowances per plan are listed on the [pricing page](https://pictify.io/pricing). Paid plans can enable overage billing to keep rendering past the allowance.
 
@@ -167,16 +168,9 @@ AI credits reset on the first of each calendar month. There is no overage billin
 
 Your current balance for both pools is shown on the dashboard's usage meter, and the AI balance is included in the `aiCredits: { used, limit }` field of the plan details endpoint.
 
-## Team API Keys
+## Teams
 
-API keys are scoped to your team. All team members share access to the same API keys and resources.
-
-To manage team members:
-1. Go to **Settings** > **Team**
-2. Invite members by email
-3. Assign roles (Admin, Editor, Viewer)
-
-Only Admins can create, view, and delete API keys.
+Teams are optional. A solo account owns its keys outright. If you create a team, keys belong to the team and every member calls the API with the same keys and sees the same templates and renders. Invite members from **Team** in the dashboard.
 
 ## Troubleshooting
 
@@ -193,8 +187,8 @@ Only Admins can create, view, and delete API keys.
 
 **Solutions:**
 - Verify the key is copied correctly (no extra spaces)
-- Check if the key has been deleted in the dashboard
-- Ensure you're using the correct environment (test vs production)
+- Check if the key has been revoked in the dashboard
+- Make sure you copied the whole key, including the `pic_live_` prefix
 
 ### Missing Authorization Header
 

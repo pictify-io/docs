@@ -7,6 +7,27 @@ description: Recent updates and improvements to Pictify
 
 Stay up to date with the latest features, improvements, and fixes.
 
+## September 2026
+
+**API keys**
+- New keys are prefixed `pic_live_` so they can be recognised in logs and by secret scanners. Existing bare-hex keys keep working; nothing to rotate.
+- The dashboard Settings page shows keys masked (`pic_live_…3f2a9`) with one-click copy, rotate and revoke.
+
+**Templates**
+- A template's card in the dashboard shows its latest render as the thumbnail; `GET /templates` returns `thumbnail` and `lastRenderedAt` per template.
+- Creating and rendering templates works on accounts without a team. Teams stay optional.
+
+**Rendering**
+- Images referenced by a template are awaited before capture, so `<img>` tags no longer come out blank on the first render.
+- Legacy IANA time-zone names such as `Asia/Calcutta` are accepted by the renders feed.
+- Authenticated `POST /image` no longer times out on pages that keep a connection open.
+
+**Free tools**
+- The HTML-to-image tools accept pasted or typed HTML again, alongside file upload.
+
+**Retired**
+- Workflows (CSV or webhook runs with per-recipient email delivery) are retired, and the Workflows API page has been removed. Use [batch rendering](/guides/batch-processing) for one render per row.
+
 ## August 2026
 
 **Video Templates**
@@ -17,9 +38,7 @@ Stay up to date with the latest features, improvements, and fixes.
 - Captions from speech, stock media search, effects, keyframes, transitions and a font library in the timeline studio
 - Server-rendered posters: every code template gets a thumbnail automatically
 
-**Workflows**
-- Inbound hooks: a public URL per workflow that accepts rows from any system, with optional HMAC signature verification (`X-Pictify-Signature`)
-- Run stats and per-row progress (`total / rendered / delivered / failed`)
+**Templates**
 - Saved-template plan limits enforced server-side, shared across image and video templates
 
 **Improvements**
