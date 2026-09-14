@@ -1,249 +1,50 @@
 ---
 title: Usage & Billing
-description: Monitor usage and manage your Pictify subscription
+description: Where to see your render usage, what each plan includes, and how overage billing works
 ---
 
 # Usage & Billing
 
-Track your API usage, understand your billing, and manage your Pictify subscription.
+The **Usage & billing** page of the dashboard ([pictify.io/dashboard/billing](https://pictify.io/dashboard/billing)) shows your monthly render meter first, then your plan, then your invoices.
 
-## Usage Dashboard
+## Usage Meter
 
-Access usage analytics at **Settings** > **Usage**.
+- **Renders used / limit** for the current month. The meter resets on the first of each calendar month.
+- Every render costs one render credit — one image, one GIF, one PDF, one video render, one item in a batch. GIF capture from a live URL costs 1.5. See [Credits](/authentication#credits).
+- AI operations draw from a separate AI-credit pool, also shown on the page.
 
-### Overview Metrics
+Pictify emails you when you pass 50% and 90% of your monthly renders.
 
-| Metric | Description |
-|--------|-------------|
-| **Total Renders** | Images, GIFs, and PDFs generated |
-| **API Calls** | Total API requests (including failed) |
-| **Bandwidth** | Data transferred from CDN |
-| **Storage** | Template and asset storage used |
+To see what was rendered, open **Renders** in the dashboard. Filter by source to separate API calls from dashboard and free-tool renders.
 
-### Time Periods
+## Plans
 
-View usage for different periods:
+| | Free | Basic | Pro | Business | Enterprise |
+|---|---|---|---|---|---|
+| Price | $0 | $19/mo ($15 annual) | $49/mo ($39 annual) | $249/mo ($199 annual) | Custom |
+| Renders / month | 50 | 1,000 | 10,000 | 40,000 | Custom |
+| Saved templates | 3 | 25 | Unlimited | Unlimited | Unlimited |
+| Batch rendering | — | 50 rows / request, 500 rows / month | 250 rows / request | 1,000 rows / request | Custom |
+| Team seats | 1 | 2 | 5 | 10 | Custom |
+| AI credits / month | 25 | 300 | 1,000 | 4,000 | Custom |
+| Webhooks | — | Yes | Yes | Yes | Yes |
+| Overage rate | — | $0.02 / render | $0.01 / render | $0.005 / render | Custom |
 
-- **Today** - Current day (UTC)
-- **This Week** - Sunday to Saturday
-- **This Month** - Calendar month
-- **Custom Range** - Select specific dates
+Free includes full API access and watermark-free output. No credit card is required.
 
-### Charts
+## When You Hit the Limit
 
-Interactive charts show:
+- **Free**: the API returns `429` with `code: "quota_exceeded"` (`402` on video endpoints) until the month resets or you upgrade.
+- **Paid plans**: the same, unless overage billing is enabled on the billing page. With overage on, rendering continues and the extra renders are billed at the end of the month at your plan's per-render rate.
 
-- **Daily renders** over time
-- **Renders by type** (image, GIF, PDF)
-- **Renders by template**
-- **API response times**
-- **Error rates**
+## Changing Plans
 
-## Plan Limits
+Upgrade from **Usage & billing** or from [pictify.io/dashboard/upgrade](https://pictify.io/dashboard/upgrade). Upgrades take effect immediately. Downgrades and cancellations take effect at the end of the current billing period, and access continues until then.
 
-### Free Plan
+Payments and invoices are handled by Lemon Squeezy, our merchant of record. Past invoices are listed on the billing page.
 
-| Resource | Limit |
-|----------|-------|
-| Renders | 100/month |
-| API Calls | 1,000/month |
-| Templates | 5 |
-| Bandwidth | 1 GB/month |
+## Cost Tips
 
-### Pro Plan
-
-| Resource | Limit |
-|----------|-------|
-| Renders | 5,000/month |
-| API Calls | 50,000/month |
-| Templates | 50 |
-| Bandwidth | 50 GB/month |
-
-### Business Plan
-
-| Resource | Limit |
-|----------|-------|
-| Renders | 50,000/month |
-| API Calls | 500,000/month |
-| Templates | Unlimited |
-| Bandwidth | 500 GB/month |
-
-### Enterprise
-
-Custom limits based on your needs. Contact sales for details.
-
-## Usage Alerts
-
-Get notified before reaching limits:
-
-1. Go to **Settings** > **Alerts**
-2. Configure thresholds:
-   - 50%, 75%, 90%, 100% of limit
-3. Choose notification method:
-   - Email
-   - Slack
-   - Webhook
-
-## Billing
-
-### Viewing Invoices
-
-1. Go to **Settings** > **Billing**
-2. Click **Invoices** tab
-3. Download PDF invoices
-
-### Payment Methods
-
-Add or update payment methods:
-
-1. Go to **Settings** > **Billing**
-2. Click **Payment Methods**
-3. Add card or connect bank account
-
-### Billing Cycle
-
-- Monthly plans bill on subscription date
-- Annual plans bill once per year
-- Overages are billed at the end of each month
-
-## Upgrading Your Plan
-
-### From Dashboard
-
-1. Go to **Settings** > **Billing**
-2. Click **Change Plan**
-3. Select your new plan
-4. Confirm upgrade
-
-Upgrades take effect immediately. You're prorated for the remaining billing period.
-
-### Downgrading
-
-1. Go to **Settings** > **Billing**
-2. Click **Change Plan**
-3. Select lower tier
-
-Downgrades take effect at the end of your billing period.
-
-## Overage Handling
-
-When you exceed plan limits:
-
-### Soft Limits (Pro and above)
-
-- API continues to work
-- Overage charges apply
-- Rates vary by resource
-
-### Hard Limits (Free plan)
-
-- API returns `429 Plan Limit Exceeded`
-- Upgrade or wait for next billing cycle
-
-### Overage Rates
-
-| Resource | Pro Overage | Business Overage |
-|----------|------------|------------------|
-| Renders | $0.01/each | $0.005/each |
-| API Calls | $0.001/each | $0.0005/each |
-| Bandwidth | $0.10/GB | $0.05/GB |
-
-## Cost Optimization
-
-### Reduce Renders
-
-1. **Cache rendered images** - Don't regenerate unchanged content
-2. **Use bindings** - Auto-refresh images instead of re-rendering
-3. **Batch similar renders** - Use batch API for efficiency
-
-### Reduce Bandwidth
-
-1. **Choose appropriate formats** - JPEG for photos, PNG for graphics
-2. **Optimize dimensions** - Don't render larger than needed
-3. **Use CDN caching** - Set appropriate cache headers
-
-### Right-Size Your Plan
-
-Compare your usage to plan limits:
-
-1. View historical usage in dashboard
-2. Identify usage patterns
-3. Choose plan that fits typical usage
-4. Consider annual plans for savings
-
-## Team Usage
-
-For team accounts, view usage by:
-
-### By Team Member
-
-See renders attributed to each user:
-
-1. Go to **Usage** > **By User**
-2. Filter by date range
-3. View per-user metrics
-
-### By API Key
-
-Track which keys generate the most usage:
-
-1. Go to **Usage** > **By API Key**
-2. Identify high-usage keys
-3. Set per-key rate limits if needed
-
-## Export Usage Data
-
-Download usage data for analysis:
-
-1. Go to **Settings** > **Usage**
-2. Click **Export**
-3. Choose format (CSV, JSON)
-4. Select date range
-5. Download file
-
-## Understanding Your Invoice
-
-Invoice line items include:
-
-| Item | Description |
-|------|-------------|
-| **Base Plan** | Monthly/annual subscription |
-| **Render Overage** | Additional renders beyond plan |
-| **API Call Overage** | Additional API calls beyond plan |
-| **Bandwidth Overage** | Additional data transfer |
-| **Add-ons** | Premium features (priority support, etc.) |
-| **Credits** | Applied promotional credits |
-
-## Tax Information
-
-### VAT/GST
-
-If you're in a region with VAT/GST:
-
-1. Go to **Settings** > **Billing**
-2. Click **Tax Information**
-3. Enter your VAT/GST number
-4. Tax will be adjusted on future invoices
-
-### Tax Exemption
-
-For tax-exempt organizations:
-
-1. Contact support with exemption documentation
-2. We'll update your account
-3. Future invoices will exclude tax
-
-## Cancellation
-
-To cancel your subscription:
-
-1. Go to **Settings** > **Billing**
-2. Click **Cancel Subscription**
-3. Select reason (helps us improve)
-4. Confirm cancellation
-
-After cancellation:
-- Access continues until end of billing period
-- Data retained for 30 days
-- API keys stop working at period end
-- Download any needed data before then
+1. **Cache what does not change.** Renders are hosted on the CDN; reuse the URL instead of re-rendering the same input.
+2. **Batch similar renders.** One `POST /batch` request with many rows is easier to operate than many single calls. It costs the same: one credit per row.
+3. **Right-size dimensions.** Render at the size you display.

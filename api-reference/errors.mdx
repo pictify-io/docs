@@ -25,7 +25,7 @@ Errors carry a human-readable message under one of two keys — `message` (most 
 
 Two extensions appear on specific endpoints:
 
-- **`code`** — a stable machine-readable slug on newer endpoints (video, workflows, stock): `quota_exceeded`, `template_limit_reached`, `ai_unavailable`, `stock_unavailable`, `invalid_variable`, `preview_not_supported`.
+- **`code`** — a stable machine-readable slug on newer endpoints (video, stock): `quota_exceeded`, `template_limit_reached`, `ai_unavailable`, `stock_unavailable`, `invalid_variable`, `preview_not_supported`.
 
 ```json
 {
@@ -58,7 +58,7 @@ const readError = (body) =>
 | `200 OK` | Request succeeded | — |
 | `400 Bad Request` | Invalid parameters | Fix the request; the message names the field |
 | `401 Unauthorized` | Missing or invalid API key | Check the `Authorization: Bearer` header |
-| `402 Payment Required` | Credits exhausted (video/workflow endpoints), or a plan limit reached | Upgrade, or wait for the monthly reset |
+| `402 Payment Required` | Credits exhausted (video endpoints), or a plan limit reached | Upgrade, or wait for the monthly reset |
 | `404 Not Found` | Resource doesn't exist or belongs to another team | Check the uid |
 | `422 Unprocessable Entity` | Semantically invalid (bad variables, compile errors) | Read `message` or `errors[]` |
 | `429 Too Many Requests` | `code: "quota_exceeded"` → monthly credits exhausted (image/GIF/template/batch endpoints); otherwise a per-minute rate limit | Quota: upgrade or wait for the reset. Rate: back off and retry |
@@ -74,7 +74,7 @@ Authentication failures return `401` with the body `{ "message": "Invalid Reques
 
 ### Out of credits
 
-Every render — image, GIF, PDF page, video — consumes monthly credits. When they run out, the video and workflow endpoints return `402`; the image, GIF, HTML-template and batch endpoints return `429` — both with the same body:
+Every render — image, GIF, PDF page, video — consumes monthly credits. When they run out, the video endpoints return `402`; the image, GIF, HTML-template and batch endpoints return `429` — both with the same body:
 
 ```json
 {
